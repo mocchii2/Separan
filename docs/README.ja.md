@@ -13,7 +13,7 @@
 ## 30秒で実行
 
 ```console
-git clone https://gitlab.com/mocchii1/separan.git && cd separan
+git clone https://github.com/mocchii2/Separan.git && cd Separan
 python -m pip install -e .
 python -m separan examples/hello.sep
 ```
