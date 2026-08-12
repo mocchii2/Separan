@@ -1,0 +1,11 @@
+function:main
+score = 75
+if score >= 80 :score_check
+print "great"
+elseif score >= 60 :score_check
+print "ok"
+else:score_check
+print "retry"
+endif:score_check
+end_function:main
+

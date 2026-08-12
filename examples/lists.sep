@@ -1,0 +1,19 @@
+function:main
+nums = [10, 20, 30]
+nums = list_append(nums, 40)
+
+print first(nums)
+print last(nums)
+print length(nums)
+print is_empty(nums)
+print contains(nums, 20)
+print index_of(nums, 30)
+print last_index_of([10, 20, 10], 10)
+print slice(nums, 1, 3)
+print reverse(nums)
+print sort(nums)
+
+for item in nums :each_num
+print item
+endfor:each_num
+end_function:main

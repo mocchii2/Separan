@@ -1,0 +1,6 @@
+: Intentionally invalid: demonstrates structural diagnostics
+function:main
+if true :check
+print "ok"
+endif:wrong
+end_function:main

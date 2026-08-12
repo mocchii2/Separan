@@ -1,0 +1,9 @@
+: Separan first program
+function:main
+name = "Separan"
+count = 10
+if count > 5 :count_check
+print "Hello, " + name
+endif:count_check
+end_function:main
+

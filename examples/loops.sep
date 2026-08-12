@@ -1,0 +1,7 @@
+function:main
+items = [1, 2, 3]
+for item in items :item_loop
+print item
+endfor:item_loop
+end_function:main
+

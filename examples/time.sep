@@ -1,0 +1,12 @@
+function:main
+start = datetime("2026-08-13T01:30:00+09:00")
+wait = duration("1h30m")
+finish = start + wait
+
+print finish
+print finish - start
+
+tokyo = timezone("+09:00")
+from_unix = datetime_from_unix_milliseconds(1786552200000, tokyo)
+print from_unix
+end_function:main

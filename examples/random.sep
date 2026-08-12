@@ -1,0 +1,15 @@
+function:main
+random_seed(12345)
+
+print random_int(1, 6)
+print random_float(0.0, 1.0)
+print random_bool()
+
+items = ["red", "green", "blue"]
+print random_pick(items)
+print random_shuffle(items)
+print random_sample(items, 2)
+
+print secure_random_string(32)
+print type(secure_random_bytes(16))
+end_function:main

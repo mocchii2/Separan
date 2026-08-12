@@ -1,0 +1,27 @@
+object:user
+name = "Alice"
+age = 30
+
+object:address
+city = "Tokyo"
+end_object:address
+
+list:roles
+"admin"
+"author"
+end_list:roles
+end_object:user
+
+function:main
+print user.name
+print user.address.city
+print user.roles
+
+try :validation
+throw value_error("preview error")
+catch value_error :validation
+print "caught"
+finally:validation
+print "finished"
+endtry:validation
+end_function:main

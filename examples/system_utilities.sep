@@ -1,0 +1,17 @@
+function:main
+print regex_match("^[0-9]+$", "12345")
+
+match = regex_find("([0-9]+)-([A-Z]+)", "ticket 42-SEP")
+if match != null :match_found
+print regex_text(match)
+print regex_group(match, 1)
+print regex_group(match, 2)
+endif:match_found
+
+print glob("*.sep")
+print command_args()
+print script_path()
+
+mode = env_get("SEPARAN_MODE", default = "development")
+print mode
+end_function:main

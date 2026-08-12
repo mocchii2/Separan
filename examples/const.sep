@@ -1,0 +1,11 @@
+const app_name = "Separan"
+const max_retry = 3
+
+function:main
+retry = 0
+
+while retry < max_retry :retry_loop
+print app_name + " retry " + string(retry)
+retry = retry + 1
+endwhile:retry_loop
+end_function:main

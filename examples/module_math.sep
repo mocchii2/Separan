@@ -1,0 +1,5 @@
+const version = "preview"
+
+function:add(a, b)
+return a + b
+end_function:add

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "separan"
+version = "0.1.0a1"
+description = "Python reference interpreter for the label-structured Separan language"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+dependencies = ["tzdata>=2025.2", "cryptography>=45,<51", "argon2-cffi>=23,<26"]
+classifiers = ["License :: OSI Approved :: Apache Software License"]
+
+[project.scripts]
+separan = "separan.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["reference"]

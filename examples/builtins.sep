@@ -1,0 +1,19 @@
+function:main
+items = range(1, 6)
+
+print "item count"
+print len(items)
+
+for item in items :show_items
+print item
+endfor:show_items
+
+print type(items)
+print abs(-10)
+
+age_text = "42"
+age = number(age_text)
+print age + 1
+print string(age)
+print boolean("true")
+end_function:main

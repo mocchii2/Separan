@@ -1,0 +1,8 @@
+function:add(a, b)
+return a + b
+end_function:add
+
+function:main
+print add(20, 22)
+end_function:main
+

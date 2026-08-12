@@ -1,0 +1,15 @@
+{
+  "name": "separan-language",
+  "displayName": "Separan Language",
+  "version": "0.1.0",
+  "description": "Language support for the label-structured Separan scripting language.",
+  "icon": "images/icon.png",
+  "license": "Apache-2.0",
+  "repository": { "type": "git", "url": "https://gitlab.com/mocchii1/separan.git" },
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
+    "grammars": [{ "language": "separan", "scopeName": "source.separan", "path": "./syntaxes/separan.tmLanguage.json" }]
+  }
+}

@@ -1,0 +1,19 @@
+function:main
+raw_name = "  Separan Language  "
+name = trim(raw_name)
+
+print upper(name)
+print lower(name)
+print contains(name, "Language")
+
+words = split(name, " ")
+print join(words, "-")
+print replace(name, "Language", "Script")
+print substring(name, 0, 7)
+print length(name)
+print index_of(name, "Language")
+print last_index_of("one two one", "one")
+print repeat("ab", 3)
+print pad_left("7", 3, "0")
+print pad_right("Separan", 10, ".")
+end_function:main

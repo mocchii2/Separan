@@ -1,0 +1,13 @@
+const version = "1"
+private_value = 99
+
+error:math_error
+end_error:math_error
+
+function:add(a, b)
+return a + b
+end_function:add
+
+function:main
+print "must not run"
+end_function:main
