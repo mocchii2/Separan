@@ -9,8 +9,35 @@ description = "Python reference interpreter for the label-structured Separan lan
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Separan contributors" }]
 requires-python = ">=3.10"
+keywords = [
+    "programming-language",
+    "scripting-language",
+    "interpreter",
+    "ai-coding",
+    "language-design",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Interpreters",
+]
 dependencies = ["tzdata>=2025.2", "cryptography>=45,<51", "argon2-cffi>=23,<26"]
+
+[project.urls]
+Homepage = "https://github.com/mocchii2/Separan"
+Documentation = "https://github.com/mocchii2/Separan/tree/main/spec"
+Repository = "https://github.com/mocchii2/Separan.git"
+Issues = "https://github.com/mocchii2/Separan/issues"
+"VS Code Marketplace" = "https://marketplace.visualstudio.com/items?itemName=separan.separan-language"
 
 [project.optional-dependencies]
 postgresql = ["psycopg[binary]>=3.2,<4"]

@@ -13,6 +13,7 @@
 [English](../README.md) | 日本語
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
+[![PyPI](https://img.shields.io/pypi/v/separan?label=PyPI)](https://pypi.org/project/separan/)
 
 Separanは、AIが書いたコードを人間が読み、理解し、reviewしやすくします。
 匿名になりがちな制御構造へ`:支払い検証`、`:監査ログ記録`、`:接続再試行`のような
@@ -26,8 +27,8 @@ SeparanのAI連携は、AIを制限するためだけのものではありませ
 
 ```console
 git clone https://github.com/mocchii2/Separan.git && cd Separan
-python -m pip install -e .
-python -m separan examples/hello.sep
+python -m pip install separan
+separan examples/hello.sep
 ```
 
 Python 3.10以降が必要です。

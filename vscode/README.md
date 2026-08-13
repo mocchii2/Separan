@@ -89,12 +89,10 @@ code --install-extension separan.separan-language
 
 ### 2. Install the Separan reference runtime
 
-Separan is not on PyPI yet. Install the current reference implementation from
-GitHub:
+Install the Separan reference implementation from PyPI:
 
 ```bash
-git clone https://github.com/mocchii2/Separan.git
-python -m pip install -e Separan
+python -m pip install separan
 ```
 
 ### 3. Create a `.sep` file

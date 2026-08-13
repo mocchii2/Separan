@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo/separan_logo.png" alt="Separan" width="720">
+  <img src="https://raw.githubusercontent.com/mocchii2/Separan/main/logo/separan_logo.png" alt="Separan" width="720">
 </p>
 
 # Separan
@@ -10,8 +10,9 @@
 
 > **AI may write the code. Humans still need to understand it.**
 
-[日本語](docs/README.ja.md) | English
+[日本語](https://github.com/mocchii2/Separan/blob/main/docs/README.ja.md) | English
 
+[![PyPI](https://img.shields.io/pypi/v/separan?label=PyPI)](https://pypi.org/project/separan/)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 
 Separan makes AI-written code easier for people to read, understand, and
@@ -28,8 +29,8 @@ explain its structure to the human who remains responsible for it.
 
 ```console
 git clone https://github.com/mocchii2/Separan.git && cd Separan
-python -m pip install -e .
-python -m separan examples/hello.sep
+python -m pip install separan
+separan examples/hello.sep
 ```
 
 Python 3.10 or newer is required.
@@ -145,7 +146,7 @@ separan-structure verify before.sep after.sep --allow active_user
 
 Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
-[structural AI workflow](spec/structural-ai.md).
+[structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
 ## v0.1.0-alpha.1
 
@@ -199,7 +200,7 @@ Lists are homogeneous and zero-based. Operations such as `list_append`,
 `list_remove`, `slice`, `reverse`, and every sort return new lists; v0.1 exposes
 no mutating collection API. Stable sorting includes descending, Unicode
 case-folded, natural-number, and object-field variants. See the
-[list specification](spec/lists.md).
+[list specification](https://github.com/mocchii2/Separan/blob/main/spec/lists.md).
 
 `length(value)` and `is_empty(value)` work consistently across strings, lists,
 and bytes. String search, repetition, and padding operate on Unicode code points;
@@ -233,18 +234,18 @@ tree. Each named structure shows its direct parameters, reads, writes, and
 calls, plus added/modified/removed state against Git `HEAD`. Selecting a block
 jumps to its opener; moving the cursor tracks the deepest enclosing scope. The
 analysis is parser-backed and never executes the program. See the
-[Structure Explorer specification](spec/structure-explorer.md).
+[Structure Explorer specification](https://github.com/mocchii2/Separan/blob/main/spec/structure-explorer.md).
 
 The Language Server preview is available as `separan-lsp`. It provides parser
 and simple fixed-type diagnostics, mismatch Quick Fixes, typed Semantic Tokens,
 Hover, definition, scope-safe label rename, matching highlights, completion,
 signature help, inlay hints, labeled symbols/folding, and AST-preserving
-formatting. See the [VS Code/LSP specification](spec/vscode-extension.md).
+formatting. See the [VS Code/LSP specification](https://github.com/mocchii2/Separan/blob/main/spec/vscode-extension.md).
 
 The strict operator set includes power, integer floor division, null fallback,
 compound assignment, and typed membership. See
-[`examples/operators.sep`](examples/operators.sep) and the
-[language specification](spec/README.md#operators).
+[`examples/operators.sep`](https://github.com/mocchii2/Separan/blob/main/examples/operators.sep) and the
+[language specification](https://github.com/mocchii2/Separan/blob/main/spec/README.md#operators).
 
 External commands follow the same explicitness rule: `exec` passes a program and
 argv directly, `exec_checked` turns nonzero exit into a catchable error, and the
@@ -285,17 +286,17 @@ Separan/
 └─ LICENSE
 ```
 
-Brand assets are available as the full [Separan logo](logo/separan_logo.png)
-and square [Separan mark](logo/separan_mark.png). The original PNG files are
+Brand assets are available as the full [Separan logo](https://github.com/mocchii2/Separan/blob/main/logo/separan_logo.png)
+and square [Separan mark](https://github.com/mocchii2/Separan/blob/main/logo/separan_mark.png). The original PNG files are
 kept unchanged in the repository. A separately optimized 128px derivative is
-used as the [VS Code extension icon](vscode/images/icon.png).
+used as the [VS Code extension icon](https://github.com/mocchii2/Separan/blob/main/vscode/images/icon.png).
 
-Read the [language specification](spec/README.md), the [design philosophy](docs/philosophy.md),
-the [AI integration model](docs/ai-integration.md), the
-[temporal-type specification](spec/temporal-types.md), and the [roadmap](ROADMAP.md).
-The experimental [database standard](spec/database.md) documents the common API
+Read the [language specification](https://github.com/mocchii2/Separan/blob/main/spec/README.md), the [design philosophy](https://github.com/mocchii2/Separan/blob/main/docs/philosophy.md),
+the [AI integration model](https://github.com/mocchii2/Separan/blob/main/docs/ai-integration.md), the
+[temporal-type specification](https://github.com/mocchii2/Separan/blob/main/spec/temporal-types.md), and the [roadmap](https://github.com/mocchii2/Separan/blob/main/ROADMAP.md).
+The experimental [database standard](https://github.com/mocchii2/Separan/blob/main/spec/database.md) documents the common API
 and official SQLite, PostgreSQL, MySQL, Oracle, and SQL Server adapters.
-The [reserved system context](spec/system-context.md) defines normalized,
+The [reserved system context](https://github.com/mocchii2/Separan/blob/main/spec/system-context.md) defines normalized,
 read-only execution metadata and its namespace boundary.
 
 ## Status
@@ -305,5 +306,5 @@ may change before v1.0. It is ready for exploration, not production use.
 
 ## License
 
-Separan is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE)
+Separan is licensed under the [Apache License 2.0](https://github.com/mocchii2/Separan/blob/main/LICENSE). See [NOTICE](https://github.com/mocchii2/Separan/blob/main/NOTICE)
 for attribution information.
