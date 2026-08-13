@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "separan"
+name = "separan-lang"
 version = "0.1.0a2"
 description = "Python reference interpreter for the label-structured Separan language"
 readme = "README.md"

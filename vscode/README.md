@@ -2,9 +2,7 @@
 
 [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 
-<p align="center">
-  <img src="images/icon.png" alt="Separan mark" width="128">
-</p>
+![Separan mark](https://github.com/mocchii2/Separan/raw/HEAD/images/icon.png)
 
 **Make AI-written code understandable and verifiable to humans.**
 
@@ -92,7 +90,7 @@ code --install-extension separan.separan-language
 Install the Separan reference implementation from PyPI:
 
 ```bash
-python -m pip install separan
+python -m pip install separan-lang
 ```
 
 ### 3. Create a `.sep` file

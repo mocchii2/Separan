@@ -10,12 +10,12 @@ Requesting an unavailable or disallowed driver is `db_driver_error` and names
 the exact installation extra.
 
 ```console
-pip install separan
-pip install "separan[postgresql]"
-pip install "separan[mysql]"
-pip install "separan[oracle]"
-pip install "separan[sqlserver]"
-pip install "separan[db-all]"
+pip install separan-lang
+pip install "separan-lang[postgresql]"
+pip install "separan-lang[mysql]"
+pip install "separan-lang[oracle]"
+pip install "separan-lang[sqlserver]"
+pip install "separan-lang[db-all]"
 ```
 
 The SQL Server adapter also requires Microsoft ODBC Driver 18 for SQL Server on

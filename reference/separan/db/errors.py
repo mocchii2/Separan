@@ -16,5 +16,5 @@ class DriverNotInstalled(AdapterError):
             "db_driver_error",
             "Database driver is not installed.\n\n"
             f"Driver:\n{driver}\n\nInstall with:\n"
-            f'pip install "separan[{extra}]"',
+            f'pip install "separan-lang[{extra}]"',
         )
