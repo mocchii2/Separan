@@ -1,11 +1,30 @@
 {
   "name": "separan-language",
+  "publisher": "separan",
   "displayName": "Separan Language",
   "version": "0.4.0",
-  "description": "Language support for the label-structured Separan scripting language.",
+  "description": "AI-generated code verification language. Explicit labels, automatic scope verification, and structural diffs.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",
   "repository": { "type": "git", "url": "https://github.com/mocchii2/Separan.git" },
+  "homepage": "https://github.com/mocchii2/Separan",
+  "bugs": { "url": "https://github.com/mocchii2/Separan/issues" },
+  "keywords": [
+    "separan",
+    "language",
+    "programming language",
+    "ai",
+    "code review",
+    "verification",
+    "security",
+    "label-structured",
+    "scope verification",
+    "structural diff"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "engines": { "vscode": "^1.75.0" },
   "main": "./extension.js",
   "activationEvents": ["onLanguage:separan", "onCommand:separan.runFile", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
@@ -42,5 +61,6 @@
       }
     }
   },
-  "dependencies": { "vscode-languageclient": "^9.0.1" }
+  "dependencies": { "vscode-languageclient": "^9.0.1" },
+  "devDependencies": { "@vscode/vsce": "^3.9.2" }
 }

@@ -1,0 +1,55 @@
+name: Publish VS Code Extension to Marketplace
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'vscode-v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Install dependencies
+        working-directory: ./vscode
+        run: npm ci
+
+      - name: Verify tag matches extension version
+        working-directory: ./vscode
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#vscode-v}"
+          actual="$(node -p "require('./package.json').version")"
+          test "$expected" = "$actual"
+
+      - name: Include license and notices
+        shell: bash
+        run: cp LICENSE NOTICE vscode/
+      
+      - name: Publish to Marketplace
+        working-directory: ./vscode
+        run: npx --no-install vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Separan Language ${{ github.ref_name }}
+          body: |
+            # Separan Language VS Code Extension ${{ github.ref_name }}
+            
+            This release is now available on the VS Code Marketplace.
+            
+            [Install from Marketplace](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
+            
+            See CHANGELOG.md for details.

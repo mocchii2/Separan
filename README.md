@@ -10,6 +10,8 @@
 
 [日本語](docs/README.ja.md) | English
 
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
+
 ## Run it in 30 seconds
 
 ```console
