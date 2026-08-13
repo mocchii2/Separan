@@ -23,6 +23,24 @@ class SyntaxAndDiagnosticTests(unittest.TestCase):
     def test_label_case_is_significant(self):
         self.assert_code('function:main\nif true :Check\nendif:check\nend_function:main\n', "E104")
 
+    def test_unicode_labels_are_allowed_and_case_sensitive(self):
+        source = '''function:main
+if false :利用者確認
+print "wrong"
+elseif true :利用者確認
+print "ok"
+else:利用者確認
+print "wrong"
+endif:利用者確認
+end_function:main
+'''
+        self.assertEqual(execute(source)[1], "ok\n")
+        self.assert_code('function:main\nif true :確認\nendif:确認\nend_function:main\n', "E104")
+
+    def test_unicode_open_labels_share_duplicate_namespace(self):
+        source = 'function:main\nif true :処理中\nwhile true :処理中\nendwhile:処理中\nendif:処理中\nend_function:main\n'
+        self.assert_code(source, "E109")
+
     def test_branch_label_mismatches(self):
         for branch in ('elseif false :wrong', 'else:wrong'):
             with self.subTest(branch=branch):
@@ -126,6 +144,10 @@ class LexerEdgeTests(unittest.TestCase):
     def test_invalid_escape(self): self.assert_lex_error('print "\\q"\n', "E101")
     def test_unterminated_comment(self): self.assert_lex_error('::note\ntext\n', "E106")
     def test_comment_label_mismatch(self): self.assert_lex_error('::note\ntext\n::other\n', "E104")
+    def test_unicode_comment_label(self):
+        self.assertEqual(execute('::説明\n名前 = invalid text here\n::説明\nprint "ok"\n')[1], "ok\n")
+    def test_non_normalized_unicode_label(self):
+        self.assert_lex_error('function:main\nif true :cafe\u0301\nendif:cafe\u0301\nend_function:main\n', "E102")
     def test_non_ascii_identifier(self): self.assert_lex_error('名前 = 1\n', "E101")
     def test_supported_escapes(self):
         self.assertEqual(execute('print "a\\n\\r\\t\\\"\\\\"\n')[1], 'a\n\r\t"\\\n')

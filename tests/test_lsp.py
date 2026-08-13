@@ -38,6 +38,13 @@ class LspTests(unittest.TestCase):
             {"startLine": 1, "endLine": 3, "kind": "region"},
         ])
 
+    def test_unicode_labels_appear_in_symbols_and_folding(self):
+        source = SOURCE.replace("active", "利用者確認")
+        self.assertEqual(diagnostic(source, "file:///unicode.sep"), [])
+        symbols = document_symbols(source)
+        self.assertEqual(symbols[0]["children"][0]["name"], "利用者確認")
+        self.assertIn({"startLine": 1, "endLine": 3, "kind": "region"}, folding_ranges(source))
+
     def test_initialize_capabilities_and_document_updates(self):
         output = io.BytesIO()
         server = Server(io.BytesIO(), output)

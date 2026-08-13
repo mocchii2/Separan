@@ -22,7 +22,9 @@ endif:label
 
 - ソースはUTF-8の`.sep`ファイル。
 - 1行1文。セミコロンは使用しない。
-- 識別子とラベルは`[A-Za-z_][A-Za-z0-9_]*`で、大文字小文字を区別する。
+- 識別子は`[A-Za-z_][A-Za-z0-9_]*`。明示的なblock labelと複数行comment labelには
+  NFC正規化済みUnicode identifierも使用できる。どちらも大文字小文字を区別し、絵文字、
+  空白、句読点、非正規化labelは使用できない。
 - 型は`number`、`string`、`boolean`、`list`、`null`。
 - 変数は最初の代入で推論した型を維持する。
 - 関数引数は、その関数への最初の呼び出しで型を固定する。

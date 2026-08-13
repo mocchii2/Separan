@@ -69,12 +69,15 @@ its opener and closer must agree.
 function:main
 name = "Separan"
 
-if name != null :name_exists
+if name != null :名前あり
 print "Hello, " + name
-endif:name_exists
+endif:名前あり
 
 end_function:main
 ```
+
+Block and multiline-comment labels accept NFC-normalized Unicode identifiers.
+Program identifiers such as variables and function names remain ASCII-only.
 
 Separan rejects structural mistakes before they can silently succeed:
 

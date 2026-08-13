@@ -1,3 +1,5 @@
+import unicodedata
+
 from .errors import error
 from .token import SourcePosition, Token, TokenType
 
@@ -62,7 +64,15 @@ class Lexer:
 
     @staticmethod
     def _valid_name(value):
-        return bool(value) and (value[0].isalpha() and value[0].isascii() or value[0] == "_") and all((c.isalnum() and c.isascii()) or c == "_" for c in value)
+        return bool(value) and value.isidentifier() and unicodedata.is_normalized("NFC", value)
+
+    @staticmethod
+    def _name_start(value):
+        return value == "_" or value.isidentifier()
+
+    @staticmethod
+    def _name_continue(value):
+        return ("_" + value).isidentifier()
 
     def _scan_line(self, text, line_no, out):
         i = 0
@@ -118,12 +128,17 @@ class Lexer:
                     while i < len(text) and text[i].isdigit(): i += 1
                 lex = text[start:i]
                 out.append(Token(TokenType.NUMBER, lex, float(lex) if "." in lex else int(lex), pos)); continue
-            if c.isalpha() or c == "_":
+            if self._name_start(c):
                 start = i
-                while i < len(text) and (text[i].isalnum() or text[i] == "_"): i += 1
+                while i < len(text) and self._name_continue(text[i]): i += 1
                 lex = text[start:i]
                 if not all(ch.isascii() for ch in lex):
-                    raise error("E101", "Invalid identifier", "v0.1 identifiers must use ASCII letters, digits, and underscores.", pos, actual=lex)
+                    follows_colon = bool(out) and out[-1].type == TokenType.COLON
+                    if not follows_colon:
+                        raise error("E101", "Invalid identifier", "Identifiers must use ASCII letters, digits, and underscores; Unicode is allowed only for labels.", pos, actual=lex)
+                    if not self._valid_name(lex):
+                        raise error("E102", "Invalid label", "Unicode labels must be valid NFC-normalized identifiers.", pos, actual=lex)
+                    out.append(Token(TokenType.LABEL, lex, None, pos)); continue
                 kind = KEYWORDS.get(lex, TokenType.IDENTIFIER)
                 literal = True if kind == TokenType.TRUE else False if kind == TokenType.FALSE else None
                 out.append(Token(kind, lex, literal, pos)); continue

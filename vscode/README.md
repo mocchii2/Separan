@@ -8,6 +8,8 @@ This experimental extension recognizes `.sep` files and highlights Separan
 keywords, strings, numbers, comments, function names, and block labels using a
 TextMate grammar. Its v0.3 language-server preview also provides live parser
 diagnostics, a labeled-block outline, and folding ranges.
+NFC-normalized Unicode block labels, including Japanese labels, are highlighted
+and preserved in the outline.
 
 The extension icon is a small-size derivative of the official Separan mark;
 the unchanged brand originals remain in the repository's `logo/` directory.

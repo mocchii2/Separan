@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Separan", "scopeName": "source.separan",
   "patterns": [
-    { "name": "comment.block.separan", "begin": "^\\s*::([A-Za-z_][A-Za-z0-9_]*)\\s*$", "end": "^\\s*::\\1\\s*$" },
+    { "name": "comment.block.separan", "begin": "^\\s*::([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*$", "end": "^\\s*::\\1\\s*$" },
     { "name": "comment.line.colon.separan", "match": "^\\s*:(?!:).*$" },
     { "name": "string.quoted.double.separan", "begin": "\"", "end": "\"", "patterns": [{ "name": "constant.character.escape.separan", "match": "\\\\[nrt\"\\\\]" }] },
     { "name": "constant.numeric.separan", "match": "\\b[0-9]+(?:\\.[0-9]+)?\\b" },
@@ -21,7 +21,7 @@
     { "name": "variable.language.system.separan", "match": "\\bsystem\\b" },
     { "name": "support.variable.property.system.separan", "match": "(?<=\\bsystem\\.)(?:version|engine|script_path|script_name|script_dir|working_dir|args|arg_count|os|arch|hostname|pid|runtime|cpu_count)\\b" },
     { "name": "entity.name.function.separan", "match": "(?<=\\bfunction:)[A-Za-z_][A-Za-z0-9_]*" },
-    { "name": "entity.name.label.separan", "match": ":[A-Za-z_][A-Za-z0-9_]*\\b" },
+    { "name": "entity.name.label.separan", "match": ":[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*" },
     { "name": "storage.modifier.separan", "match": "\\bconst\\b" },
     { "name": "keyword.control.separan", "match": "\\b(?:function|end_function|error|end_error|object|end_object|list|end_list|import|as|try|catch|finally|endtry|throw|if|elseif|else|endif|while|endwhile|for|endfor|print|print_error|return)\\b" }
   ]

@@ -22,7 +22,9 @@ share one namespace and must be unique. Closed labels may be reused.
 
 - UTF-8 source files use the `.sep` extension.
 - One line contains one statement; semicolons have no meaning.
-- Identifiers and labels match `[A-Za-z_][A-Za-z0-9_]*` and are case-sensitive.
+- Identifiers match `[A-Za-z_][A-Za-z0-9_]*`. Explicit block and multiline
+  comment labels may instead be NFC-normalized Unicode identifiers. Both are
+  case-sensitive; emoji, spaces, punctuation, and non-normalized labels are invalid.
 - Types are `number`, `string`, `boolean`, `list`, and `null`.
 - Variables keep the type inferred by their first assignment.
 - Function parameter types are fixed by the function's first call.

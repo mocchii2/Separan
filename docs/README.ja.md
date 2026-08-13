@@ -68,12 +68,15 @@ Separanは、人間・AI・開発ツールがブロックの終わりを推測�
 function:main
 name = "Separan"
 
-if name != null :name_exists
+if name != null :名前あり
 print "Hello, " + name
-endif:name_exists
+endif:名前あり
 
 end_function:main
 ```
+
+block labelと複数行comment labelにはNFC正規化済みの日本語を含むUnicode identifierを
+使用できます。変数名や関数名などのprogram identifierはASCII限定のままです。
 
 Separanは、よくある間違いが黙って成功することを防ぎます。
 

@@ -20,8 +20,9 @@ BLOCKS = {
     "try": ("endtry", 5), "error": ("end_error", 5),
     "http_route": ("end_http_route", 12), "transaction": ("end_transaction", 5),
 }
-OPEN_RE = re.compile(r"^\s*(function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([A-Za-z_][A-Za-z0-9_]*)\s*(?:\([^\n]*\))?\s*$")
-CLOSE_RE = re.compile(r"^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([A-Za-z_][A-Za-z0-9_]*)\s*$")
+LABEL_PATTERN = r"([^\s:()]+)"
+OPEN_RE = re.compile(r"^\s*(function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:" + LABEL_PATTERN + r"\s*(?:\([^\n]*\))?\s*$")
+CLOSE_RE = re.compile(r"^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):" + LABEL_PATTERN + r"\s*$")
 
 
 def _range(line, start, end):

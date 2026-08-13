@@ -226,7 +226,7 @@ class Parser:
 
     def _opening_label(self, kind):
         colon = self._consume(T.COLON, f"Expected :label after {kind} expression.")
-        label = self._consume(T.IDENTIFIER, "Expected block label after ':'.")
+        label = self._consume_label("Expected block label after ':'.")
         self._line_end(); self._push(kind, label); return label
 
     @staticmethod
@@ -243,14 +243,14 @@ class Parser:
 
     def _branch_label(self, label, branch):
         self._consume(T.COLON, f"Expected ':' after {branch}.")
-        actual = self._consume(T.IDENTIFIER, f"Expected label after {branch}.")
+        actual = self._consume_label(f"Expected label after {branch}.")
         if actual.lexeme != label.lexeme: self._mismatch(actual, label.lexeme, branch)
         self._line_end()
 
     def _close(self, token_type, kind):
         closer = self._consume(token_type, f"Expected closing {kind}.")
         self._consume(T.COLON, "Expected ':' in block closer.")
-        label = self._consume(T.IDENTIFIER, "Expected closing block label.")
+        label = self._consume_label("Expected closing block label.")
         opened = self.stack[-1]
         if label.lexeme != opened.label:
             lower = next((b for b in reversed(self.stack[:-1]) if b.kind == kind and b.label == label.lexeme), None)
@@ -273,7 +273,7 @@ class Parser:
 
     def _closer_label(self):
         i = self.current + 1
-        if self.tokens[i].type == T.COLON and self.tokens[i+1].type == T.IDENTIFIER: return self.tokens[i+1].lexeme
+        if self.tokens[i].type == T.COLON and self.tokens[i+1].type in (T.IDENTIFIER, T.LABEL): return self.tokens[i+1].lexeme
         return "<missing>"
 
     def _mismatch(self, token, expected, prefix, related=None):
@@ -394,6 +394,9 @@ class Parser:
         while self._match(T.NEWLINE): pass
     def _consume(self, kind, message):
         if self._at(kind): return self._advance()
+        t = self._peek(); raise error("E100", "Syntax error", message, t.position, actual=t.lexeme)
+    def _consume_label(self, message):
+        if self._at(T.IDENTIFIER, T.LABEL): return self._advance()
         t = self._peek(); raise error("E100", "Syntax error", message, t.position, actual=t.lexeme)
     def _match(self, *types):
         if self._at(*types): self._advance(); return True
