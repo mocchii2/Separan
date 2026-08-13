@@ -10,6 +10,7 @@ KEYWORDS = {
     "endfor": TokenType.ENDFOR, "print": TokenType.PRINT, "return": TokenType.RETURN,
     "print_error": TokenType.PRINT_ERROR,
     "const": TokenType.CONST,
+    "not": TokenType.NOT,
     "object": TokenType.OBJECT, "end_object": TokenType.END_OBJECT,
     "list": TokenType.LIST, "end_list": TokenType.END_LIST,
     "import": TokenType.IMPORT, "as": TokenType.AS,
@@ -73,14 +74,22 @@ class Lexer:
             c = text[i]
             if c in " \t\r": i += 1; continue
             pos = SourcePosition(self.filename, line_no, i + 1, text)
-            if c in single:
-                out.append(Token(single[c], c, None, pos)); i += 1; continue
+            triples = {"//=": TokenType.FLOOR_DIV_EQUAL, "**=": TokenType.POWER_EQUAL}
+            triple = text[i:i+3]
+            if triple in triples:
+                out.append(Token(triples[triple], triple, None, pos)); i += 3; continue
             pairs = {"==": TokenType.EQUAL_EQUAL, "!=": TokenType.BANG_EQUAL,
                      ">=": TokenType.GREATER_EQUAL, "<=": TokenType.LESS_EQUAL,
-                     "&&": TokenType.AND, "||": TokenType.OR}
+                     "&&": TokenType.AND, "||": TokenType.OR,
+                     "**": TokenType.POWER, "//": TokenType.FLOOR_DIV,
+                     "??": TokenType.NULL_COALESCE, "+=": TokenType.PLUS_EQUAL,
+                     "-=": TokenType.MINUS_EQUAL, "*=": TokenType.STAR_EQUAL,
+                     "/=": TokenType.SLASH_EQUAL, "%=": TokenType.PERCENT_EQUAL}
             pair = text[i:i+2]
             if pair in pairs:
                 out.append(Token(pairs[pair], pair, None, pos)); i += 2; continue
+            if c in single:
+                out.append(Token(single[c], c, None, pos)); i += 1; continue
             singles = {"=": TokenType.EQUAL, "!": TokenType.BANG, ">": TokenType.GREATER, "<": TokenType.LESS}
             if c in singles:
                 out.append(Token(singles[c], c, None, pos)); i += 1; continue

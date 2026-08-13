@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime as PyDateTime, timezone as py_timezone, timedelta
 from io import StringIO
+import math
 from pathlib import Path
 
 from .ast_nodes import *
@@ -349,14 +350,18 @@ class Interpreter:
             return target.runtime._call(expr.name, args, expr.position, named)
         if isinstance(expr, UnaryExpr):
             value = self._eval(expr.operand)
-            if expr.operator == "!": return not self._boolean(value, expr.position)
+            if expr.operator in ("!", "not"): return not self._boolean(value, expr.position)
             if type(value) not in (int, float) or type(value) is bool: self._type_error(expr.position, "number", type_name(value), "Unary '-' requires a number.")
             return -value
         if isinstance(expr, BinaryExpr):
             left = self._eval(expr.left)
             if expr.operator == "&&": return self._boolean(left, expr.left.position) and self._boolean(self._eval(expr.right), expr.right.position)
             if expr.operator == "||": return self._boolean(left, expr.left.position) or self._boolean(self._eval(expr.right), expr.right.position)
+            if expr.operator == "??": return left if left is not None else self._eval(expr.right)
             right = self._eval(expr.right); op = expr.operator
+            if op in ("in", "not in"):
+                contained = self._contains_operator(left, right, expr.position)
+                return not contained if op == "not in" else contained
             if op in ("==", "!="):
                 if left is not None and right is not None and type_name(left) != type_name(right):
                     if self._is_temporal(left) or self._is_temporal(right):
@@ -370,10 +375,18 @@ class Interpreter:
                 from .bytes_ops import MAX_BYTES_LENGTH
                 if len(left.value) + len(right.value) > MAX_BYTES_LENGTH: raise error("E624", "Bytes size limit", f"bytes result cannot exceed {MAX_BYTES_LENGTH} bytes.", expr.position)
                 return BytesValue(left.value + right.value)
-            if op in ("+", "-", "*", "/", "%", ">", "<", ">=", "<="):
+            if op == "+" and type(left) is list and type(right) is list:
+                left_type = list_element_type(left, expr.position); right_type = list_element_type(right, expr.position)
+                if left_type and right_type and left_type != right_type:
+                    self._type_error(expr.position, f"list[{left_type}]", f"list[{right_type}]", "List concatenation requires matching element types.")
+                return left + right
+            if op in ("+", "-", "*", "/", "//", "%", "**", ">", "<", ">=", "<="):
                 if not self._numbers(left, right): self._type_error(expr.position, "number + number" if op == "+" else "number operands", f"{type_name(left)}, {type_name(right)}", f"Operator '{op}' received incompatible values.")
-                if op in ("/", "%") and right == 0: raise error("E301", "Division by zero", f"Operator '{op}' cannot use zero as its right operand.", expr.position, actual="0")
-                return {"+": lambda: left+right, "-": lambda: left-right, "*": lambda: left*right, "/": lambda: left/right, "%": lambda: left%right, ">": lambda: left>right, "<": lambda: left<right, ">=": lambda: left>=right, "<=": lambda: left<=right}[op]()
+                if op in ("/", "//", "%") and right == 0: raise error("E301", "Division by zero", f"Operator '{op}' cannot use zero as its right operand.", expr.position, actual="0")
+                if op == "//" and (type(left) is not int or type(right) is not int):
+                    self._type_error(expr.position, "integer number operands", f"{left!r}, {right!r}", "Operator '//' requires integer-valued numbers.")
+                if op == "**": return self._power(left, right, expr.position)
+                return {"+": lambda: left+right, "-": lambda: left-right, "*": lambda: left*right, "/": lambda: left/right, "//": lambda: left//right, "%": lambda: left%right, ">": lambda: left>right, "<": lambda: left<right, ">=": lambda: left>=right, "<=": lambda: left<=right}[op]()
         raise RuntimeError(f"Unknown AST node: {expr!r}")
 
     def _call(self, name, args, position, named=None):
@@ -413,6 +426,33 @@ class Interpreter:
 
     @staticmethod
     def _numbers(left, right): return type(left) in (int, float) and type(left) is not bool and type(right) in (int, float) and type(right) is not bool
+
+    def _contains_operator(self, needle, container, position):
+        if type(container) is str:
+            if type(needle) is not str: self._type_error(position, "string in string", f"{type_name(needle)} in string", "String containment requires a string search value.")
+            return needle in container
+        if type(container) is list:
+            element_type = list_element_type(container, position)
+            if element_type is not None and type_name(needle) != element_type:
+                self._type_error(position, element_type, type_name(needle), "List containment does not convert the search value.")
+            return needle in container
+        if isinstance(container, ObjectValue):
+            if type(needle) is not str: self._type_error(position, "string object key", type_name(needle), "Object containment tests field names.")
+            return needle in container.fields
+        if isinstance(container, BytesValue):
+            if isinstance(needle, BytesValue): return needle.value in container.value
+            if type(needle) is int and 0 <= needle <= 255: return needle in container.value
+            self._type_error(position, "bytes or integer byte 0..255", type_name(needle), "Bytes containment requires bytes or one integer byte.")
+        self._type_error(position, "string, list, object, or bytes container", type_name(container), "Operator 'in' requires a supported container on the right.")
+
+    @staticmethod
+    def _power(base, exponent, position):
+        try: result = base ** exponent
+        except (ValueError, OverflowError, ZeroDivisionError):
+            raise error("E308", "Math domain error", "Operator '**' operands are outside the supported real, finite domain.", position, actual=f"{base}, {exponent}")
+        if type(result) is complex or (type(result) is float and not math.isfinite(result)):
+            raise error("E308", "Math domain error", "Operator '**' result must be real and finite.", position, actual=repr(result))
+        return result
     @staticmethod
     def is_number(value): return type(value) in (int, float) and type(value) is not bool
     @staticmethod

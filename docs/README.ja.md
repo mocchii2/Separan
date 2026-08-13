@@ -210,6 +210,9 @@ SQL literalやcommentを壊さずnative placeholderへ変換します。SQL dial
 v0.3 Language Serverの初版は`separan-lsp`として利用できます。リファレンスParserを
 再利用したリアルタイム診断、label付きdocument symbol、folding rangeをVS Code拡張へ提供します。
 
+厳密型の演算子として累乗、整数floor除算、null fallback、複合代入、型付き包含判定を
+利用できます。[演算子サンプル](../examples/operators.sep)と[言語仕様](../spec/README.ja.md#演算子)を参照してください。
+
 ## 状態
 
 Separanは現在 **v0.1.0-alpha.1** の実験的な処理系です。v1.0までは構文や

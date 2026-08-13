@@ -34,6 +34,35 @@ share one namespace and must be unique. Closed labels may be reused.
 - Without `main`, top-level assignments and `print` statements execute in order.
 - `const name = value` creates a non-reassignable binding in the current scope.
 
+## Operators
+
+Operators never perform implicit conversion. Precedence from low to high is
+`??`, `||`, `&&`, equality, ordered/membership comparison, `+ -`,
+`* / // %`, unary `! not -`, and `**`. Power is right-associative; `??` is
+right-associative and evaluates its right operand only when the left is null.
+
+| Operators | Rule |
+|---|---|
+| `+ - * / %` | number arithmetic; `+` also concatenates matching strings, bytes, and homogeneous lists |
+| `//` | integer-only floor division; negative results round toward negative infinity |
+| `**` | real, finite numeric power |
+| `== != < <= > >=` | strict comparison without conversion; comparisons cannot chain |
+| `&& || ! not` | boolean-only logic with short-circuiting for `&&` and `||` |
+| `??` | null-only fallback with short-circuiting; false, zero, and empty values are retained |
+| `in`, `not in` | strict containment for string, list, object field names, and bytes |
+
+Compound assignment supports `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, and `**=`.
+It is exactly the corresponding operation followed by assignment, so constants
+remain immutable and the binding's fixed type still applies. `??=` is
+intentionally absent because changing a null-typed binding to another type would
+violate fixed first-assignment typing. `++` and `--` are not defined.
+
+For membership, string search requires string operands. List search must match
+the homogeneous element type. Object membership checks a string field name.
+Bytes membership accepts either bytes subsequences or an integer byte from 0
+through 255. Missing membership is a normal `false`; an incompatible search
+type is a type error rather than silently returning false.
+
 ## Built-in functions
 
 Built-in names are reserved and cannot be redefined by source programs.

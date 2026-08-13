@@ -1,0 +1,22 @@
+function:main
+
+power = 2 ** 3 ** 2
+floor_division = -7 // 3
+print power
+print floor_division
+
+display_name = null ?? "anonymous"
+print display_name
+
+items = [10, 20]
+items += [30, 40]
+
+if 20 in items :known_item
+print "20 is present"
+endif:known_item
+
+if "admin" not in ["guest", "member"] :not_admin
+print "admin is absent"
+endif:not_admin
+
+end_function:main

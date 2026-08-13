@@ -14,6 +14,11 @@ class OpenBlock:
 
 class Parser:
     CLOSERS = {T.ENDIF: "if", T.ENDWHILE: "while", T.ENDFOR: "for", T.END_FUNCTION: "function", T.END_OBJECT: "object", T.END_LIST: "list", T.ENDTRY: "try", T.END_ERROR: "error", T.END_HTTP_ROUTE: "http_route", T.END_TRANSACTION: "transaction"}
+    ASSIGNMENTS = {
+        T.EQUAL: None, T.PLUS_EQUAL: "+", T.MINUS_EQUAL: "-", T.STAR_EQUAL: "*",
+        T.SLASH_EQUAL: "/", T.FLOOR_DIV_EQUAL: "//", T.PERCENT_EQUAL: "%",
+        T.POWER_EQUAL: "**",
+    }
 
     def __init__(self, tokens: list[Token]):
         self.tokens, self.current, self.stack = tokens, 0, []
@@ -77,8 +82,11 @@ class Parser:
             name = self._binding(self._consume(T.IDENTIFIER, "Expected constant name after 'const'."))
             self._consume(T.EQUAL, "Expected '=' after constant name.")
             value = self._expression(); self._line_end(); return ConstDeclaration(token.position, name.lexeme, value)
-        if token.type == T.IDENTIFIER and self._peek(1).type == T.EQUAL:
-            name = self._binding(self._advance()); self._advance(); value = self._expression(); self._line_end(); return Assignment(name.position, name.lexeme, value)
+        if token.type == T.IDENTIFIER and self._peek(1).type in self.ASSIGNMENTS:
+            name = self._binding(self._advance()); assignment = self._advance(); value = self._expression(); self._line_end()
+            operator = self.ASSIGNMENTS[assignment.type]
+            if operator is not None: value = BinaryExpr(assignment.position, VariableExpr(name.position, name.lexeme), operator, value)
+            return Assignment(name.position, name.lexeme, value)
         if token.type == T.IDENTIFIER and self._peek(1).type == T.DOT and self._peek(2).type == T.IDENTIFIER and self._peek(3).type == T.EQUAL:
             raise error("E214", "Immutable member", f"Cannot assign to read-only member '{token.lexeme}.{self._peek(2).lexeme}'.", token.position, actual=f"{token.lexeme}.{self._peek(2).lexeme}")
         if top_level and token.type == T.IDENTIFIER and token.lexeme in ("http_host", "http_static"):
@@ -278,32 +286,43 @@ class Parser:
     def _top_error(self, token):
         raise error("E110", "Invalid top-level statement", "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.", token.position, actual=token.lexeme)
 
-    def _expression(self): return self._or()
+    def _expression(self): return self._coalesce()
+    def _coalesce(self):
+        expr = self._or()
+        if self._match(T.NULL_COALESCE):
+            operator = self._previous(); expr = BinaryExpr(operator.position, expr, operator.lexeme, self._coalesce())
+        return expr
     def _or(self): return self._binary(self._and, {T.OR})
     def _and(self): return self._binary(self._equality, {T.AND})
     def _equality(self):
         expr = self._comparison()
         if self._at(T.EQUAL_EQUAL, T.BANG_EQUAL):
             operator = self._advance()
-            if isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!="}:
+            if isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!=", "in", "not in"}:
                 self._chained(operator)
             right = self._comparison()
-            if isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<="}:
+            if isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<=", "in", "not in"}:
                 self._chained(operator)
             expr = BinaryExpr(operator.position, expr, operator.lexeme, right)
         if self._at(T.EQUAL_EQUAL, T.BANG_EQUAL, T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
             self._chained(self._peek())
         return expr
     def _comparison(self):
-        expr = self._binary(self._term, {T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL}, once=True)
-        if self._at(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
+        expr = self._term()
+        if self._at(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL, T.IN) or (self._at(T.NOT) and self._peek(1).type == T.IN):
+            operator = self._advance()
+            lexeme = operator.lexeme
+            if operator.type == T.NOT:
+                self._advance(); lexeme = "not in"
+            expr = BinaryExpr(operator.position, expr, lexeme, self._term())
+        if self._at(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL, T.IN) or (self._at(T.NOT) and self._peek(1).type == T.IN):
             self._chained(self._peek())
         return expr
     @staticmethod
     def _chained(token):
         raise error("E111", "Chained comparison", "Comparison operators cannot be chained. Use && explicitly.", token.position, actual=token.lexeme)
     def _term(self): return self._binary(self._factor, {T.PLUS, T.MINUS})
-    def _factor(self): return self._binary(self._unary, {T.STAR, T.SLASH, T.PERCENT})
+    def _factor(self): return self._binary(self._unary, {T.STAR, T.SLASH, T.FLOOR_DIV, T.PERCENT})
     def _binary(self, sub, types, once=False):
         expr = sub()
         while self._peek().type in types:
@@ -311,9 +330,14 @@ class Parser:
             if once: break
         return expr
     def _unary(self):
-        if self._match(T.BANG, T.MINUS):
+        if self._match(T.BANG, T.NOT, T.MINUS):
             op = self._previous(); return UnaryExpr(op.position, op.lexeme, self._unary())
-        return self._postfix()
+        return self._power()
+    def _power(self):
+        expr = self._postfix()
+        if self._match(T.POWER):
+            op = self._previous(); expr = BinaryExpr(op.position, expr, op.lexeme, self._unary())
+        return expr
     def _postfix(self):
         expr = self._primary()
         while self._at(T.LBRACKET, T.DOT):

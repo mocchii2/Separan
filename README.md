@@ -197,6 +197,11 @@ The first v0.3 Language Server preview is available as `separan-lsp`. It reuses
 the reference parser for live diagnostics and supplies labeled document symbols
 and folding ranges to the VS Code extension.
 
+The strict operator set includes power, integer floor division, null fallback,
+compound assignment, and typed membership. See
+[`examples/operators.sep`](examples/operators.sep) and the
+[language specification](spec/README.md#operators).
+
 External commands follow the same explicitness rule: `exec` passes a program and
 argv directly, `exec_checked` turns nonzero exit into a catchable error, and the
 separately gated `shell_exec` is the only API that interprets shell syntax.
