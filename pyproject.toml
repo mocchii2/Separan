@@ -11,7 +11,6 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 dependencies = ["tzdata>=2025.2", "cryptography>=45,<51", "argon2-cffi>=23,<26"]
-classifiers = ["License :: OSI Approved :: Apache Software License"]
 
 [project.optional-dependencies]
 postgresql = ["psycopg[binary]>=3.2,<4"]
