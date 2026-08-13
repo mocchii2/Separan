@@ -8,6 +8,7 @@ _DRIVERS = {
     "postgresql": "separan.db.drivers.postgresql",
     "mysql": "separan.db.drivers.mysql",
     "oracle": "separan.db.drivers.oracle",
+    "sqlserver": "separan.db.drivers.sqlserver",
 }
 
 

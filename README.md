@@ -186,8 +186,8 @@ Labeled HTTP routes and a separately capability-gated development host are also
 available as a server preview. The dispatcher is transport-independent so a
 future Lambda or production adapter can reuse the same `.sep` application.
 The database preview separates its common API from official SQLite, PostgreSQL,
-MySQL, and Oracle adapters. SQLite is built in; the other three are optional
-extras. Safe `?` placeholder scanning, strict single-row and scalar APIs,
+MySQL, Oracle, and Microsoft SQL Server adapters. SQLite is built in; the other
+four are optional extras. Safe `?` placeholder scanning, strict single-row and scalar APIs,
 labeled transactions, common metadata, and redacted connections are available.
 Stable execution metadata is available through the reserved read-only `system`
 context; dynamic values such as time, requests, randomness, and database state
@@ -240,8 +240,8 @@ used as the [VS Code extension icon](vscode/images/icon.png).
 Read the [language specification](spec/README.md), the [design philosophy](docs/philosophy.md),
 the [AI integration model](docs/ai-integration.md), the
 [temporal-type specification](spec/temporal-types.md), and the [roadmap](ROADMAP.md).
-The experimental [database standard](spec/database.md) documents the SQLite
-reference driver and the adapter contract for additional SQL databases.
+The experimental [database standard](spec/database.md) documents the common API
+and official SQLite, PostgreSQL, MySQL, Oracle, and SQL Server adapters.
 The [reserved system context](spec/system-context.md) defines normalized,
 read-only execution metadata and its namespace boundary.
 

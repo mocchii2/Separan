@@ -33,7 +33,7 @@ def main(argv=None):
     parser.add_argument("source", type=Path, nargs="?")
     parser.add_argument("--ast", action="store_true", help="print the parsed AST instead of executing")
     parser.add_argument("--timezone-version", action="store_true", help="print the timezone database version")
-    parser.add_argument("--allow-database-driver", action="append", choices=("postgresql", "mysql", "oracle"), default=[], help="allow an optional database driver for this run")
+    parser.add_argument("--allow-database-driver", action="append", choices=("postgresql", "mysql", "oracle", "sqlserver"), default=[], help="allow an optional database driver for this run")
     args, script_arguments = parser.parse_known_args(argv)
     if args.timezone_version:
         print(timezone_database_version())

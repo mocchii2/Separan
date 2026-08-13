@@ -3,8 +3,8 @@
 > Explicit over implicit. Structure should be named, not guessed.
 
 DB APIとdriver adapterは完全に分離する。SQLiteはPython標準`sqlite3`で標準搭載し、
-PostgreSQL、MySQL、OracleはそれぞれPsycopg 3、MySQL Connector/Python、
-python-oracledbをlazy loadするoptional adapterとして実装する。未導入または
+PostgreSQL、MySQL、Oracle、Microsoft SQL ServerはそれぞれPsycopg 3、
+MySQL Connector/Python、python-oracledb、pyodbcをlazy loadするoptional adapterとして実装する。未導入または
 Capabilityで許可されていないdriverは`db_driver_error`となり、必要なinstall extraを表示する。
 
 ```console
@@ -12,8 +12,12 @@ pip install separan
 pip install "separan[postgresql]"
 pip install "separan[mysql]"
 pip install "separan[oracle]"
+pip install "separan[sqlserver]"
 pip install "separan[db-all]"
 ```
+
+SQL Server adapterはhost OSにMicrosoft ODBC Driver 18 for SQL Serverも必要とする。
+Python extraが導入するのはpyodbcだけである。
 
 内部構成は`db/core.py`、`db/registry.py`、`db/errors.py`と、`db/drivers/`配下の
 公式adapterに分ける。optional Python packageはdriver選択時までimportしない。
@@ -65,7 +69,10 @@ begin前のcommit/rollbackは `db_transaction_error`。
 `db_tables`、`db_columns`、`db_indexes`、`db_primary_key`、`db_server_info`、
 `db_version`は共通result形を持つadapter操作として実装する。結果順は決定的。
 `db_server_info`は`driver`、`driver_version`、`server_version`、`database_name`、
-`server_host`、`mode`を返し、Oracleでは`thin`／`thick`も示す。SQL NULLはnull、BLOBはbytes。
+`server_host`、`mode`を返し、Oracleでは`thin`／`thick`も示す。SQL Serverでは認証方式
+`windows`／`password`を示し、userとpasswordを両方省略した場合はWindows認証、片方だけなら
+認証errorとする。暗号化接続をdefaultとし、自己署名証明書を許可するのは明示的なlocal hostだけ、
+remote hostでは証明書検証を必須にする。SQL NULLはnull、BLOBはbytes。
 SQLiteがboolean/datetimeの確実な結果型情報を持たない場合、nativeのnumber/stringを維持する。
 
 DBアクセスには `database` Capabilityとdriver許可が必要。SQLite pathはfilesystem capability root内。

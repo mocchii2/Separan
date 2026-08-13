@@ -203,7 +203,7 @@ label付きobject/list、member access、namespace付きimport、label付き
 `try/catch/finally/throw`もリファレンス処理系へ先行実装済みです。
 
 DB APIはdriver adapterから分離済みです。SQLiteは標準搭載し、PostgreSQL、MySQL、
-Oracleはoptional extraとして提供します。Separan側は常に`?`でbindし、adapterが
+Oracle、Microsoft SQL Serverはoptional extraとして提供します。Separan側は常に`?`でbindし、adapterが
 SQL literalやcommentを壊さずnative placeholderへ変換します。SQL dialect自体は
 各database固有のままです。詳細は[DB仕様](../spec/database.ja.md)を参照してください。
 

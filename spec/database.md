@@ -3,8 +3,9 @@
 > Explicit over implicit. Structure should be named, not guessed.
 
 The DB API and driver adapters are fully separated. SQLite is built in through
-Python `sqlite3`; PostgreSQL, MySQL, and Oracle use lazy-loaded optional adapters
-backed by Psycopg 3, MySQL Connector/Python, and python-oracledb respectively.
+Python `sqlite3`; PostgreSQL, MySQL, Oracle, and Microsoft SQL Server use
+lazy-loaded optional adapters backed by Psycopg 3, MySQL Connector/Python,
+python-oracledb, and pyodbc respectively.
 Requesting an unavailable or disallowed driver is `db_driver_error` and names
 the exact installation extra.
 
@@ -13,8 +14,12 @@ pip install separan
 pip install "separan[postgresql]"
 pip install "separan[mysql]"
 pip install "separan[oracle]"
+pip install "separan[sqlserver]"
 pip install "separan[db-all]"
 ```
+
+The SQL Server adapter also requires Microsoft ODBC Driver 18 for SQL Server on
+the host operating system; the Python extra installs only pyodbc.
 
 The implementation is divided into `db/core.py`, `db/registry.py`,
 `db/errors.py`, and one module per official adapter under `db/drivers/`.
@@ -77,7 +82,11 @@ commit without begin, and rollback without begin are `db_transaction_error`.
 `db_version` are adapter operations with a common result shape. Lists are
 deterministically ordered. `db_server_info` includes `driver`, `driver_version`,
 `server_version`, `database_name`, `server_host`, and `mode`; Oracle reports
-`thin` or `thick`. SQL NULL maps to null and BLOB maps to bytes. SQLite has no reliable declared
+`thin` or `thick`. SQL Server reports `windows` or `password` authentication;
+omitting both `user` and `password` selects Windows authentication, while
+specifying only one is an authentication error. Encrypted connections are the
+default. Self-signed certificates are trusted only for explicit local hosts;
+remote hosts require certificate validation. SQL NULL maps to null and BLOB maps to bytes. SQLite has no reliable declared
 boolean/datetime result type, so values returned by its native driver remain
 numbers or strings; other adapters may perform stronger documented mapping.
 
