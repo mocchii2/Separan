@@ -2,6 +2,17 @@
 
 All notable changes to the Separan VS Code extension will be documented in this file.
 
+## [0.4.1] - 2026-08-13
+
+### Human-readable AI-generated code
+
+- Reframed the extension around helping humans understand AI-written code,
+  alongside verifying its edit scope.
+- Added clearer examples of labels as checked statements of intent.
+- Corrected the runtime installation instructions and language examples.
+- Added reproducible Marketplace publishing with version checks and license
+  notices.
+
 ## [0.4.0] - 2026-08-13
 
 ### Major Release: AI Edit Scope Verification

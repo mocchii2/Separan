@@ -8,9 +8,19 @@
 >
 > **インデントと括弧に苦しめられた民を救う。**
 
+> **AIがコードを書く時代だからこそ、人間が理解できる構造を。**
+
 [English](../README.md) | 日本語
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
+
+Separanは、AIが書いたコードを人間が読み、理解し、reviewしやすくします。
+匿名になりがちな制御構造へ`:支払い検証`、`:監査ログ記録`、`:接続再試行`のような
+意図を示す名前を付け、その名前自体を構文として検証します。人間はindentや括弧を
+数え直さなくても、blockの目的、正確な境界、AIが変更した範囲を追えます。
+
+SeparanのAI連携は、AIを制限するためだけのものではありません。最終的に責任を持つ
+人間へ、生成コード自身が構造を説明できるようにするための設計です。
 
 ## 30秒で実行
 

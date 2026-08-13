@@ -8,9 +8,21 @@
 >
 > Free programmers from indentation and bracket ambiguity.
 
+> **AI may write the code. Humans still need to understand it.**
+
 [日本語](docs/README.ja.md) | English
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
+
+Separan makes AI-written code easier for people to read, understand, and
+review. Labels turn otherwise anonymous control flow into visible intent:
+`:validate_payment`, `:write_audit_log`, and `:retry_connection` become part of
+the program's checked structure. A reviewer can understand what a block is for,
+navigate its exact boundary, and verify where an AI made changes without first
+reconstructing indentation or counting brackets.
+
+This is not only about restricting AI. It is about making generated code
+explain its structure to the human who remains responsible for it.
 
 ## Run it in 30 seconds
 

@@ -6,13 +6,23 @@
   <img src="images/icon.png" alt="Separan mark" width="128">
 </p>
 
-**AI-generated code verification powered by explicit labels**
+**Make AI-written code understandable and verifiable to humans.**
 
-Separan is a language designed so that code written by AI can be verified by humans. This VS Code extension makes that verification **instant and automatic**.
+AI can generate code quickly. Humans still have to understand it, review it,
+and take responsibility for it. Separan gives every important structure an
+explicit, checked name, and this extension turns those names into navigation,
+explanations, structural diffs, and automatic scope verification.
+
+Labels such as `:validate_payment`, `:write_audit_log`, and
+`:retry_connection` expose intent directly in the code. Reviewers can see what
+a block is for and where it ends without reconstructing indentation or counting
+brackets. Verification then answers the second question: **did the AI change
+only the structure it was asked to change?**
 
 ## 🎯 Why Separan?
 
-When AI writes code, humans need to verify it. Traditional languages make this hard:
+When AI writes code, humans first need to understand it and then verify it.
+Traditional languages make both tasks harder:
 
 ```python
 # ❌ Which code did the AI actually change?
@@ -32,10 +42,15 @@ endif:ai_payment_scope
 
 Now you can ask: **"Did AI only modify inside `:ai_payment_scope`?"** and the extension verifies it automatically.
 
+The label also tells a human what the block means before any tool is opened.
+Separan treats human comprehension and machine verification as the same
+structural problem.
+
 ## ✨ Features
 
 - **🔍 AI Edit Scope Verification** - Verify AI stayed inside a labeled block
 - **📊 Structural Diff** - See *what changed structurally*, not just textually
+- **🧭 Human-Readable Structure** - Make generated control flow explain its intent
 - **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
 - **⚡ Live Diagnostics** - Catch label mismatches, type errors, scope violations instantly
 - **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
