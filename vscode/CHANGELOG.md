@@ -2,6 +2,15 @@
 
 All notable changes to the Separan VS Code extension will be documented in this file.
 
+## [0.4.3] - 2026-08-13
+
+### Three-second Marketplace overview
+
+- Added an immediate Separan label example at the top of the Marketplace page.
+- Made syntax highlighting, label-aware structure, `.sep` support, and the
+  GitHub repository visible before the detailed introduction.
+- Explained how the same label helps human understanding and tool verification.
+
 ## [0.4.2] - 2026-08-13
 
 ### Human-readable AI-generated code

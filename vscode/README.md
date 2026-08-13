@@ -1,4 +1,4 @@
-# Separan for VS Code
+# Separan — Language Support for VS Code
 
 [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 
@@ -7,6 +7,26 @@
 </p>
 
 **Make AI-written code understandable and verifiable to humans.**
+
+Language support for the label-structured Separan programming language.
+
+## Separan at a glance
+
+- **Syntax highlighting** for keywords, values, functions, types, and labels
+- **Label-aware structure** with diagnostics, navigation, Outline, folding, and rename
+- **`.sep` file support** in Visual Studio Code
+- **[GitHub repository](https://github.com/mocchii2/Separan)** with the interpreter, specification, and examples
+
+```separan
+if user.active :active_user
+    print "active"
+endif:active_user
+```
+
+The label names the structure and its exact boundary. Even before using the
+tooling, a reader can see that this block handles an active user. The extension
+then checks that both endpoints agree and lets reviewers navigate or verify the
+same named scope.
 
 AI can generate code quickly. Humans still have to understand it, review it,
 and take responsibility for it. Separan gives every important structure an
