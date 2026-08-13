@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.1-alpha
+# Separan Language Specification — v0.1.0-alpha.1
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -144,26 +144,25 @@ Diagnostics carry a stable code, category, file, line, Unicode code-point column
 source line, pointer, description, expected and actual syntax when applicable,
 and the related opening block. A generic `SyntaxError` is insufficient.
 
-Objects, LSP behavior, semantic tokens, and AI edit enforcement are outside v0.1.
+LSP behavior, semantic tokens, and AI edit enforcement remain outside the
+current implementation. The following extensions, including objects, are
+implemented experimentally but are not yet stable.
 
-## Accepted future designs
+## Experimentally implemented extensions
 
-- [Temporal types for v0.2](temporal-types.md): `datetime`, `local_datetime`,
-  `timezone`, and `duration`. An experimental preview is available in the
-  reference interpreter; its API remains subject to change before v0.2.
-- [Randomness](randomness.md): separate reproducible PCG32 functions from
-  operating-system-backed secure functions and introduces an immutable `bytes`
-  preview type.
+- [Temporal types](temporal-types.md): distinct `datetime`, `local_datetime`,
+  `timezone`, and `duration` values. The API may change before a stable release.
+- [Randomness](randomness.md): reproducible PCG32 functions, operating-system-backed
+  secure functions, and an immutable `bytes` type.
 - [Lists](lists.md): homogeneous, zero-based lists with non-mutating operations.
 - [Bytes](bytes.md): immutable binary values with explicit text, hex, and Base64 conversion.
 - [Authentication](authentication.md): redacted secrets and purpose-specific HTTP, HMAC, JWT, OAuth, and password APIs.
 - [Cookies](cookies.md): one-shot cookies and redacted, stateful Cookie Jars.
-- [Modules, data, I/O, and errors](modules-data-errors.md): sequencing and
-  accepted v0.2 design for labeled objects/lists, imports, capability-based I/O, JSON, constants,
-  and labeled error handling.
+- [Modules, data, I/O, and errors](modules-data-errors.md): labeled objects/lists,
+  imports, capability-based I/O, JSON, constants, and labeled error handling.
 - [HTTP client](http.md): text-first retrieval, detailed immutable responses,
-  honest profiles, network capabilities, and a strict boundary from browser
-  automation.
+  honest profiles, and network capabilities. The boundary from browser
+  automation is fixed by the specification.
 - [External process execution](process-execution.md): direct argv execution,
   checked execution, explicit shell risk, bounded output, and host capabilities.
 - [Regex, glob, environment, and command line](system-utilities.md): explicit

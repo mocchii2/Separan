@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.1-alpha
+# Separan言語仕様 — v0.1.0-alpha.1
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -105,24 +105,24 @@ string検索位置はUnicodeコードポイント単位です。不在時は`-1`
 ソース行、ポインター、説明、可能な場合は期待値と実際値、関連する開始ブロックを
 含めます。単なる`SyntaxError`だけの表示は仕様を満たしません。
 
-object、LSP、Semantic Tokens、AI編集範囲の強制はv0.1の範囲外です。
+LSP、Semantic Tokens、AI編集範囲の強制は現在の実装範囲外です。objectを含む
+以下の拡張仕様は実験実装済みですが、安定仕様ではありません。
 
-## 採用済みの将来設計
+## 実験実装済みの拡張仕様
 
-- [v0.2時間型](temporal-types.ja.md): `datetime`、`local_datetime`、
-  `timezone`、`duration`。リファレンス実装で実験的プレビューを利用できますが、
-  v0.2まではAPIが変更される可能性があります。
+- [時間型](temporal-types.ja.md): `datetime`、`local_datetime`、`timezone`、
+  `duration`を分離して実装しています。安定版まではAPIが変更される可能性があります。
 - [乱数](randomness.ja.md): 再現可能なPCG32とOS由来のセキュア乱数を分離し、
-  不変の`bytes`プレビュー型を導入します。
-- [list](lists.ja.md): 同型・0始まり・非破壊操作中心のlist仕様です。
-- [bytes](bytes.ja.md): stringと分離した不変binary値と明示的text／hex／Base64変換です。
-- [認証とsecret](authentication.ja.md): 自動redactされるsecretと用途固定のHTTP、HMAC、JWT、OAuth、password APIです。
-- [Cookie](cookies.ja.md): 単発Cookieとredactされるstateful Cookie Jarです。
+  不変の`bytes`型とともに実装しています。
+- [list](lists.ja.md): 同型・0始まり・非破壊操作中心のlistを実装しています。
+- [bytes](bytes.ja.md): stringと分離した不変binary値と明示的text／hex／Base64変換を実装しています。
+- [認証とsecret](authentication.ja.md): 自動redactされるsecretと用途固定のHTTP、HMAC、JWT、OAuth、password APIを実装しています。
+- [Cookie](cookies.ja.md): 単発Cookieとredactされるstateful Cookie Jarを実装しています。
 - [module・data・I/O・error](modules-data-errors.ja.md): label付きobject／list、import、capability型I/O、
-  JSON、const、label付きerror処理の順序とv0.2採用設計です。
+  JSON、const、label付きerror処理を実装しています。
 - [HTTP client](http.ja.md): text中心取得、詳細response、正直なprofile、network
-  capability、browser automationとの厳密な境界を定義します。
+  capabilityを実装しています。browser automationとの境界も仕様として固定しています。
 - [外部process実行](process-execution.ja.md): argv直接実行、checked実行、明示的shell
-  risk、出力上限、host capabilityを定義します。
+  risk、出力上限、host capabilityを実装しています。
 - [regex・glob・environment・command line](system-utilities.ja.md): 検索不在、決定的な
-  file探索、process内だけの環境変更、script名を分離した引数APIを定義します。
+  file探索、process内だけの環境変更、script名を分離した引数APIを実装しています。
