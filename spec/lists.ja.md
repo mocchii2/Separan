@@ -34,6 +34,15 @@ first_number = numbers[0]
 | `slice(items, start, end)` | 半開区間`[start, end)`の新しいlist |
 | `reverse(items)` | 逆順の新しいlist |
 | `sort(items)` | 昇順・安定sort済みの新しいlist |
+| `sort_descending(items)` | 降順・安定sort済みの新しいlist |
+| `sort_ignore_case(items)` | Unicode case foldを使う文字列の昇順sort |
+| `sort_ignore_case_descending(items)` | 大文字小文字を無視する降順sort |
+| `sort_natural(items)` | ASCII数字列を数値として比較する自然順sort |
+| `sort_natural_descending(items)` | 自然順sortの降順版 |
+| `sort_natural_ignore_case(items)` | 大文字小文字を無視する自然順sort |
+| `sort_natural_ignore_case_descending(items)` | 大文字小文字を無視する自然順sortの降順版 |
+| `sort_by(items, field)` | object listを指定fieldでsort |
+| `sort_by_descending(items, field)` | object field指定sortの降順版 |
 
 `list_append`の新しい値は確定済み要素型と一致する必要があります。
 `list_remove`は最初の一致だけを削除し、不在ならエラーにします。変更されていないlistを
@@ -51,8 +60,20 @@ endif:target_found
 ```
 
 sliceのindexは`0 <= start <= end <= length(items)`を満たす必要があります。負数、小数、
-逆転、範囲外はエラーです。v0.1の`sort`は同型number listまたはstring listだけを
-扱います。numberは数値順、stringはUnicodeコードポイント順で、安定sortです。
+逆転、範囲外はエラーです。
+
+## sort規則
+
+すべてのsortは安定・決定的・非破壊です。通常の昇順／降順sortは、同型の`number`、
+`string`、`datetime`、`local_datetime`、`duration` listを扱います。文字列の通常順は
+Unicodeコードポイント順、大文字小文字無視版はUnicode case foldを使います。自然順版は
+string専用で、ASCII数字列を数値として比較するため、`file2`は`file10`より前になります。
+同じkeyの要素は入力順を維持します。
+
+`sort_by`と`sort_by_descending`はobject listと空でないfield名を要求します。全objectが
+fieldを持ち、field値が同一の比較可能型でなければなりません。fieldの欠落、型混在、boolean、
+null、list、bytes、secretなど比較不能なkeyはエラーです。代替keyを推測したり、欠落値を
+黙って末尾へ送ったりしません。
 
 `contains`はbooleanの包含判定という意味が同一なためstringと共有します。どちらの
 オペランドも暗黙変換しません。

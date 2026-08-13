@@ -36,6 +36,15 @@ no mutating list function and no indexed assignment.
 | `slice(items, start, end)` | new list for half-open range `[start, end)` |
 | `reverse(items)` | new list in reverse order |
 | `sort(items)` | new ascending, stable sorted list |
+| `sort_descending(items)` | new descending, stable sorted list |
+| `sort_ignore_case(items)` | ascending strings using Unicode case folding |
+| `sort_ignore_case_descending(items)` | descending case-insensitive string sort |
+| `sort_natural(items)` | strings with ASCII digit runs compared numerically |
+| `sort_natural_descending(items)` | descending natural sort |
+| `sort_natural_ignore_case(items)` | case-insensitive natural sort |
+| `sort_natural_ignore_case_descending(items)` | descending case-insensitive natural sort |
+| `sort_by(items, field)` | object list sorted by the named field |
+| `sort_by_descending(items, field)` | descending object-field sort |
 
 `list_append` requires the new value to match the known element type.
 `list_remove` removes only the first match and reports an error when no match
@@ -54,9 +63,22 @@ endif:target_found
 ```
 
 Slice indexes must satisfy `0 <= start <= end <= length(items)`. Negative,
-floating-point, reversed, and out-of-range indexes are errors. `sort` supports
-only homogeneous number or string lists in v0.1. Number sorting is numeric;
-string sorting compares Unicode code points. Sorting is stable.
+floating-point, reversed, and out-of-range indexes are errors.
+
+## Sorting rules
+
+Every sort is stable, deterministic, and non-mutating. General ascending and
+descending sorts accept homogeneous `number`, `string`, `datetime`,
+`local_datetime`, or `duration` lists. Strings use Unicode code-point order.
+Case-insensitive variants use Unicode case folding. Natural variants accept
+strings only and compare each ASCII digit run numerically, so `file2` sorts
+before `file10`. Equal keys preserve input order.
+
+`sort_by` and `sort_by_descending` require an object list and a non-empty field
+name. Every object must contain that field, and all field values must have one
+identical orderable type. Missing, mixed-type, boolean, null, list, bytes,
+secret, and other unordered keys are errors. Separan never guesses a fallback
+key or silently moves missing values.
 
 `contains` is deliberately shared with strings because its boolean membership
 meaning is identical. It does not convert either operand.

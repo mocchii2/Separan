@@ -21,7 +21,10 @@ from .randomness import (
 from .list_ops import (
     contains as list_contains, first as list_first, index_of as list_index_of,
     last as list_last, last_index_of as list_last_index_of, list_append, list_remove, prepend as list_prepend,
-    remove_at as list_remove_at, reverse as list_reverse, size as list_size, slice_list, sort_list, unique as list_unique,
+    remove_at as list_remove_at, reverse as list_reverse, size as list_size, slice_list,
+    sort_by, sort_by_descending, sort_descending, sort_ignore_case, sort_ignore_case_descending,
+    sort_list, sort_natural, sort_natural_descending, sort_natural_ignore_case,
+    sort_natural_ignore_case_descending, unique as list_unique,
 )
 from .system_utilities import UTILITY_BUILTINS, UtilityFunction
 from .objects import object_get, object_has, object_keys, object_remove, object_set, object_values
@@ -673,6 +676,15 @@ BUILTINS = {
         BuiltinFunction("slice", 3, 3, slice_list),
         BuiltinFunction("reverse", 1, 1, list_reverse),
         BuiltinFunction("sort", 1, 1, sort_list),
+        BuiltinFunction("sort_descending", 1, 1, sort_descending),
+        BuiltinFunction("sort_ignore_case", 1, 1, sort_ignore_case),
+        BuiltinFunction("sort_ignore_case_descending", 1, 1, sort_ignore_case_descending),
+        BuiltinFunction("sort_natural", 1, 1, sort_natural),
+        BuiltinFunction("sort_natural_descending", 1, 1, sort_natural_descending),
+        BuiltinFunction("sort_natural_ignore_case", 1, 1, sort_natural_ignore_case),
+        BuiltinFunction("sort_natural_ignore_case_descending", 1, 1, sort_natural_ignore_case_descending),
+        BuiltinFunction("sort_by", 2, 2, sort_by),
+        BuiltinFunction("sort_by_descending", 2, 2, sort_by_descending),
         BuiltinFunction("unique", 1, 1, list_unique),
         BuiltinFunction("repeat", 2, 2, _repeat),
         BuiltinFunction("pad_left", 2, 3, _pad("left")),

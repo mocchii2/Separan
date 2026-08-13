@@ -163,8 +163,10 @@ jar display, and received response cookies are redacted; domain, path, expiry,
 and Secure attributes control transmission.
 
 Lists are homogeneous and zero-based. Operations such as `list_append`,
-`list_remove`, `slice`, `reverse`, and `sort` return new lists; v0.1 exposes no
-mutating collection API.
+`list_remove`, `slice`, `reverse`, and every sort return new lists; v0.1 exposes
+no mutating collection API. Stable sorting includes descending, Unicode
+case-folded, natural-number, and object-field variants. See the
+[list specification](spec/lists.md).
 
 `length(value)` and `is_empty(value)` work consistently across strings, lists,
 and bytes. String search, repetition, and padding operate on Unicode code points;

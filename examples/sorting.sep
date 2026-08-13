@@ -1,0 +1,24 @@
+function:main
+
+files = ["file10.sep", "file2.sep", "file1.sep"]
+print sort_natural(files)
+print sort_natural_descending(files)
+
+names = ["bob", "Alice", "alice"]
+print sort_ignore_case(names)
+
+object:first_user
+name = "Alice"
+score = 20
+end_object:first_user
+
+object:second_user
+name = "Bob"
+score = 10
+end_object:second_user
+
+users = [first_user, second_user]
+ranked = sort_by_descending(users, "score")
+print ranked[0].name
+
+end_function:main

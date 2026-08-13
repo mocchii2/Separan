@@ -1,6 +1,13 @@
 """Non-mutating list operations for Separan."""
 
+import re
+
 from .errors import error
+from .objects import ObjectValue
+
+
+ORDERED_TYPES = frozenset(("number", "string", "datetime", "local_datetime", "duration"))
+NATURAL_PART = re.compile(r"([0-9]+)")
 
 
 def require_list(value, function, position, runtime):
@@ -127,9 +134,64 @@ def reverse(arguments, position, runtime):
     values = arguments[0]; require_list(values, "reverse", position, runtime); return list(reversed(values))
 
 
-def sort_list(arguments, position, runtime):
-    values = arguments[0]; require_list(values, "sort", position, runtime)
+def _ordered_list(values, function, position, runtime):
+    require_list(values, function, position, runtime)
     element_type = _element_type(values, runtime)
-    if element_type not in (None, "number", "string"):
-        runtime.type_error(position, "list[number] or list[string]", f"list[{element_type}]", "sort() supports only number and string lists.")
-    return sorted(values)
+    if element_type not in ({None} | ORDERED_TYPES):
+        expected = "list[number|string|datetime|local_datetime|duration]"
+        runtime.type_error(position, expected, f"list[{element_type}]", f"{function}() requires an ordered scalar list.")
+    return element_type
+
+
+def _natural_key(value, ignore_case=False):
+    text = value.casefold() if ignore_case else value
+    return tuple((0, int(part)) if part.isascii() and part.isdigit() else (1, part) for part in NATURAL_PART.split(text) if part)
+
+
+def _sort_values(name, *, descending=False, ignore_case=False, natural=False):
+    def implementation(arguments, position, runtime):
+        values = arguments[0]
+        element_type = _ordered_list(values, name, position, runtime)
+        if (ignore_case or natural) and element_type not in (None, "string"):
+            runtime.type_error(position, "list[string]", f"list[{element_type}]", f"{name}() requires a string list.")
+        key = (lambda value: _natural_key(value, ignore_case)) if natural else (str.casefold if ignore_case else None)
+        return sorted(values, key=key, reverse=descending)
+    return implementation
+
+
+def _object_sort(name, *, descending=False):
+    def implementation(arguments, position, runtime):
+        values, field = arguments
+        require_list(values, name, position, runtime)
+        if type(field) is not str or not field:
+            runtime.type_error(position, "non-empty string field", runtime.type_name(field), f"{name}() field must be a non-empty string.")
+        keys = []
+        for index, value in enumerate(values):
+            if not isinstance(value, ObjectValue):
+                runtime.type_error(position, "list[object]", f"list[{runtime.type_name(value)}]", f"{name}() requires an object list.")
+            if field not in value.fields:
+                raise error("E212", "Missing object field", f"{name}() field '{field}' is missing from object at index {index}.", position, actual=field)
+            keys.append(value.fields[field])
+        key_type = None if not keys else runtime.type_name(keys[0])
+        if key_type not in ({None} | ORDERED_TYPES):
+            runtime.type_error(position, "ordered scalar object field", key_type, f"{name}() field '{field}' is not orderable.")
+        for index, key in enumerate(keys[1:], 1):
+            actual = runtime.type_name(key)
+            if actual != key_type:
+                runtime.type_error(position, key_type, actual, f"{name}() field '{field}' has inconsistent type at index {index}.")
+        decorated = list(zip(keys, range(len(values)), values))
+        decorated.sort(key=lambda item: item[0], reverse=descending)
+        return [item[2] for item in decorated]
+    return implementation
+
+
+sort_list = _sort_values("sort")
+sort_descending = _sort_values("sort_descending", descending=True)
+sort_ignore_case = _sort_values("sort_ignore_case", ignore_case=True)
+sort_ignore_case_descending = _sort_values("sort_ignore_case_descending", descending=True, ignore_case=True)
+sort_natural = _sort_values("sort_natural", natural=True)
+sort_natural_descending = _sort_values("sort_natural_descending", descending=True, natural=True)
+sort_natural_ignore_case = _sort_values("sort_natural_ignore_case", natural=True, ignore_case=True)
+sort_natural_ignore_case_descending = _sort_values("sort_natural_ignore_case_descending", descending=True, natural=True, ignore_case=True)
+sort_by = _object_sort("sort_by")
+sort_by_descending = _object_sort("sort_by_descending", descending=True)

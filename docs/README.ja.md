@@ -170,7 +170,8 @@ domain／path／expiry／Secureを送信時に検証します。詳細は
 [Cookie仕様](../spec/cookies.ja.md)を参照してください。
 
 listは同型・0始まりで、追加、削除、slice、reverse、sortをすべて非破壊操作として
-提供します。詳細は[list仕様](../spec/lists.ja.md)を参照してください。
+提供します。安定sortの降順、Unicode大文字小文字無視、自然順、object field指定を
+用途別の明示的な関数として利用できます。詳細は[list仕様](../spec/lists.ja.md)を参照してください。
 
 `length(value)`と`is_empty(value)`はstring、list、bytesで共通です。文字列検索、
 繰り返し、paddingはUnicodeコードポイント単位で、`index_of`／`last_index_of`の
