@@ -70,7 +70,20 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 | `is_empty(value)` | string、list、bytes | 長さが0か |
 | `len(value)` | string、list、bytes | `length`の互換alias |
 | `type(value)` | 任意の値 | ユーザー向け型名のstring |
+| `type_of(value)` | 任意の値 | ユーザー向け型名の読みやすいalias |
+| `is_null(value)` | 任意の値 | nullとの完全一致判定 |
+| `is_number/string/boolean/list/object(value)` | 任意の値 | 公開型との完全一致判定 |
+| `is_bytes/datetime/duration/secret(value)` | 任意の値 | 公開型との完全一致判定 |
 | `abs(value)` | number | 数値の絶対値 |
+| `ceil(value)`／`floor(value)` | number | 整数値の天井／床。公開型はnumber |
+| `round(value)` | number | 近い整数値。完全な中間値は0から遠い方へ丸める |
+| `min(values...)`／`max(values...)` | 1個以上のnumber | 最小値／最大値 |
+| `sqrt(value)` | 非負number | 有限の平方根 |
+| `sin(value)`／`cos(value)`／`tan(value)` | ラジアンのnumber | 有限の三角関数結果 |
+| `log(value)` | 正のnumber | 自然対数 |
+| `log10(value)`／`log2(value)` | 正のnumber | 底10／底2の対数 |
+| `exp(value)` | number | 有限の`e`のべき乗 |
+| `pow(base, exponent)` | number | 有限の実数べき乗 |
 | `range(stop)` | 整数値number | 0から`stop`未満までのlist |
 | `range(start, stop)` | 整数値number | `start`から`stop`未満までのlist |
 | `range(start, stop, step)` | 整数値number、stepは0以外 | step間隔のnumber list |
@@ -110,6 +123,9 @@ booleanを拒否します。
 | `replace(value, search, replacement)` | 空でない`search`をすべて置換 |
 | `substring(value, start)` | `start`から末尾まで |
 | `substring(value, start, end)` | 半開区間`[start, end)`の文字列 |
+| `reverse(value)` | Unicodeコードポイント単位の逆順。listにも共通 |
+| `char_at(value, index)` | 有効な0始まりindexの1コードポイントstring |
+| `find_all(value, search)` | 非重複literal一致のindex list。不在なら空list |
 | `index_of(value, search)` | 最初のコードポイントindex。不在ならnull |
 | `last_index_of(value, search)` | 最後のコードポイントindex。不在ならnull |
 | `repeat(value, count)` | 非負整数回繰り返したstring |
@@ -120,8 +136,8 @@ substringのインデックスは`0 <= start <= end <= len(value)`を満たす�
 負数、小数、逆転、範囲外はエラーです。空の区切り文字と空の置換検索文字列は
 `E305`、不正なsubstring範囲は`E306`になります。
 
-string検索位置はUnicodeコードポイント単位です。不在時は`-1`ではなくnullを返し、
-空の検索文字列は`E305`で拒否します。paddingのfillは1コードポイントで、省略時は
+string検索位置はUnicodeコードポイント単位です。単一検索の不在時は`-1`ではなくnull、
+`find_all`は空listを返します。空の検索文字列は`E305`で拒否します。paddingのfillは1コードポイントで、省略時は
 半角空白です。repeatとpaddingの結果は1,048,576コードポイント以下に制限し、
 無制限にメモリを確保せず`E607`を返します。
 

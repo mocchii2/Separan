@@ -131,7 +131,13 @@ HTTP client／server preview、認証、Cookie、parameter bindingを使うSQLit
 
 文字列加工には`trim`、`upper`、`lower`、`contains`、`starts_with`、
 `ends_with`、`split`、`join`、`replace`、Unicodeコードポイント単位の
-`substring`を利用できます。
+`substring`／`char_at`、非重複literal検索の`find_all`を利用できます。`reverse`は
+stringとlistで共通です。
+
+高階list処理では、ユーザー関数と組み込み関数を明示的な`function`値として渡せます。
+`map`、厳密boolean predicateの`filter`、初期値必須の`reduce`に加え、1階層`flatten`、
+`sum`、`average`、値の`count`を提供します。三角・対数・指数関数は有限実数だけを返し、
+定義域外やoverflowを黙ってNaN／Infinityにせずmath domain errorにします。
 
 ```console
 python -m pip install -e .

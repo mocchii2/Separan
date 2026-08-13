@@ -31,12 +31,19 @@ class NamespaceValue:
     exports: frozenset
 
 
+@dataclass(frozen=True)
+class FunctionValue:
+    runtime: object
+    name: str
+
+
 def type_name(value):
     if isinstance(value, SystemContextValue): return "system"
     if isinstance(value, BytesValue): return "bytes"
     if isinstance(value, RegexMatchValue): return "regex_match_result"
     if isinstance(value, ObjectValue): return "object"
     if isinstance(value, NamespaceValue): return "namespace"
+    if isinstance(value, FunctionValue): return "function"
     if isinstance(value, ErrorValue): return "error"
     if isinstance(value, ExecResultValue): return "exec_result"
     if isinstance(value, HttpProfileValue): return "http_profile"
@@ -87,6 +94,8 @@ class Environment:
         if name in self.values: return self.values[name].value
         if self.parent: return self.parent.get(name, position)
         raise error("E202", "Undefined variable", f"Variable '{name}' is not defined.", position, actual=name)
+    def contains(self, name):
+        return name in self.values or bool(self.parent and self.parent.contains(name))
 
 
 def list_element_type(value, position):
@@ -303,7 +312,10 @@ class Interpreter:
     def _eval(self, expr):
         if isinstance(expr, LiteralExpr): return expr.value
         if isinstance(expr, GroupExpr): return self._eval(expr.expression)
-        if isinstance(expr, VariableExpr): return self.environment.get(expr.name, expr.position)
+        if isinstance(expr, VariableExpr):
+            if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
+            if expr.name in self.functions or expr.name in BUILTINS: return FunctionValue(self, expr.name)
+            return self.environment.get(expr.name, expr.position)
         if isinstance(expr, ListExpr):
             values = [self._eval(e) for e in expr.elements]; list_element_type(values, expr.position); return values
         if isinstance(expr, CallExpr):
@@ -331,7 +343,7 @@ class Interpreter:
                 return getattr(target, expr.name)
             if isinstance(target, NamespaceValue):
                 if expr.name not in target.exports: raise error("E706", "Private or missing export", f"Module does not export '{expr.name}'.", expr.position, actual=expr.name)
-                if expr.name in target.runtime.functions: raise error("E707", "Function used as value", f"Module function '{expr.name}' must be called.", expr.position, actual=expr.name)
+                if expr.name in target.runtime.functions: return FunctionValue(target.runtime, expr.name)
                 return target.runtime.globals.get(expr.name, expr.position)
             self._type_error(expr.position, "object or fixed-shape value", type_name(target), "Member access requires an object or fixed-shape value.")
         if isinstance(expr, MemberCallExpr):
@@ -423,6 +435,19 @@ class Interpreter:
             except Returned as result: return result.value
             return None
         finally: self.environment = previous
+
+    def call_function_value(self, value, arguments, position):
+        self.validate_function_value(value, position)
+        return value.runtime._call(value.name, arguments, position)
+
+    @staticmethod
+    def validate_function_value(value, position):
+        if not isinstance(value, FunctionValue):
+            Interpreter._type_error(position, "function", type_name(value), "A higher-order list operation requires a function reference.")
+
+    @staticmethod
+    def validate_list(value, position):
+        return list_element_type(value, position)
 
     @staticmethod
     def _numbers(left, right): return type(left) in (int, float) and type(left) is not bool and type(right) in (int, float) and type(right) is not bool
@@ -519,6 +544,7 @@ class Interpreter:
         if isinstance(value, RegexMatchValue): return value.text
         if isinstance(value, ObjectValue): return "object:" + ", ".join(f"{key}={Interpreter._display(field)}" for key, field in value.fields.items())
         if isinstance(value, NamespaceValue): return "namespace"
+        if isinstance(value, FunctionValue): return f"<function:{value.name}>"
         if isinstance(value, ErrorValue): return f"{value.category}: {value.message}"
         if isinstance(value, ExecResultValue): return f"exec_result(exit_code={value.exit_code})"
         if isinstance(value, HttpProfileValue): return f"http_profile:{value.name}"

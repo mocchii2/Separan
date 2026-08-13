@@ -1,0 +1,33 @@
+function:double(value)
+return value * 2
+end_function:double
+
+function:is_large(value)
+return value >= 10
+end_function:is_large
+
+function:add(total, value)
+return total + value
+end_function:add
+
+function:main
+
+values = [2, 5, 10, 20]
+
+print map(values, double)
+print filter(values, is_large)
+print reduce(values, add, 0)
+print flatten([[1, 2], [3, 4]])
+print sum(values)
+print average(values)
+print count(values, 10)
+
+print reverse("Separan")
+print char_at("日本語", 1)
+print find_all("banana", "an")
+
+print sqrt(16)
+print sin(0)
+print log10(1000)
+
+end_function:main

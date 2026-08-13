@@ -43,6 +43,13 @@ first_number = numbers[0]
 | `sort_natural_ignore_case_descending(items)` | 大文字小文字を無視する自然順sortの降順版 |
 | `sort_by(items, field)` | object listを指定fieldでsort |
 | `sort_by_descending(items, field)` | object field指定sortの降順版 |
+| `map(items, function)` | 全要素へ関数を適用。同型result list必須 |
+| `filter(items, predicate)` | predicateがboolean trueの要素だけを残す |
+| `reduce(items, function, initial)` | 必須の型固定初期値を使う左fold |
+| `flatten(items)` | nested listをちょうど1階層だけ解除 |
+| `sum(items)` | number listの合計。空listは0 |
+| `average(items)` | 非空number listの算術平均 |
+| `count(items, value)` | 完全一致する要素数 |
 
 `list_append`の新しい値は確定済み要素型と一致する必要があります。
 `list_remove`は最初の一致だけを削除し、不在ならエラーにします。変更されていないlistを
@@ -74,6 +81,17 @@ string専用で、ASCII数字列を数値として比較するため、`file2`�
 fieldを持ち、field値が同一の比較可能型でなければなりません。fieldの欠落、型混在、boolean、
 null、list、bytes、secretなど比較不能なkeyはエラーです。代替keyを推測したり、欠落値を
 黙って末尾へ送ったりしません。
+
+## 高階操作と集約
+
+ユーザー関数名または組み込み関数名を値として渡すと、公開型`function`として`map`、
+`filter`、`reduce`で利用できます。`map`はcallback結果の型混在を拒否します。`filter`は
+実際のbooleanを要求し、truthy/falsy変換を行いません。`reduce`は`initial`を必須とし、
+空listではそのまま返し、各accumulator結果は初期公開型を維持する必要があります。
+
+`flatten`は1階層だけ解除し、結果の同型性を検証します。`sum([])`は`0`、未定義な
+`average([])`は`E602`です。`count`の検索値は確定済み要素型と一致する必要があります。
+`zip`はtuple型導入まで保留し、selectorを取る`*_by`はこれらの小さい操作の合成で表します。
 
 `contains`はbooleanの包含判定という意味が同一なためstringと共有します。どちらの
 オペランドも暗黙変換しません。

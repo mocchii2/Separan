@@ -21,6 +21,10 @@ class ImportTests(unittest.TestCase):
         source = 'import "math.sep" as math\nprint math.add(2, 3)\nprint math.version\n'
         self.assertEqual(self.run_source(source), "5\n1\n")
 
+    def test_imported_function_can_be_higher_order_callback(self):
+        source = 'import "math.sep" as math\nprint reduce([1, 2, 3], math.add, 0)\n'
+        self.assertEqual(self.run_source(source), "6\n")
+
     def test_imported_main_does_not_run_and_private_is_hidden(self):
         self.assertEqual(self.run_source('import "math.sep" as math\nprint "ok"\n'), "ok\n")
         self.assert_error('import "math.sep" as math\nprint math.private_value\n', "E706")

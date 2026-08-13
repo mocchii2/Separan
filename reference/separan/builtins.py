@@ -41,6 +41,7 @@ from .cookies import COOKIE_BUILTINS
 from .cookie_store import COOKIE_STORE_BUILTINS
 from .http_server import SERVER_BUILTINS
 from .database import DB_BUILTINS
+from .collection_ops import average, count as count_values, filter_list, flatten, map_list, reduce_list, sum_list
 
 
 MAX_TEXT_LENGTH = 1_048_576
@@ -103,6 +104,10 @@ def _type(arguments, position, runtime):
 def _is_null(arguments, position, runtime): return arguments[0] is None
 
 
+def _is_type(expected):
+    return lambda arguments, position, runtime: runtime.type_name(arguments[0]) == expected
+
+
 def _abs(arguments, position, runtime):
     value = arguments[0]
     if not runtime.is_number(value):
@@ -144,6 +149,35 @@ def _pow(arguments, position, runtime):
     if type(result) is complex or (type(result) is float and not math.isfinite(result)):
         raise error("E308", "Math domain error", "pow() result must be real and finite.", position, actual=repr(result))
     return result
+
+
+def _reverse(arguments, position, runtime):
+    value = arguments[0]
+    if type(value) is str: return value[::-1]
+    return list_reverse(arguments, position, runtime)
+
+
+def _char_at(arguments, position, runtime):
+    value, index = arguments
+    if type(value) is not str:
+        runtime.type_error(position, "string", runtime.type_name(value), "char_at() requires a string.")
+    if type(index) is not int or index < 0:
+        runtime.type_error(position, "non-negative integer", repr(index), "char_at() index must be a non-negative integer.")
+    if index >= len(value):
+        raise error("E302", "Index out of range", "char_at() index must be smaller than the string length.", position, expected=f"0..{len(value) - 1}", actual=str(index))
+    return value[index]
+
+
+def _find_all(arguments, position, runtime):
+    _require_strings("find_all", arguments, position, runtime)
+    value, search = arguments
+    if search == "":
+        raise error("E305", "Empty search string", "find_all() search string cannot be empty.", position, expected="non-empty string", actual='""')
+    result, start = [], 0
+    while True:
+        found = value.find(search, start)
+        if found < 0: return result
+        result.append(found); start = found + len(search)
 
 
 def _range(arguments, position, runtime):
@@ -596,6 +630,15 @@ BUILTINS = {
         BuiltinFunction("type", 1, 1, _type),
         BuiltinFunction("type_of", 1, 1, _type),
         BuiltinFunction("is_null", 1, 1, _is_null),
+        BuiltinFunction("is_number", 1, 1, _is_type("number")),
+        BuiltinFunction("is_string", 1, 1, _is_type("string")),
+        BuiltinFunction("is_boolean", 1, 1, _is_type("boolean")),
+        BuiltinFunction("is_list", 1, 1, _is_type("list")),
+        BuiltinFunction("is_object", 1, 1, _is_type("object")),
+        BuiltinFunction("is_bytes", 1, 1, _is_type("bytes")),
+        BuiltinFunction("is_datetime", 1, 1, _is_type("datetime")),
+        BuiltinFunction("is_duration", 1, 1, _is_type("duration")),
+        BuiltinFunction("is_secret", 1, 1, _is_type("secret")),
         BuiltinFunction("abs", 1, 1, _abs),
         BuiltinFunction("ceil", 1, 1, _numeric("ceil", math.ceil)),
         BuiltinFunction("floor", 1, 1, _numeric("floor", math.floor)),
@@ -603,6 +646,13 @@ BUILTINS = {
         BuiltinFunction("min", 1, 64, _minimum_or_maximum("min", min)),
         BuiltinFunction("max", 1, 64, _minimum_or_maximum("max", max)),
         BuiltinFunction("sqrt", 1, 1, _numeric("sqrt", math.sqrt)),
+        BuiltinFunction("sin", 1, 1, _numeric("sin", math.sin)),
+        BuiltinFunction("cos", 1, 1, _numeric("cos", math.cos)),
+        BuiltinFunction("tan", 1, 1, _numeric("tan", math.tan)),
+        BuiltinFunction("log", 1, 1, _numeric("log", math.log)),
+        BuiltinFunction("log10", 1, 1, _numeric("log10", math.log10)),
+        BuiltinFunction("log2", 1, 1, _numeric("log2", math.log2)),
+        BuiltinFunction("exp", 1, 1, _numeric("exp", math.exp)),
         BuiltinFunction("pow", 2, 2, _pow),
         BuiltinFunction("range", 1, 3, _range),
         BuiltinFunction("number", 1, 1, _number),
@@ -619,6 +669,8 @@ BUILTINS = {
         BuiltinFunction("join", 2, 2, _join),
         BuiltinFunction("replace", 3, 3, _replace),
         BuiltinFunction("substring", 2, 3, _substring),
+        BuiltinFunction("char_at", 2, 2, _char_at),
+        BuiltinFunction("find_all", 2, 2, _find_all),
         BuiltinFunction("compare", 2, 2, _compare()),
         BuiltinFunction("compare_ignore_case", 2, 2, _compare(True)),
         BuiltinFunction("substring_after", 2, 2, _search_part(True)),
@@ -674,7 +726,7 @@ BUILTINS = {
         BuiltinFunction("index_of", 2, 2, _index_of),
         BuiltinFunction("last_index_of", 2, 2, _last_index_of),
         BuiltinFunction("slice", 3, 3, slice_list),
-        BuiltinFunction("reverse", 1, 1, list_reverse),
+        BuiltinFunction("reverse", 1, 1, _reverse),
         BuiltinFunction("sort", 1, 1, sort_list),
         BuiltinFunction("sort_descending", 1, 1, sort_descending),
         BuiltinFunction("sort_ignore_case", 1, 1, sort_ignore_case),
@@ -686,6 +738,13 @@ BUILTINS = {
         BuiltinFunction("sort_by", 2, 2, sort_by),
         BuiltinFunction("sort_by_descending", 2, 2, sort_by_descending),
         BuiltinFunction("unique", 1, 1, list_unique),
+        BuiltinFunction("map", 2, 2, map_list),
+        BuiltinFunction("filter", 2, 2, filter_list),
+        BuiltinFunction("reduce", 3, 3, reduce_list),
+        BuiltinFunction("flatten", 1, 1, flatten),
+        BuiltinFunction("sum", 1, 1, sum_list),
+        BuiltinFunction("average", 1, 1, average),
+        BuiltinFunction("count", 2, 2, count_values),
         BuiltinFunction("repeat", 2, 2, _repeat),
         BuiltinFunction("pad_left", 2, 3, _pad("left")),
         BuiltinFunction("pad_right", 2, 3, _pad("right")),

@@ -77,11 +77,17 @@ Built-in names are reserved and cannot be redefined by source programs.
 | `type(value)` | any value | public type name as a string |
 | `type_of(value)` | any value | readable alias returning the public type name |
 | `is_null(value)` | any value | whether the value is exactly null |
+| `is_number/string/boolean/list/object(value)` | any value | exact public-type test |
+| `is_bytes/datetime/duration/secret(value)` | any value | exact public-type test |
 | `abs(value)` | number | absolute numeric value |
 | `ceil(value)` / `floor(value)` | number | integer ceiling or floor |
 | `round(value)` | number | nearest integer; exact halves round away from zero |
 | `min(values...)` / `max(values...)` | one or more numbers | smallest or largest number |
 | `sqrt(value)` | non-negative number | finite square root |
+| `sin(value)` / `cos(value)` / `tan(value)` | number in radians | finite trigonometric result |
+| `log(value)` | positive number | natural logarithm |
+| `log10(value)` / `log2(value)` | positive number | base-10 or base-2 logarithm |
+| `exp(value)` | number | finite `e` raised to `value` |
 | `pow(base, exponent)` | numbers | finite real exponentiation result |
 | `range(stop)` | integer-valued number | list from zero up to, excluding, `stop` |
 | `range(start, stop)` | integer-valued numbers | list from `start` up to, excluding, `stop` |
@@ -122,6 +128,9 @@ non-string arguments implicitly.
 | `replace(value, search, replacement)` | replaces every occurrence of non-empty `search` |
 | `substring(value, start)` | code points from `start` to the end |
 | `substring(value, start, end)` | code points in the half-open range `[start, end)` |
+| `reverse(value)` | string reversed by Unicode code point; also accepts a list |
+| `char_at(value, index)` | one-code-point string at a valid zero-based index |
+| `find_all(value, search)` | non-overlapping literal-match indexes; empty list when absent |
 | `compare(left, right)` | exactly `-1`, `0`, or `1` by Unicode code-point order |
 | `compare_ignore_case(left, right)` | case-folded comparison returning exactly `-1`, `0`, or `1` |
 | `substring_before(value, search)` | text before the first match, or null |
@@ -139,8 +148,9 @@ floating-point, reversed, and out-of-range indexes are errors. Empty delimiters
 and empty replacement search strings produce `E305`; invalid substring ranges
 produce `E306`.
 
-String search indexes are Unicode code-point indexes. Missing searches return
-null rather than `-1`; empty search strings are rejected with `E305`. Padding
+String search indexes are Unicode code-point indexes. Missing singular searches
+return null rather than `-1`; `find_all` returns an empty list. Empty search
+strings are rejected with `E305`. Padding
 uses a one-code-point fill string, defaulting to a space. Repeat and padding
 results are limited to 1,048,576 code points and report `E607` rather than
 attempting unbounded allocation.

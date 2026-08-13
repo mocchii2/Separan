@@ -45,6 +45,13 @@ no mutating list function and no indexed assignment.
 | `sort_natural_ignore_case_descending(items)` | descending case-insensitive natural sort |
 | `sort_by(items, field)` | object list sorted by the named field |
 | `sort_by_descending(items, field)` | descending object-field sort |
+| `map(items, function)` | applies a function to every element; result must be homogeneous |
+| `filter(items, predicate)` | retains elements whose predicate returns boolean true |
+| `reduce(items, function, initial)` | left fold with a required, type-stable initial accumulator |
+| `flatten(items)` | removes exactly one nested list level |
+| `sum(items)` | sum of a number list; zero for an empty list |
+| `average(items)` | arithmetic mean of a non-empty number list |
+| `count(items, value)` | number of exact matching elements |
 
 `list_append` requires the new value to match the known element type.
 `list_remove` removes only the first match and reports an error when no match
@@ -79,6 +86,20 @@ name. Every object must contain that field, and all field values must have one
 identical orderable type. Missing, mixed-type, boolean, null, list, bytes,
 secret, and other unordered keys are errors. Separan never guesses a fallback
 key or silently moves missing values.
+
+## Higher-order operations and aggregates
+
+A bare user or built-in function name is a value of public type `function` when
+passed to `map`, `filter`, or `reduce`. `map` rejects heterogeneous callback
+results. `filter` requires an actual boolean result and never applies truthiness.
+`reduce` always requires `initial`, returns it unchanged for an empty list, and
+requires every accumulator result to keep its initial public type.
+
+`flatten` removes one level only and verifies that the flattened result remains
+homogeneous. `sum([])` is `0`; `average([])` is `E602` because an empty mean is
+undefined. `count` requires the search value to match the known element type.
+`zip` remains deferred until Separan has a tuple type; selector-based `*_by`
+variants remain expressible by composing these smaller operations.
 
 `contains` is deliberately shared with strings because its boolean membership
 meaning is identical. It does not convert either operand.
