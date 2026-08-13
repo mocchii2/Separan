@@ -2,7 +2,7 @@
 
 All notable changes to the Separan VS Code extension will be documented in this file.
 
-## [0.5.2] - 2026-08-14
+## [0.5.3] - 2026-08-14
 
 ### Marketplace presentation
 
