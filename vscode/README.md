@@ -71,6 +71,7 @@ structural problem.
 - **🔍 AI Edit Scope Verification** - Verify AI stayed inside a labeled block
 - **📊 Structural Diff** - See *what changed structurally*, not just textually
 - **🧭 Human-Readable Structure** - Make generated control flow explain its intent
+- **🌳 Structure Explorer** - Browse block hierarchy, reads, writes, calls, and Git changes
 - **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
 - **⚡ Live Diagnostics** - Catch label mismatches, type errors, scope violations instantly
 - **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
@@ -134,6 +135,27 @@ The extension checks: ✅ Did AI only change inside this label?
 | **Separan: Show Structural Diff** | - | **See structural changes** |
 | Separan: Show AST | - | Debug: print syntax tree |
 | Separan: Run Tests | - | Run language tests |
+
+## 🌳 Structure Explorer
+
+Open the Separan icon in the Activity Bar to see the active file as a checked,
+navigable structure:
+
+```text
+main                         function
+└─ :active_user              if • modified
+   ├─ Reads (1)
+   │  └─ user.active
+   ├─ Writes (1)
+   │  └─ message
+   └─ Calls (1)
+      └─ notify
+```
+
+The tree follows the cursor and opens a block when clicked. It shows only
+direct syntactic reads, writes, and calls for each block, without executing the
+program. Git-backed files also show `added`, `modified`, and removed structures
+compared with `HEAD`.
 
 ## ⚙️ Configuration
 
@@ -205,5 +227,5 @@ This is not just style—it's enforced by the language. Mismatches are caught im
 
 ---
 
-**This v0.4 extension works with the Separan v0.1-alpha language. Structural
-diff and AI edit-scope verification are implemented.**
+**This v0.5 extension works with the Separan v0.1-alpha language. Structure
+Explorer, structural diff, and AI edit-scope verification are implemented.**

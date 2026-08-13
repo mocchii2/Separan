@@ -9,6 +9,7 @@ const execFileAsync = promisify(execFile);
 let client;
 let autoClosing = false;
 let reviewOutput;
+let structureRefreshTimer;
 
 const blockPairs = {
   function: "end_function", if: "endif", while: "endwhile", for: "endfor",
@@ -132,6 +133,134 @@ function showReview(title, content) {
   reviewOutput.clear(); reviewOutput.appendLine(title); reviewOutput.appendLine(""); reviewOutput.appendLine(content); reviewOutput.show(true);
 }
 
+const structureIcons = {
+  function: "symbol-function", if: "symbol-boolean", while: "sync", for: "list-ordered",
+  object: "symbol-object", list: "symbol-array", try: "shield", error: "error",
+  transaction: "database", http_route: "globe",
+};
+
+class StructureTreeItem {
+  constructor(data, parent = undefined) {
+    this.data = data; this.parent = parent;
+    this.children = (data.children || []).map((child) => new StructureTreeItem(child, this));
+    this.insights = [];
+    for (const [key, title, icon] of [["parameters", "Parameters", "symbol-parameter"], ["reads", "Reads", "eye"], ["writes", "Writes", "edit"], ["calls", "Calls", "call-outgoing"]]) {
+      if (data[key] && data[key].length) this.insights.push(new InsightGroup(title, icon, data[key], this));
+    }
+  }
+
+  treeItem() {
+    const label = this.data.kind === "function" ? this.data.label : `:${this.data.label}`;
+    const item = new vscode.TreeItem(label, this.children.length || this.insights.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
+    item.id = this.data.id; item.contextValue = "separanStructure";
+    item.description = this.data.status ? `${this.data.kind} • ${this.data.status}` : this.data.kind;
+    item.iconPath = new vscode.ThemeIcon(this.data.status === "modified" ? "diff-modified" : this.data.status === "added" ? "diff-added" : (structureIcons[this.data.kind] || "symbol-namespace"));
+    const details = [`**${this.data.path}**`, `Lines ${this.data.start_line}–${this.data.end_line}`];
+    for (const [key, title] of [["parameters", "Parameters"], ["reads", "Reads"], ["writes", "Writes"], ["calls", "Calls"]]) {
+      if (this.data[key] && this.data[key].length) details.push(`${title}: \`${this.data[key].join("`, `")}\``);
+    }
+    item.tooltip = new vscode.MarkdownString(details.join("  \n"));
+    item.command = { command: "separan.revealStructure", title: "Reveal Separan Structure", arguments: [this.data] };
+    return item;
+  }
+}
+
+class InsightGroup {
+  constructor(label, icon, values, parent) {
+    this.label = label; this.icon = icon; this.parent = parent;
+    this.children = values.map((value) => new InsightValue(value, this));
+  }
+  treeItem() {
+    const item = new vscode.TreeItem(`${this.label} (${this.children.length})`, vscode.TreeItemCollapsibleState.Collapsed);
+    item.iconPath = new vscode.ThemeIcon(this.icon); item.contextValue = "separanInsightGroup"; return item;
+  }
+}
+
+class InsightValue {
+  constructor(value, parent) { this.value = value; this.parent = parent; this.children = []; }
+  treeItem() { const item = new vscode.TreeItem(this.value, vscode.TreeItemCollapsibleState.None); item.iconPath = new vscode.ThemeIcon("symbol-variable"); return item; }
+}
+
+class RemovedGroup {
+  constructor(changes) {
+    this.parent = undefined;
+    this.children = changes.map((change) => new RemovedItem(change, this));
+  }
+  treeItem() {
+    const item = new vscode.TreeItem(`Removed from HEAD (${this.children.length})`, vscode.TreeItemCollapsibleState.Collapsed);
+    item.iconPath = new vscode.ThemeIcon("diff-removed"); item.contextValue = "separanRemovedGroup"; return item;
+  }
+}
+
+class RemovedItem {
+  constructor(change, parent) { this.change = change; this.parent = parent; this.children = []; }
+  treeItem() {
+    const item = new vscode.TreeItem(this.change.path, vscode.TreeItemCollapsibleState.None);
+    item.description = "removed"; item.iconPath = new vscode.ThemeIcon("diff-removed"); return item;
+  }
+}
+
+class StructureProvider {
+  constructor() {
+    this.emitter = new vscode.EventEmitter(); this.onDidChangeTreeData = this.emitter.event;
+    this.roots = []; this.loadedKey = undefined; this.nodesById = new Map();
+  }
+
+  refresh() { this.loadedKey = undefined; this.emitter.fire(undefined); }
+  getTreeItem(element) { return element.treeItem(); }
+  getParent(element) { return element.parent; }
+  async getChildren(element) {
+    if (element) return element.children || [];
+    await this.load(); return this.roots;
+  }
+
+  async load() {
+    const editor = currentEditor();
+    if (!editor) { this.roots = []; this.loadedKey = undefined; return; }
+    const key = `${editor.document.uri}:${editor.document.version}`;
+    if (this.loadedKey === key) return;
+    const report = await client.sendRequest("separan/documentStructure", { textDocument: { uri: editor.document.uri.toString() } });
+    if (report.error) { this.roots = []; this.loadedKey = key; return; }
+    const statuses = new Map(); let removed = [];
+    try {
+      const before = await headSource(editor);
+      const diff = await client.sendRequest("separan/structuralDiff", { before, after: editor.document.getText(), uri: editor.document.uri.toString() });
+      if (!diff.error) {
+        for (const change of diff.changes) {
+          if (change.status === "removed") removed.push(change);
+          else statuses.set(change.id, change.status);
+        }
+      }
+    } catch (_) { /* Untracked files still have a useful structure tree. */ }
+    const applyStatus = (node) => {
+      node.status = statuses.get(node.id);
+      for (const child of node.children || []) applyStatus(child);
+      return node;
+    };
+    this.roots = report.roots.map((root) => new StructureTreeItem(applyStatus(root)));
+    if (removed.length) this.roots.push(new RemovedGroup(removed));
+    this.nodesById.clear();
+    const index = (node) => { if (node.data) this.nodesById.set(node.data.id, node); for (const child of node.children || []) index(child); };
+    for (const root of this.roots) index(root);
+    this.loadedKey = key;
+  }
+
+  async activeNode(line) {
+    await this.load(); let best;
+    for (const node of this.nodesById.values()) {
+      if (node.data.start_line - 1 <= line && line <= node.data.end_line - 1 && (!best || node.data.start_line >= best.data.start_line)) best = node;
+    }
+    return best;
+  }
+}
+
+async function revealStructure(data) {
+  const editor = currentEditor(); if (!editor || !data || !data.start_line) return;
+  const position = new vscode.Position(data.start_line - 1, Math.max(0, data.start_column - 1));
+  editor.selection = new vscode.Selection(position, position);
+  editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+}
+
 async function showStructuralDiff() {
   const editor = currentEditor(); if (!editor) return;
   try {
@@ -187,6 +316,12 @@ function activate(context) {
   };
   client = new LanguageClient("separan", "Separan Language Server", serverOptions, clientOptions); client.start();
   reviewOutput = vscode.window.createOutputChannel("Separan Review");
+  const structureProvider = new StructureProvider();
+  const structureView = vscode.window.createTreeView("separan.structureExplorer", { treeDataProvider: structureProvider, showCollapseAll: true });
+  const refreshStructureSoon = (event) => {
+    if (event && event.document && event.document.languageId !== "separan") return;
+    clearTimeout(structureRefreshTimer); structureRefreshTimer = setTimeout(() => structureProvider.refresh(), 250);
+  };
   context.subscriptions.push(
     { dispose: () => client && client.stop() },
     vscode.commands.registerCommand("separan.runFile", () => runFile(false)),
@@ -197,8 +332,19 @@ function activate(context) {
     vscode.commands.registerCommand("separan.copyAiEditScope", copyAiScope),
     vscode.commands.registerCommand("separan.showStructuralDiff", showStructuralDiff),
     vscode.commands.registerCommand("separan.verifyAiEditScope", verifyAiEditScope),
+    vscode.commands.registerCommand("separan.refreshStructureExplorer", () => structureProvider.refresh()),
+    vscode.commands.registerCommand("separan.revealStructure", revealStructure),
     reviewOutput,
+    structureView,
     vscode.workspace.onDidChangeTextDocument(autoClose),
+    vscode.workspace.onDidChangeTextDocument(refreshStructureSoon),
+    vscode.workspace.onDidSaveTextDocument((document) => { if (document.languageId === "separan") structureProvider.refresh(); }),
+    vscode.window.onDidChangeActiveTextEditor(() => structureProvider.refresh()),
+    vscode.window.onDidChangeTextEditorSelection(async (event) => {
+      if (event.textEditor.document.languageId !== "separan" || !structureView.visible) return;
+      const node = await structureProvider.activeNode(event.selections[0].active.line);
+      if (node) structureView.reveal(node, { select: true, focus: false, expand: true });
+    }),
   );
 }
 

@@ -28,7 +28,7 @@ The roadmap describes direction, not a compatibility promise.
   typed Semantic Tokens, Hover, definition, scoped label rename, completion,
   signature help, inlay hints, symbols, folding, and AST-preserving formatting
 - next: project-wide function argument inference, references/test CodeLens, and
-  a dedicated block hierarchy view
+  Run Current Function
 
 ## v0.4 — structural AI workflows
 
@@ -37,6 +37,14 @@ The roadmap describes direction, not a compatibility promise.
 - implemented: verification that out-of-scope blocks remain unchanged
 - implemented: versioned machine-readable block identities and review metadata
 - implemented: a separate browser adapter boundary; no HTTP fallback may impersonate a browser
+
+## v0.5 — human comprehension tooling
+
+- implemented: a dedicated Structure Explorer with parser-backed block hierarchy
+- implemented: direct reads, writes, calls, and function parameters per named block
+- implemented: Git `HEAD` structural status and a removed-block review group
+- implemented: click navigation and active-cursor scope tracking
+- next: project-wide references, call hierarchy, test CodeLens, and function argument inference
 
 ## v1.0 — stable language
 
@@ -56,4 +64,6 @@ The roadmap describes direction, not a compatibility promise.
   次はproject全体推論、CodeLens、専用structure view
 - **v0.4:** AI edit scope、structural diff、対象外blockの無変更検証、machine-readable
   identity、独立browser adapter境界を実装済み
+- **v0.5:** 専用Structure Explorer、block別reads／writes／calls、Git変更状態、
+  click移動、cursor scope追従を実装済み
 - **v1.0:** 仕様固定、互換性方針、Python Reference Implementation

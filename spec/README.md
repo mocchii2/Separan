@@ -214,3 +214,5 @@ implemented experimentally but are not yet stable.
   AST-aware diffs, scope verification, JSON review metadata, and CI exit codes.
 - [Browser automation boundary](browser-automation.md): a separate real-engine
   adapter contract with no fake HTTP-client fallback.
+- [Structure Explorer](structure-explorer.md): human-readable block hierarchy,
+  direct reads/writes/calls, navigation, and Git structural state.

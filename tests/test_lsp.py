@@ -203,5 +203,23 @@ end_function:main
         }})
         self.assertFalse(rejected["passed"])
 
+    def test_v05_document_structure_request_exposes_human_insights(self):
+        source = '''function:main
+value = load(source)
+if value != null :loaded
+print value
+endif:loaded
+end_function:main
+'''
+        server = Server(io.BytesIO(), io.BytesIO()); uri = "file:///structure.sep"
+        server.documents[uri] = source
+        report = server.dispatch({"method": "separan/documentStructure", "params": {"textDocument": {"uri": uri}}})
+        function = report["roots"][0]
+        self.assertEqual(report["schema"], "separan.document-structure.v1")
+        self.assertEqual(function["reads"], ["source"])
+        self.assertEqual(function["writes"], ["value"])
+        self.assertEqual(function["calls"], ["load"])
+        self.assertEqual(function["children"][0]["reads"], ["value"])
+
 
 if __name__ == "__main__": unittest.main()

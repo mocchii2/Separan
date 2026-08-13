@@ -173,3 +173,5 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
   scope検証、JSON review metadata、CI向けexit codeを実装しています。
 - [Browser automation境界](browser-automation.ja.md): HTTP clientがbrowserを装わない、
   本物のengine用独立adapter契約を実装しています。
+- [Structure Explorer](structure-explorer.ja.md): 人間向けblock階層、直接の
+  reads／writes／calls、移動、Git構造状態を実装しています。

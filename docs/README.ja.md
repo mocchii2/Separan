@@ -239,6 +239,12 @@ Oracle、Microsoft SQL Serverはoptional extraとして提供します。Separan
 SQL literalやcommentを壊さずnative placeholderへ変換します。SQL dialect自体は
 各database固有のままです。詳細は[DB仕様](../spec/database.ja.md)を参照してください。
 
+v0.5 Structure Explorerは編集中の`.sep` fileを移動可能なblock treeにします。各名前付き
+構造へ直接のparameter、reads、writes、callsと、Git `HEAD`比の
+added／modified／removed状態を表示します。block選択で開始位置へ移動し、cursor位置から
+最も内側のscopeをtree上で追跡します。解析時にprogramは実行しません。詳細は
+[Structure Explorer仕様](../spec/structure-explorer.ja.md)を参照してください。
+
 Language Server previewは`separan-lsp`として利用できます。parser／単純固定型診断、
 mismatch Quick Fix、型付きSemantic Token、Hover、definition、scope安全なlabel rename、
 matching highlight、completion、signature help、Inlay Hint、label付きsymbol／folding、

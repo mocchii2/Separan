@@ -13,6 +13,7 @@ from .builtins import BUILTINS
 from .lexer import Lexer
 from .parser import Parser
 from .structural import ScopeResolutionError, inspect_source, structural_diff, verify_scopes
+from .structure_insights import document_structure
 from .lsp_analysis import (
     BLOCK_KINDS, BUILTIN_SIGNATURES, analyze_blocks, block_at, format_source,
     lsp_range, resolve_variable, static_type_diagnostics, variable_at, variables, word_at,
@@ -280,7 +281,7 @@ class Server:
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]}, "codeActionProvider": True,
                     "documentFormattingProvider": True, "inlayHintProvider": True,
                     "semanticTokensProvider": {"legend": {"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS}, "full": True}},
-                    "serverInfo": {"name": "separan-lsp", "version": "0.4.0"}}
+                    "serverInfo": {"name": "separan-lsp", "version": "0.5.0"}}
         if method == "shutdown": self.shutdown_requested = True; return None
         if method == "exit": raise SystemExit(0 if self.shutdown_requested else 1)
         if method in ("textDocument/didOpen", "textDocument/didChange"):
@@ -349,6 +350,12 @@ class Server:
                 return structural_scope_at(self.source(uri), position["line"], position["character"], uri)
             except SeparanError:
                 return None
+        elif method == "separan/documentStructure":
+            uri = params["textDocument"]["uri"]
+            try:
+                return document_structure(self.source(uri), uri)
+            except SeparanError as exc:
+                return {"error": str(exc)}
         return None
 
     def run(self):

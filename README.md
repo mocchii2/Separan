@@ -228,6 +228,13 @@ Stable execution metadata is available through the reserved read-only `system`
 context; dynamic values such as time, requests, randomness, and database state
 remain explicit functions or scoped values.
 
+The v0.5 Structure Explorer turns the active `.sep` file into a navigable block
+tree. Each named structure shows its direct parameters, reads, writes, and
+calls, plus added/modified/removed state against Git `HEAD`. Selecting a block
+jumps to its opener; moving the cursor tracks the deepest enclosing scope. The
+analysis is parser-backed and never executes the program. See the
+[Structure Explorer specification](spec/structure-explorer.md).
+
 The Language Server preview is available as `separan-lsp`. It provides parser
 and simple fixed-type diagnostics, mismatch Quick Fixes, typed Semantic Tokens,
 Hover, definition, scope-safe label rename, matching highlights, completion,

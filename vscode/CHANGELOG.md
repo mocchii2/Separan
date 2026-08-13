@@ -2,6 +2,18 @@
 
 All notable changes to the Separan VS Code extension will be documented in this file.
 
+## [0.5.0] - 2026-08-14
+
+### Human Comprehension Tooling
+
+- Added a dedicated Structure Explorer in the Activity Bar.
+- Shows the parser-backed hierarchy and direct parameters, reads, writes, and
+  calls for every named block without executing code.
+- Shows `added` and `modified` structures against Git `HEAD`, plus a separate
+  removed-structure review group.
+- Added click-to-reveal navigation, cursor scope tracking, and manual refresh.
+- Added the versioned `separan.document-structure.v1` LSP response schema.
+
 ## [0.4.3] - 2026-08-13
 
 ### Three-second Marketplace overview

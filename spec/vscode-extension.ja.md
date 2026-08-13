@@ -1,6 +1,6 @@
 # VS Code拡張とLanguage Server
 
-状態: **v0.4 editor・構造review tooling実装済み。**
+状態: **v0.5 human comprehension tooling実装済み。**
 
 公式拡張はlanguage ID `separan`と`.sep`を担当します。TextMate scopeではlabelを
 variableと分離し、Semantic Tokenではソースを書き換えずに推論済み公開型を付与します。
@@ -23,6 +23,9 @@ variableと分離し、Semantic Tokenではソースを書き換えずに推論�
   Copy AI Edit Scope command
 - Parser連動のStructural Diff Against HEAD、AI Edit Scope Verification Against HEAD、
   階層block identity
+- block階層、直接parameter／reads／writes／calls、Git構造状態、削除identityを表示する
+  専用Structure Explorer
+- Explorerからのclick移動とeditor cursorのscope追従
 
 `separan.autoCloseLabels`でlabel closer自動挿入、`separan.inlayHints.types`で型hint、
 `separan.pythonPath`でLSPと実行commandが使うPythonを設定します。
@@ -44,6 +47,6 @@ Copy AI Edit Scopeが出す完全pathを要求します。
 
 ## 計画中の高度な機能
 
-program全体の関数引数推論、参照／test CodeLens、専用structure sidebar、
-Run Current Functionは計画中です。安定したproject indexを必要とするため、v0.4の
-保証機能とはしません。
+program全体の関数引数推論、参照／test CodeLens、call hierarchy、Run Current Functionは
+計画中です。安定したproject indexを必要とするため、v0.5の保証機能とはしません。
+詳細は[Structure Explorer仕様](structure-explorer.ja.md)を参照してください。

@@ -2,7 +2,7 @@
   "name": "separan-language",
   "publisher": "separan",
   "displayName": "Separan Language",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Make AI-written code easier for humans to understand and verify with explicit labels, structural diffs, and scope checks.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",
@@ -27,7 +27,7 @@
   },
   "engines": { "vscode": "^1.75.0" },
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:separan", "onCommand:separan.runFile", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
+  "activationEvents": ["onLanguage:separan", "onView:separan.structureExplorer", "onCommand:separan.runFile", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
   "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
@@ -40,9 +40,22 @@
       { "command": "separan.goToLabel", "title": "Separan: Go to Label" },
       { "command": "separan.copyAiEditScope", "title": "Separan: Copy AI Edit Scope" },
       { "command": "separan.showStructuralDiff", "title": "Separan: Show Structural Diff Against HEAD" },
-      { "command": "separan.verifyAiEditScope", "title": "Separan: Verify AI Edit Scope Against HEAD" }
+      { "command": "separan.verifyAiEditScope", "title": "Separan: Verify AI Edit Scope Against HEAD" },
+      { "command": "separan.refreshStructureExplorer", "title": "Separan: Refresh Structure Explorer", "icon": "$(refresh)" },
+      { "command": "separan.revealStructure", "title": "Separan: Reveal Structure" }
     ],
+    "viewsContainers": {
+      "activitybar": [{ "id": "separan", "title": "Separan", "icon": "images/structure.svg" }]
+    },
+    "views": {
+      "separan": [{ "id": "separan.structureExplorer", "name": "Structure Explorer", "icon": "images/structure.svg" }]
+    },
+    "viewsWelcome": [{
+      "view": "separan.structureExplorer",
+      "contents": "Open a `.sep` file to inspect its named structure, data flow, calls, and Git changes.\n[Open File](command:workbench.action.files.openFile)"
+    }],
     "menus": {
+      "view/title": [{ "command": "separan.refreshStructureExplorer", "when": "view == separan.structureExplorer", "group": "navigation" }],
       "editor/title": [{ "command": "separan.runFile", "when": "editorLangId == separan", "group": "navigation" }],
       "editor/context": [
         { "command": "separan.goToMatchingLabel", "when": "editorLangId == separan", "group": "navigation" },
