@@ -2,7 +2,7 @@
   "name": "separan-language",
   "publisher": "separan",
   "displayName": "Separan Language",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Make AI-written code easier for humans to understand and verify with explicit labels, structural diffs, and scope checks.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",
