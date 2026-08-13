@@ -193,6 +193,10 @@ Stable execution metadata is available through the reserved read-only `system`
 context; dynamic values such as time, requests, randomness, and database state
 remain explicit functions or scoped values.
 
+The first v0.3 Language Server preview is available as `separan-lsp`. It reuses
+the reference parser for live diagnostics and supplies labeled document symbols
+and folding ranges to the VS Code extension.
+
 External commands follow the same explicitness rule: `exec` passes a program and
 argv directly, `exec_checked` turns nonzero exit into a catchable error, and the
 separately gated `shell_exec` is the only API that interprets shell syntax.

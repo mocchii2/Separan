@@ -6,14 +6,17 @@
 
 This experimental extension recognizes `.sep` files and highlights Separan
 keywords, strings, numbers, comments, function names, and block labels using a
-TextMate grammar.
+TextMate grammar. Its v0.3 language-server preview also provides live parser
+diagnostics, a labeled-block outline, and folding ranges.
 
 The extension icon is a small-size derivative of the official Separan mark;
 the unchanged brand originals remain in the repository's `logo/` directory.
 
-For local development, copy or link this directory into the VS Code extensions
-directory, then reload the editor. Semantic variable-type colors, matching-label
-navigation, rename, and folding are planned for the LSP phase in v0.3.
+For local development, run `npm install` in this directory, install Separan into
+the selected Python environment, then copy or link this directory into the VS
+Code extensions directory and reload the editor. Set `separan.pythonPath` when
+VS Code should use a Python executable other than `python`. Semantic variable-type
+colors and matching-label navigation/rename remain planned for v0.3.
 
 This extension is part of Separan v0.1-alpha and has not been published to the
 VS Code Marketplace.

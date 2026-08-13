@@ -207,6 +207,9 @@ Oracle、Microsoft SQL Serverはoptional extraとして提供します。Separan
 SQL literalやcommentを壊さずnative placeholderへ変換します。SQL dialect自体は
 各database固有のままです。詳細は[DB仕様](../spec/database.ja.md)を参照してください。
 
+v0.3 Language Serverの初版は`separan-lsp`として利用できます。リファレンスParserを
+再利用したリアルタイム診断、label付きdocument symbol、folding rangeをVS Code拡張へ提供します。
+
 ## 状態
 
 Separanは現在 **v0.1.0-alpha.1** の実験的な処理系です。v1.0までは構文や

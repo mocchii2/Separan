@@ -7,9 +7,18 @@
   "license": "Apache-2.0",
   "repository": { "type": "git", "url": "https://github.com/mocchii2/Separan.git" },
   "engines": { "vscode": "^1.75.0" },
+  "main": "./extension.js",
+  "activationEvents": ["onLanguage:separan"],
   "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
-    "grammars": [{ "language": "separan", "scopeName": "source.separan", "path": "./syntaxes/separan.tmLanguage.json" }]
-  }
+    "grammars": [{ "language": "separan", "scopeName": "source.separan", "path": "./syntaxes/separan.tmLanguage.json" }],
+    "configuration": {
+      "title": "Separan",
+      "properties": {
+        "separan.pythonPath": { "type": "string", "default": "python", "description": "Python executable used to launch separan.lsp." }
+      }
+    }
+  },
+  "dependencies": { "vscode-languageclient": "^9.0.1" }
 }

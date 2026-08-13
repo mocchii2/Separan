@@ -26,6 +26,7 @@ db-all = [
 
 [project.scripts]
 separan = "separan.cli:main"
+separan-lsp = "separan.lsp:main"
 
 [tool.setuptools.packages.find]
 where = ["reference"]

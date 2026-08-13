@@ -24,7 +24,9 @@ The roadmap describes direction, not a compatibility promise.
 
 ## v0.3 — language tooling
 
-- Language Server Protocol implementation
+- initial dependency-free LSP transport, parser diagnostics, document symbols,
+  and labeled-block folding are implemented as an experimental preview
+- stabilize and expand the Language Server Protocol implementation
 - semantic tokens and inferred variable-type colors
 - matching-label navigation, highlight, rename, and folding
 - block hierarchy view
@@ -50,6 +52,6 @@ The roadmap describes direction, not a compatibility promise.
 
 - **v0.1-alpha:** 現在の処理系、ラベル検証、基本型、関数、制御構文
 - **v0.2:** 仕様整理、object、時間専用型、エラー診断強化、100ケースを超える適合テスト
-- **v0.3:** LSP、Semantic Tokens、ラベルジャンプ・rename・fold
+- **v0.3:** LSP初版（診断・symbol・fold）は実装済み。次はSemantic Tokens、ラベルジャンプ・rename
 - **v0.4:** AI edit scope、structural diff、対象外ブロックの無変更検証
 - **v1.0:** 仕様固定、互換性方針、Python Reference Implementation
