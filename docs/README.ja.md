@@ -114,16 +114,17 @@ No other block was modified.
 同じラベルが、人間向けの説明、Parserが検証する構造、機械検証可能な編集境界を
 兼ねることがSeparanの中心的な狙いです。
 
-## v0.1-alpha
+## v0.1.0-alpha.1
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
 コメント、AST表示、基本的なVS Code TextMate Grammarが含まれます。
 
-最小標準ライブラリとして、`len(value)`、`type(value)`、`abs(number)`、
-`range(stop)`／`range(start, stop[, step])`を利用できます。暗黙変換の代わりに、
-`number(value)`、`string(value)`、`boolean(value)`で変換を明示できます。
-組み込み関数でも引数の数と型を厳密に診断します。
+標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
+datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
+HTTP client／server preview、認証、Cookie、parameter bindingを使うSQLiteが
+実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
+厳密に診断します。
 
 文字列加工には`trim`、`upper`、`lower`、`contains`、`starts_with`、
 `ends_with`、`split`、`join`、`replace`、Unicodeコードポイント単位の
@@ -148,7 +149,7 @@ Python 3.10以降が必要です。
 
 詳しくは[言語仕様](../spec/README.ja.md)、[設計思想](philosophy.ja.md)、
 [AI連携](ai-integration.ja.md)、[ロードマップ](../ROADMAP.md)を参照してください。
-[v0.2時間型設計](../spec/temporal-types.ja.md)では、datetime、local datetime、
+[時間型仕様](../spec/temporal-types.ja.md)では、datetime、local datetime、
 timezone、durationを別の型として定義しています。この時間型はリファレンス実装へ
 実験的に先行実装されています。`separan --timezone-version`で使用中のtimezone
 データベースを確認できます。
@@ -175,11 +176,10 @@ listは同型・0始まりで、追加、削除、slice、reverse、sortをす�
 繰り返し、paddingはUnicodeコードポイント単位で、`index_of`／`last_index_of`の
 不在結果は`-1`ではなくnullです。
 
-`const name = value`は再代入不能bindingを作り、通常代入は可変のままです。v0.2では
-label付きobject／list data block、namespace付きimport、capability型I/Oと明示的JSON変換、
-label付きerror処理の順で導入する
-設計です。詳細は[module・data・I/O・error設計](../spec/modules-data-errors.ja.md)を
-参照してください。
+`const name = value`は再代入不能bindingを作り、通常代入は可変のままです。
+label付きobject／list data block、namespace付きimport、capability型I/O、明示的JSON変換、
+label付きerror処理は、すべてリファレンス処理系で実験的に利用できます。詳細は
+[module・data・I/O・error仕様](../spec/modules-data-errors.ja.md)を参照してください。
 
 HTTPは簡易`http_get`と詳細`http_request`に分け、network capabilityで明示許可します。
 JavaScript、DOM、screen size、navigatorは将来の`browser_open`へ分離します。詳細は
@@ -204,7 +204,7 @@ label付きobject/list、member access、namespace付きimport、label付き
 
 ## 状態
 
-Separanは現在 **v0.1-alpha** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.1.0-alpha.1** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

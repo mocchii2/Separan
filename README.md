@@ -122,23 +122,24 @@ No other block was modified.
 The label is simultaneously human documentation, parser-checked structure, and
 a future machine-verifiable edit boundary.
 
-## v0.1-alpha
+## v0.1.0-alpha.1
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
 `main` auto-start, conditionals, loops, comments, AST output, and a basic VS
 Code TextMate grammar.
 
-The minimal standard library provides `len(value)`, `type(value)`, `abs(number)`,
-and `range(stop)` / `range(start, stop[, step])`. Explicit `number(value)`,
-`string(value)`, and `boolean(value)` conversions replace implicit coercion.
+The standard library now covers explicit type conversion, Unicode string and
+homogeneous-list processing, immutable bytes, datetime and duration values,
+reproducible and secure randomness, filesystem and process utilities, HTTP
+client/server previews, authentication, cookies, and parameter-bound SQLite.
 Built-ins use the same strict argument and type diagnostics as user-defined
-functions.
+functions; implicit coercion remains forbidden.
 
 String processing includes `trim`, `upper`, `lower`, `contains`, `starts_with`,
 `ends_with`, `split`, `join`, `replace`, and code-point-based `substring`.
 
-An experimental v0.2 temporal preview provides distinct `datetime`,
+The experimental temporal implementation provides distinct `datetime`,
 `local_datetime`, `timezone`, and `duration` values. It requires explicit zones,
 rejects ambiguous DST wall times, and keeps Unix units visible in function names.
 Run `separan --timezone-version` to inspect the active timezone database.
@@ -170,10 +171,10 @@ and bytes. String search, repetition, and padding operate on Unicode code points
 failed `index_of` and `last_index_of` searches return null.
 
 `const name = value` creates an immutable binding while ordinary assignment
-remains mutable. The accepted v0.2 architecture introduces labeled object/list
-data blocks before namespaced imports, then capability-based I/O and explicit
-JSON boundary conversion, then labeled
-`try`/`catch`/`finally` handling.
+remains mutable. Labeled object/list data blocks, namespaced imports,
+capability-based I/O, explicit JSON boundary conversion, and labeled
+`try`/`catch`/`finally` handling are all available experimentally in the
+reference interpreter.
 
 The accepted HTTP design keeps `http_get` lightweight and puts detailed status,
 headers, and bytes in `http_request`. It explicitly does not impersonate a
@@ -196,7 +197,7 @@ argv directly, `exec_checked` turns nonzero exit into a catchable error, and the
 separately gated `shell_exec` is the only API that interprets shell syntax.
 These process APIs now have an experimental capability-gated implementation.
 
-The accepted utility design adds versioned Unicode regexes, deterministic
+The utility implementation provides versioned Unicode regexes, deterministic
 capability-gated `glob`, process-scoped environment access, and command-line
 helpers that keep `script_path()` separate from `command_args()`.
 An experimental implementation of these APIs and named function arguments is
@@ -236,8 +237,8 @@ kept unchanged in the repository. A separately optimized 128px derivative is
 used as the [VS Code extension icon](vscode/images/icon.png).
 
 Read the [language specification](spec/README.md), the [design philosophy](docs/philosophy.md),
-the [AI integration model](docs/ai-integration.md), the accepted
-[v0.2 temporal-type design](spec/temporal-types.md), and the [roadmap](ROADMAP.md).
+the [AI integration model](docs/ai-integration.md), the
+[temporal-type specification](spec/temporal-types.md), and the [roadmap](ROADMAP.md).
 The experimental [database standard](spec/database.md) documents the SQLite
 reference driver and the adapter contract for additional SQL databases.
 The [reserved system context](spec/system-context.md) defines normalized,
@@ -245,7 +246,7 @@ read-only execution metadata and its namespace boundary.
 
 ## Status
 
-Separan is experimental software at **v0.1-alpha**. The syntax and diagnostics
+Separan is experimental software at **v0.1.0-alpha.1**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License
