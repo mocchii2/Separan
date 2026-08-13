@@ -2,6 +2,13 @@
 
 All notable changes to the Separan VS Code extension will be documented in this file.
 
+## [0.5.2] - 2026-08-14
+
+### Marketplace presentation
+
+- Fixed the Separan mark URL in the Marketplace Overview so it points to the
+  published `vscode/images/icon.png` asset.
+
 ## [0.5.0] - 2026-08-14
 
 ### Human Comprehension Tooling
