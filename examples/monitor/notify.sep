@@ -1,0 +1,166 @@
+const dedup_window_minutes = 10
+
+object:store_template
+history = []
+sent_keys = []
+sent_minutes = []
+state_history = []
+job_history = []
+end_object:store_template
+
+object:candidate_template
+resource_id = ""
+resource_type = ""
+resource_name = ""
+alert_type = ""
+severity = ""
+source = ""
+rule_id = ""
+message = ""
+dedup_key = ""
+enabled = true
+maintenance = false
+transition_grace = false
+user_suppressed = false
+dependency_suppressed = false
+acknowledged = false
+rate_limited = false
+end_object:candidate_template
+
+object:record_template
+notification_id = ""
+detected_minute = 0
+resource_id = ""
+resource_type = ""
+resource_name = ""
+alert_type = ""
+severity = ""
+source = ""
+rule_id = ""
+message = ""
+dedup_key = ""
+status = ""
+notified = false
+suppressed = false
+suppression_code = "NONE"
+suppression_reason = ""
+delivery = "SIMULATED"
+end_object:record_template
+
+object:decision_template
+store = null
+record = null
+end_object:decision_template
+
+function:new_store
+return store_template
+end_function:new_store
+
+function:new_candidate
+return candidate_template
+end_function:new_candidate
+
+function:no_notification(store)
+decision = object_set(decision_template, "store", store)
+return decision
+end_function:no_notification
+
+function:evaluate(store, candidate, minute)
+suppressed = false
+code = "NONE"
+reason = ""
+
+if !suppressed && !candidate.enabled :check_resource_disabled
+suppressed = true
+code = "RESOURCE_DISABLED"
+reason = format("{} is disabled.", candidate.resource_name)
+endif:check_resource_disabled
+
+if !suppressed && candidate.maintenance :check_maintenance
+suppressed = true
+code = "MAINTENANCE"
+reason = format("{} is in maintenance mode.", candidate.resource_name)
+endif:check_maintenance
+
+if !suppressed && candidate.transition_grace :check_transition_grace
+suppressed = true
+code = "TRANSITION_GRACE"
+reason = format("{} is inside a startup, reboot, or shutdown grace period.", candidate.resource_name)
+endif:check_transition_grace
+
+if !suppressed && candidate.user_suppressed :check_user_rule
+suppressed = true
+code = "USER_RULE"
+reason = format("Rule {} explicitly suppresses this event.", candidate.rule_id)
+endif:check_user_rule
+
+if !suppressed && candidate.dependency_suppressed :check_dependency
+suppressed = true
+code = "DEPENDENCY"
+reason = "A monitored dependency is already known to be unavailable."
+endif:check_dependency
+
+if !suppressed && candidate.acknowledged :check_acknowledged
+suppressed = true
+code = "ACKNOWLEDGED"
+reason = "An operator has acknowledged the active incident."
+endif:check_acknowledged
+
+last_index = last_index_of(store.sent_keys, candidate.dedup_key)
+duplicate = false
+if last_index != null :check_previous_delivery
+last_sent_minute = store.sent_minutes[last_index]
+if minute - last_sent_minute < dedup_window_minutes :check_dedup_window
+duplicate = true
+endif:check_dedup_window
+endif:check_previous_delivery
+
+if !suppressed && duplicate :check_duplicate
+suppressed = true
+code = "DUPLICATE"
+reason = format("The same dedup key was notified within {} minutes.", dedup_window_minutes)
+endif:check_duplicate
+
+if !suppressed && candidate.rate_limited :check_rate_limit
+suppressed = true
+code = "RATE_LIMIT"
+reason = "The notification channel rate limit has been reached."
+endif:check_rate_limit
+
+status = "SENT"
+notified = true
+if suppressed :set_suppressed_status
+status = "SUPPRESSED"
+notified = false
+endif:set_suppressed_status
+
+notification_id = format("MON-{}", string(length(store.history) + 1))
+record = object_set(record_template, "notification_id", notification_id)
+record = object_set(record, "detected_minute", minute)
+record = object_set(record, "resource_id", candidate.resource_id)
+record = object_set(record, "resource_type", candidate.resource_type)
+record = object_set(record, "resource_name", candidate.resource_name)
+record = object_set(record, "alert_type", candidate.alert_type)
+record = object_set(record, "severity", candidate.severity)
+record = object_set(record, "source", candidate.source)
+record = object_set(record, "rule_id", candidate.rule_id)
+record = object_set(record, "message", candidate.message)
+record = object_set(record, "dedup_key", candidate.dedup_key)
+record = object_set(record, "status", status)
+record = object_set(record, "notified", notified)
+record = object_set(record, "suppressed", suppressed)
+record = object_set(record, "suppression_code", code)
+record = object_set(record, "suppression_reason", reason)
+
+history = append(store.history, record)
+updated_store = object_set(store, "history", history)
+
+if notified :remember_delivery
+updated_store = object_set(updated_store, "sent_keys", append(store.sent_keys, candidate.dedup_key))
+updated_store = object_set(updated_store, "sent_minutes", append(store.sent_minutes, minute))
+endif:remember_delivery
+
+decision = object_set(decision_template, "store", updated_store)
+decision = object_set(decision, "record", record)
+return decision
+end_function:evaluate

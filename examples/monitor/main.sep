@@ -1,0 +1,140 @@
+import "notify.sep" as notification
+import "logcheck.sep" as logcheck
+import "status.sep" as status
+import "normal_check.sep" as normal_check
+
+object:oracle_error
+resource_id = "i-0123456789abcdef0"
+resource_name = "WEB01"
+log_name = "application"
+rule_id = "oracle-error"
+message = "ORA-12541: TNS no listener"
+severity = "CRITICAL"
+enabled = true
+maintenance = false
+transition_grace = false
+dependency_suppressed = false
+acknowledged = false
+rate_limited = false
+end_object:oracle_error
+
+object:transition_error
+resource_id = "i-0123456789abcdef0"
+resource_name = "WEB01"
+log_name = "system"
+rule_id = "service-error"
+message = "ERROR service unavailable during reboot"
+severity = "WARNING"
+enabled = true
+maintenance = false
+transition_grace = true
+dependency_suppressed = false
+acknowledged = false
+rate_limited = false
+end_object:transition_error
+
+object:maintenance_error
+resource_id = "i-0123456789abcdef0"
+resource_name = "WEB01"
+log_name = "application"
+rule_id = "maintenance-error"
+message = "CRITICAL maintenance probe"
+severity = "CRITICAL"
+enabled = true
+maintenance = true
+transition_grace = false
+dependency_suppressed = false
+acknowledged = false
+rate_limited = false
+end_object:maintenance_error
+
+object:excluded_error
+resource_id = "i-0123456789abcdef0"
+resource_name = "WEB01"
+log_name = "application"
+rule_id = "ignore-ora-00001"
+message = "ORA-00001: duplicate key handled by application"
+severity = "WARNING"
+enabled = true
+maintenance = false
+transition_grace = false
+dependency_suppressed = false
+acknowledged = false
+rate_limited = false
+end_object:excluded_error
+
+object:started_event
+resource_id = "i-0345678901abcdef2"
+resource_type = "ec2"
+resource_name = "BATCH01"
+state = "running"
+source = "EventBridge EC2 state change"
+message = "BATCH01 startup completed"
+end_object:started_event
+
+object:backup_job
+name = "nightly_backup"
+resource_id = "i-0345678901abcdef2"
+resource_name = "BATCH01"
+log_name = "batch"
+state = "RUNNING"
+expected_finish_minute = 180
+grace_minutes = 15
+end_object:backup_job
+
+function:show(decision)
+if decision.record != null :show_notification_record
+print format("{} | {} | {} | {}", decision.record.status, decision.record.alert_type, decision.record.resource_name, decision.record.suppression_code)
+if decision.record.suppressed :show_suppression_reason
+print "  reason: " + decision.record.suppression_reason
+endif:show_suppression_reason
+endif:show_notification_record
+end_function:show
+
+function:main
+store = notification.new_store()
+
+decision = logcheck.handle(store, oracle_error, 480)
+store = decision.store
+show(decision)
+
+decision = logcheck.handle(store, oracle_error, 481)
+store = decision.store
+show(decision)
+
+decision = logcheck.handle(store, transition_error, 482)
+store = decision.store
+show(decision)
+
+decision = logcheck.handle(store, maintenance_error, 483)
+store = decision.store
+show(decision)
+
+decision = logcheck.handle(store, excluded_error, 484)
+store = decision.store
+show(decision)
+
+decision = status.handle(store, started_event, 485)
+store = decision.store
+show(decision)
+
+decision = normal_check.check(store, backup_job, 196)
+store = decision.store
+show(decision)
+
+sent_count = 0
+suppressed_count = 0
+for record in store.history :summarize_history
+if record.notified :count_sent
+sent_count = sent_count + 1
+endif:count_sent
+if record.suppressed :count_suppressed
+suppressed_count = suppressed_count + 1
+endif:count_suppressed
+endfor:summarize_history
+
+print ""
+print format("History: detected={}, sent={}, suppressed={}", length(store.history), sent_count, suppressed_count)
+print format("State transitions recorded: {}", length(store.state_history))
+print format("Job observations recorded: {}", length(store.job_history))
+end_function:main

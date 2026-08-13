@@ -1,0 +1,47 @@
+import "notify.sep" as notification
+
+const include_keywords = ["error", "critical", "ora-", "重大"]
+const exclude_keywords = ["ora-00001", "known harmless error"]
+
+function:contains_any(text, keywords)
+matched = false
+normalized = lower(text)
+for keyword in keywords :scan_keywords
+if contains(normalized, lower(keyword)) :keyword_found
+matched = true
+endif:keyword_found
+endfor:scan_keywords
+return matched
+end_function:contains_any
+
+function:handle(store, event, minute)
+included = contains_any(event.message, include_keywords)
+
+if !included :ignore_unmatched_log
+return notification.no_notification(store)
+endif:ignore_unmatched_log
+
+excluded = contains_any(event.message, exclude_keywords)
+normalized_message = lower(trim(event.message))
+dedup_key = format("{}|log_alert|{}|{}|{}", event.resource_id, event.log_name, event.rule_id, normalized_message)
+
+candidate = notification.new_candidate()
+candidate = object_set(candidate, "resource_id", event.resource_id)
+candidate = object_set(candidate, "resource_type", "ec2")
+candidate = object_set(candidate, "resource_name", event.resource_name)
+candidate = object_set(candidate, "alert_type", "log_alert")
+candidate = object_set(candidate, "severity", event.severity)
+candidate = object_set(candidate, "source", event.log_name)
+candidate = object_set(candidate, "rule_id", event.rule_id)
+candidate = object_set(candidate, "message", event.message)
+candidate = object_set(candidate, "dedup_key", dedup_key)
+candidate = object_set(candidate, "enabled", event.enabled)
+candidate = object_set(candidate, "maintenance", event.maintenance)
+candidate = object_set(candidate, "transition_grace", event.transition_grace)
+candidate = object_set(candidate, "user_suppressed", excluded)
+candidate = object_set(candidate, "dependency_suppressed", event.dependency_suppressed)
+candidate = object_set(candidate, "acknowledged", event.acknowledged)
+candidate = object_set(candidate, "rate_limited", event.rate_limited)
+
+return notification.evaluate(store, candidate, minute)
+end_function:handle

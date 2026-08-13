@@ -1,0 +1,41 @@
+import "notify.sep" as notification
+
+function:handle(store, event, minute)
+state_history = append(store.state_history, event)
+updated_store = object_set(store, "state_history", state_history)
+
+alert_type = "RECORD_ONLY"
+notify_target = false
+
+if event.state == "running" :classify_started
+alert_type = "resource_started"
+notify_target = true
+endif:classify_started
+
+if event.state == "stopped" :classify_stopped
+alert_type = "resource_stopped"
+notify_target = true
+endif:classify_stopped
+
+if event.state == "reboot_completed" :classify_restarted
+alert_type = "resource_restarted"
+notify_target = true
+endif:classify_restarted
+
+if !notify_target :record_state_only
+return notification.no_notification(updated_store)
+endif:record_state_only
+
+candidate = notification.new_candidate()
+candidate = object_set(candidate, "resource_id", event.resource_id)
+candidate = object_set(candidate, "resource_type", event.resource_type)
+candidate = object_set(candidate, "resource_name", event.resource_name)
+candidate = object_set(candidate, "alert_type", alert_type)
+candidate = object_set(candidate, "severity", "INFO")
+candidate = object_set(candidate, "source", event.source)
+candidate = object_set(candidate, "rule_id", "state-transition")
+candidate = object_set(candidate, "message", event.message)
+candidate = object_set(candidate, "dedup_key", format("{}|{}|{}", event.resource_id, alert_type, event.state))
+
+return notification.evaluate(updated_store, candidate, minute)
+end_function:handle

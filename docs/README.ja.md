@@ -162,6 +162,14 @@ stringとlistで共通です。
 `sum`、`average`、値の`count`を提供します。三角・対数・指数関数は有限実数だけを返し、
 定義域外やoverflowを黙ってNaN／Infinityにせずmath domain errorにします。
 
+## 監視dogfoodingモデル
+
+実行可能な[Separan Monitorモデル](https://github.com/mocchii2/Separan/tree/main/examples/monitor)では、
+mockのEC2・log・JOBイベントを、模擬送信または理由付き抑制履歴へ変換します。
+`notify`／`logcheck`／`status`／`normal_check`の4モジュール境界、固定された抑制順序、
+重複抑制、通知候補の全履歴化をSeparanコードで確認できます。厳密なYAML parserと
+型付きAWS capability adapterが入るまでは、AWSへdeployしたふりをしない構成です。
+
 ```console
 python -m pip install -e .
 separan examples/hello.sep

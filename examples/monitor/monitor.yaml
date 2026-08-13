@@ -1,0 +1,66 @@
+version: 1
+aws:
+  account_id: "123456789012"
+  region: ap-northeast-1
+
+resources:
+  ec2:
+    - name: WEB01
+      instance_id: i-0123456789abcdef0
+      arn: arn:aws:ec2:ap-northeast-1:123456789012:instance/i-0123456789abcdef0
+      os: windows
+      metrics:
+        cpu:
+          enabled: true
+          threshold_percent: 90
+          evaluation_minutes: 5
+          datapoints: 3
+          recovery_notice: true
+      logs:
+        - name: application
+          path: 'C:\App\logs\application.log'
+          encoding: utf-8
+
+    - name: BATCH01
+      instance_id: i-0345678901abcdef2
+      arn: arn:aws:ec2:ap-northeast-1:123456789012:instance/i-0345678901abcdef2
+      os: linux
+      logs:
+        - name: batch
+          path: /var/log/batch/backup.log
+          encoding: utf-8
+
+log_rules:
+  - id: oracle-error
+    resource: WEB01
+    log: application
+    keywords:
+      any: [ERROR, CRITICAL, ORA-, 重大]
+      exclude: [ORA-00001, known harmless error]
+      case_sensitive: false
+
+jobs:
+  - name: nightly_backup
+    resource: BATCH01
+    log: batch
+    start_keywords: [BACKUP START]
+    completion_keywords: [BACKUP COMPLETED]
+    failure_keywords: [BACKUP FAILED]
+    expected_finish: "03:00"
+    grace_minutes: 15
+
+transition_suppression:
+  ec2:
+    startup: 15m
+    reboot: 10m
+    shutdown: 5m
+
+deduplication:
+  enabled: true
+  window_minutes: 10
+  summary_notification: true
+
+notifications:
+  critical:
+    email: [operations@example.com]
+    teams: [operations]

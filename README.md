@@ -262,6 +262,16 @@ Labeled `object:name` and `list:name` data blocks, `user.name` member access,
 namespaced imports, and labeled `try`/`catch`/`finally`/`throw` also have
 experimental reference implementations.
 
+## Monitoring dogfooding model
+
+The runnable [Separan Monitor model](https://github.com/mocchii2/Separan/tree/main/examples/monitor)
+turns mock EC2, log, and job events into either simulated delivery or a
+reason-bearing suppression record. It demonstrates the four-module
+`notify`/`logcheck`/`status`/`normal_check` boundary, fixed suppression order,
+deduplication, and complete notification-candidate history using Separan code.
+AWS deployment is deliberately kept outside the example until strict YAML and
+typed AWS capability adapters exist.
+
 ```console
 python -m pip install -e .
 separan examples/hello.sep
