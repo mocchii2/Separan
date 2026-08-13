@@ -1,8 +1,14 @@
 const vscode = require("vscode");
+const { execFile } = require("child_process");
+const path = require("path");
+const { promisify } = require("util");
 const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
+
+const execFileAsync = promisify(execFile);
 
 let client;
 let autoClosing = false;
+let reviewOutput;
 
 const blockPairs = {
   function: "end_function", if: "endif", while: "endwhile", for: "endfor",
@@ -84,9 +90,75 @@ async function runTests() {
 
 async function copyAiScope() {
   const editor = currentEditor(); if (!editor) return;
-  const label = labelAt(editor); if (!label) return vscode.window.showInformationMessage("Place the cursor on a Separan label.");
-  await vscode.env.clipboard.writeText(`Modify only :${label}`);
-  vscode.window.showInformationMessage(`Copied AI edit scope :${label}`);
+  const scope = await scopeAt(editor);
+  if (!scope) return vscode.window.showInformationMessage("Place the cursor on a Separan label.");
+  await vscode.env.clipboard.writeText(`Modify only Separan scope ${scope.path}`);
+  vscode.window.showInformationMessage(`Copied AI edit scope ${scope.path}`);
+}
+
+async function scopeAt(editor) {
+  return client.sendRequest("separan/scopeAt", {
+    textDocument: { uri: editor.document.uri.toString() },
+    position: { line: editor.selection.active.line, character: editor.selection.active.character },
+  });
+}
+
+async function headSource(editor) {
+  const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+  if (!folder) throw new Error("Open the file inside a Git workspace first.");
+  try {
+    const rootResult = await execFileAsync("git", ["-C", folder.uri.fsPath, "rev-parse", "--show-toplevel"], { encoding: "utf8", windowsHide: true });
+    const gitRoot = rootResult.stdout.trim();
+    const relative = path.relative(gitRoot, editor.document.uri.fsPath).replace(/\\/g, "/");
+    if (!relative || relative === ".." || relative.startsWith("../") || path.isAbsolute(relative)) throw new Error("The active file is outside the Git worktree.");
+    const result = await execFileAsync("git", ["-C", gitRoot, "show", `HEAD:${relative}`], { encoding: "utf8", windowsHide: true });
+    return result.stdout;
+  } catch (error) {
+    throw new Error("Could not read this file from Git HEAD. Commit the file once before comparing it.");
+  }
+}
+
+function renderDiff(report) {
+  const symbols = { added: "+", removed: "-", modified: "~", unchanged: "=" };
+  const lines = ["Separan structural diff against HEAD", ""];
+  if (!report.changes.length) lines.push("No structural changes.");
+  for (const item of report.changes) lines.push(`${symbols[item.status]} ${item.path} (${item.status})`);
+  const s = report.summary;
+  lines.push("", `Added ${s.added}, removed ${s.removed}, modified ${s.modified}, unchanged ${s.unchanged}`);
+  return lines.join("\n");
+}
+
+function showReview(title, content) {
+  reviewOutput.clear(); reviewOutput.appendLine(title); reviewOutput.appendLine(""); reviewOutput.appendLine(content); reviewOutput.show(true);
+}
+
+async function showStructuralDiff() {
+  const editor = currentEditor(); if (!editor) return;
+  try {
+    const before = await headSource(editor);
+    const report = await client.sendRequest("separan/structuralDiff", { before, after: editor.document.getText(), uri: editor.document.uri.toString() });
+    if (report.error) throw new Error(report.error);
+    showReview("Separan v0.4 — Structural Diff", renderDiff(report));
+  } catch (error) { vscode.window.showErrorMessage(error.message); }
+}
+
+async function verifyAiEditScope() {
+  const editor = currentEditor(); if (!editor) return;
+  try {
+    const scope = await scopeAt(editor);
+    if (!scope) return vscode.window.showInformationMessage("Place the cursor on the label that defines the allowed AI edit scope.");
+    const before = await headSource(editor);
+    const report = await client.sendRequest("separan/verifyScope", {
+      before, after: editor.document.getText(), uri: editor.document.uri.toString(), scopes: [scope.path],
+    });
+    if (report.error) throw new Error(report.error);
+    const lines = [report.passed ? "PASS: AI edit scope verified." : "FAIL: AI edit scope violation.", `Allowed: ${scope.path}`];
+    for (const item of report.violations) lines.push(`! ${item.path}: ${item.reason}`);
+    lines.push(`Allowed changes ${report.summary.allowed_changes}, violations ${report.summary.violations}`);
+    showReview("Separan v0.4 — AI Edit Scope Verification", lines.join("\n"));
+    if (report.passed) vscode.window.showInformationMessage(`Verified: changes stay inside ${scope.path}`);
+    else vscode.window.showErrorMessage(`AI scope violation: ${report.summary.violations} out-of-scope change(s).`);
+  } catch (error) { vscode.window.showErrorMessage(error.message); }
 }
 
 async function autoClose(event) {
@@ -114,6 +186,7 @@ function activate(context) {
     initializationOptions: { inlayHints: config.get("inlayHints.types", true) },
   };
   client = new LanguageClient("separan", "Separan Language Server", serverOptions, clientOptions); client.start();
+  reviewOutput = vscode.window.createOutputChannel("Separan Review");
   context.subscriptions.push(
     { dispose: () => client && client.stop() },
     vscode.commands.registerCommand("separan.runFile", () => runFile(false)),
@@ -122,6 +195,9 @@ function activate(context) {
     vscode.commands.registerCommand("separan.goToMatchingLabel", goToMatchingLabel),
     vscode.commands.registerCommand("separan.goToLabel", goToLabel),
     vscode.commands.registerCommand("separan.copyAiEditScope", copyAiScope),
+    vscode.commands.registerCommand("separan.showStructuralDiff", showStructuralDiff),
+    vscode.commands.registerCommand("separan.verifyAiEditScope", verifyAiEditScope),
+    reviewOutput,
     vscode.workspace.onDidChangeTextDocument(autoClose),
   );
 }

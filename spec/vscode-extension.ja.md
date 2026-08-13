@@ -1,6 +1,6 @@
 # VS Code拡張とLanguage Server
 
-状態: **v0.1 editor core実装済み。高度な構造toolingは計画中。**
+状態: **v0.4 editor・構造review tooling実装済み。**
 
 公式拡張はlanguage ID `separan`と`.sep`を担当します。TextMate scopeではlabelを
 variableと分離し、Semantic Tokenではソースを書き換えずに推論済み公開型を付与します。
@@ -21,6 +21,8 @@ variableと分離し、Semantic Tokenではソースを書き換えずに推論�
 - 整形前後の構造AST一致を適合testで要求するformatter
 - Run File、Run Tests、Show AST、Go to Label、Go to Matching Label、
   Copy AI Edit Scope command
+- Parser連動のStructural Diff Against HEAD、AI Edit Scope Verification Against HEAD、
+  階層block identity
 
 `separan.autoCloseLabels`でlabel closer自動挿入、`separan.inlayHints.types`で型hint、
 `separan.pythonPath`でLSPと実行commandが使うPythonを設定します。
@@ -33,8 +35,15 @@ labelだけのrenameを拒否します。
 secret Hoverは値を一切含みません。formatterが変更できるのは装飾的indentだけで、構造ASTを
 保存しなければなりません。static解析はprogramを実行しません。
 
+## 構造reviewの安全性
+
+Git baselineはshell文字列へ埋め込まず、processへ直接引数を渡して取得します。editorは
+baselineと現在の本文をLanguage Serverへ渡し、両方をparseしてから比較します。
+空白・commentだけの差は無視し、選択subtree外のAST変更はFAILします。短いlabelが曖昧なら、
+Copy AI Edit Scopeが出す完全pathを要求します。
+
 ## 計画中の高度な機能
 
 program全体の関数引数推論、参照／test CodeLens、専用structure sidebar、
-Run Current Function、structural diff、AI edit scope検証は計画中です。安定したproject indexや
-実行／編集検証protocolを必要とするため、v0.1の保証機能とはしません。
+Run Current Functionは計画中です。安定したproject indexを必要とするため、v0.4の
+保証機能とはしません。

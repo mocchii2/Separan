@@ -1,14 +1,14 @@
 {
   "name": "separan-language",
   "displayName": "Separan Language",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Language support for the label-structured Separan scripting language.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",
   "repository": { "type": "git", "url": "https://github.com/mocchii2/Separan.git" },
   "engines": { "vscode": "^1.75.0" },
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:separan", "onCommand:separan.runFile"],
+  "activationEvents": ["onLanguage:separan", "onCommand:separan.runFile", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
   "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
@@ -19,13 +19,17 @@
       { "command": "separan.showAst", "title": "Separan: Show AST" },
       { "command": "separan.goToMatchingLabel", "title": "Separan: Go to Matching Label" },
       { "command": "separan.goToLabel", "title": "Separan: Go to Label" },
-      { "command": "separan.copyAiEditScope", "title": "Separan: Copy AI Edit Scope" }
+      { "command": "separan.copyAiEditScope", "title": "Separan: Copy AI Edit Scope" },
+      { "command": "separan.showStructuralDiff", "title": "Separan: Show Structural Diff Against HEAD" },
+      { "command": "separan.verifyAiEditScope", "title": "Separan: Verify AI Edit Scope Against HEAD" }
     ],
     "menus": {
       "editor/title": [{ "command": "separan.runFile", "when": "editorLangId == separan", "group": "navigation" }],
       "editor/context": [
         { "command": "separan.goToMatchingLabel", "when": "editorLangId == separan", "group": "navigation" },
-        { "command": "separan.copyAiEditScope", "when": "editorLangId == separan", "group": "navigation" }
+        { "command": "separan.copyAiEditScope", "when": "editorLangId == separan", "group": "navigation" },
+        { "command": "separan.showStructuralDiff", "when": "editorLangId == separan", "group": "navigation@10" },
+        { "command": "separan.verifyAiEditScope", "when": "editorLangId == separan", "group": "navigation@11" }
       ]
     },
     "keybindings": [{ "command": "separan.goToMatchingLabel", "key": "ctrl+shift+]", "when": "editorTextFocus && editorLangId == separan" }],

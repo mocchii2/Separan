@@ -210,3 +210,7 @@ implemented experimentally but are not yet stable.
 - [Regex, glob, environment, and command line](system-utilities.md): explicit
   search absence, deterministic file discovery, scoped environment mutation,
   and script-name-free arguments.
+- [Structural AI workflows](structural-ai.md): parser-backed block identities,
+  AST-aware diffs, scope verification, JSON review metadata, and CI exit codes.
+- [Browser automation boundary](browser-automation.md): a separate real-engine
+  adapter contract with no fake HTTP-client fallback.

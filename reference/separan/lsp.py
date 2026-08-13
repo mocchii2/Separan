@@ -12,6 +12,7 @@ from .errors import SeparanError
 from .builtins import BUILTINS
 from .lexer import Lexer
 from .parser import Parser
+from .structural import ScopeResolutionError, inspect_source, structural_diff, verify_scopes
 from .lsp_analysis import (
     BLOCK_KINDS, BUILTIN_SIGNATURES, analyze_blocks, block_at, format_source,
     lsp_range, resolve_variable, static_type_diagnostics, variable_at, variables, word_at,
@@ -232,6 +233,19 @@ def inlay_hints(source, requested_range):
     return result
 
 
+def structural_scope_at(source, line, character, uri="<document>"):
+    block = block_at(source, line, character)
+    if block is None:
+        return None
+    snapshot = inspect_source(source, uri)
+    matches = [item for item in snapshot.blocks
+               if item.kind == block.kind and item.label == block.label and item.start_line == block.line + 1]
+    if len(matches) != 1:
+        return None
+    item = matches[0]
+    return {"id": item.id, "path": item.path, "kind": item.kind, "label": item.label}
+
+
 class Server:
     def __init__(self, reader=None, writer=None):
         self.reader = reader or sys.stdin.buffer
@@ -266,7 +280,7 @@ class Server:
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]}, "codeActionProvider": True,
                     "documentFormattingProvider": True, "inlayHintProvider": True,
                     "semanticTokensProvider": {"legend": {"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS}, "full": True}},
-                    "serverInfo": {"name": "separan-lsp", "version": "0.1.0-alpha.1"}}
+                    "serverInfo": {"name": "separan-lsp", "version": "0.4.0"}}
         if method == "shutdown": self.shutdown_requested = True; return None
         if method == "exit": raise SystemExit(0 if self.shutdown_requested else 1)
         if method in ("textDocument/didOpen", "textDocument/didChange"):
@@ -318,6 +332,23 @@ class Server:
                     actions.append({"title": f"Replace with {data.get('title', replacement)}", "kind": "quickfix", "diagnostics": [item],
                         "edit": {"changes": {uri: [{"range": item["range"], "newText": replacement}]}}})
             return actions
+        elif method in ("separan/structuralDiff", "separan/verifyScope"):
+            before_source = params.get("before", ""); after_source = params.get("after", "")
+            uri = params.get("uri", "<document>")
+            try:
+                before = inspect_source(before_source, uri + "@before")
+                after = inspect_source(after_source, uri + "@after")
+                if method == "separan/structuralDiff":
+                    return structural_diff(before, after)
+                return verify_scopes(before, after, params.get("scopes") or [])
+            except (SeparanError, ScopeResolutionError) as exc:
+                return {"error": str(exc)}
+        elif method == "separan/scopeAt":
+            uri = params["textDocument"]["uri"]; position = params["position"]
+            try:
+                return structural_scope_at(self.source(uri), position["line"], position["character"], uri)
+            except SeparanError:
+                return None
         return None
 
     def run(self):

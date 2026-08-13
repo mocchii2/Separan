@@ -110,27 +110,36 @@ endif:active_user
 Give the AI a structural instruction instead of a line-number range:
 
 ```text
-Modify only :active_user
+Modify only Separan scope function:main#1/if:active_user#1
 ```
 
-The current parser already verifies that the opening and closing structure
-agree. The planned AI edit-scope verifier extends that same identity to the
-diff boundary:
+The parser verifies that the opening and closing structure agree. The v0.4
+review tool extends that identity to the diff boundary:
 
 ```text
-Future Separan verification:
-No other block was modified.
+PASS: AI edit scope verified.
+Allowed changes 1, violations 0
 ```
 
 The label is simultaneously human documentation, parser-checked structure, and
-a future machine-verifiable edit boundary.
+a machine-verifiable edit boundary.
+
+```console
+separan-structure diff before.sep after.sep
+separan-structure verify before.sep after.sep --allow active_user
+```
+
+Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
+active file against Git `HEAD` and verify the label under the cursor. See the
+[structural AI workflow](spec/structural-ai.md).
 
 ## v0.1.0-alpha.1
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
-`main` auto-start, conditionals, loops, comments, AST output, and a basic VS
-Code TextMate grammar.
+`main` auto-start, conditionals, loops, comments, and AST output. The v0.4
+tooling layer adds a dependency-free LSP, rich VS Code support, structural
+diffs, and enforced AI edit scopes without changing v0.1 language semantics.
 
 The standard library now covers explicit type conversion, Unicode string and
 homogeneous-list processing, immutable bytes, datetime and duration values,

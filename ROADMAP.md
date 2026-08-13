@@ -32,11 +32,11 @@ The roadmap describes direction, not a compatibility promise.
 
 ## v0.4 — structural AI workflows
 
-- AI edit scopes enforced by labels
-- AST-aware structural diffs
-- verification that out-of-scope blocks remain unchanged
-- machine-readable block identities and review metadata
-- begin a separate browser automation module; never merge it into the HTTP client
+- implemented: AI edit scopes enforced by hierarchical label identities
+- implemented: AST-aware structural diffs that ignore decorative source changes
+- implemented: verification that out-of-scope blocks remain unchanged
+- implemented: versioned machine-readable block identities and review metadata
+- implemented: a separate browser adapter boundary; no HTTP fallback may impersonate a browser
 
 ## v1.0 — stable language
 
@@ -54,5 +54,6 @@ The roadmap describes direction, not a compatibility promise.
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
   label jump／rename、completion、signature、hint、symbol、fold、formatter）は実装済み。
   次はproject全体推論、CodeLens、専用structure view
-- **v0.4:** AI edit scope、structural diff、対象外ブロックの無変更検証
+- **v0.4:** AI edit scope、structural diff、対象外blockの無変更検証、machine-readable
+  identity、独立browser adapter境界を実装済み
 - **v1.0:** 仕様固定、互換性方針、Python Reference Implementation

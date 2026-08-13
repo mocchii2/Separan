@@ -169,3 +169,7 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
   risk、出力上限、host capabilityを実装しています。
 - [regex・glob・environment・command line](system-utilities.ja.md): 検索不在、決定的な
   file探索、process内だけの環境変更、script名を分離した引数APIを実装しています。
+- [構造AI workflow](structural-ai.ja.md): Parser連動block identity、AST-aware diff、
+  scope検証、JSON review metadata、CI向けexit codeを実装しています。
+- [Browser automation境界](browser-automation.ja.md): HTTP clientがbrowserを装わない、
+  本物のengine用独立adapter契約を実装しています。

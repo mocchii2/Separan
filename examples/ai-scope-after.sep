@@ -1,0 +1,7 @@
+function:main
+print "unchanged outside scope"
+
+if true :active_user
+print "hello from the verified AI edit scope"
+endif:active_user
+end_function:main

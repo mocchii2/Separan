@@ -103,25 +103,35 @@ endif:active_user
 
 ```text
 AI instruction:
-Modify only :active_user
+Modify only Separan scope function:main#1/if:active_user#1
 ```
 
-現在のParserは開始・終了ラベルの一致をすでに検証します。将来のAI edit-scope
-検証では、同じ構造識別子をdiff境界として利用します。
+Parserは開始・終了ラベルの一致を検証します。v0.4 review toolは同じidentityを
+diff境界として利用します。
 
 ```text
-Future Separan verification:
-No other block was modified.
+PASS: AI edit scope verified.
+Allowed changes 1, violations 0
 ```
 
 同じラベルが、人間向けの説明、Parserが検証する構造、機械検証可能な編集境界を
-兼ねることがSeparanの中心的な狙いです。
+兼ねます。
+
+```console
+separan-structure diff before.sep after.sep
+separan-structure verify before.sep after.sep --allow active_user
+```
+
+CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集中fileをGit `HEAD`と
+比較し、cursor位置のlabel scopeを検証できます。詳細は
+[構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
 ## v0.1.0-alpha.1
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
-コメント、AST表示、基本的なVS Code TextMate Grammarが含まれます。
+コメント、AST表示が含まれます。v0.4 tooling層では、v0.1言語意味論を変えずに
+依存なしLSP、VS Code支援、構造diff、AI edit scope強制を追加しています。
 
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、

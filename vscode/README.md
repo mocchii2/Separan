@@ -16,7 +16,8 @@ The extension icon is a small-size derivative of the official Separan mark;
 the unchanged brand originals remain in the repository's `logo/` directory.
 
 Commands include Run File, Run Tests, Show AST, Go to Label, Go to Matching
-Label, and Copy AI Edit Scope. Labeled blocks can auto-close, controlled by
+Label, Copy AI Edit Scope, Show Structural Diff Against HEAD, and Verify AI
+Edit Scope Against HEAD. Labeled blocks can auto-close, controlled by
 `separan.autoCloseLabels`; type hints use `separan.inlayHints.types`.
 
 For local development, run `npm install` in this directory, install Separan into
@@ -25,5 +26,5 @@ Code extensions directory and reload the editor. Set `separan.pythonPath` when
 VS Code should use a Python executable other than `python`. See the complete
 [editor specification](../spec/vscode-extension.md) for implemented and planned scope.
 
-This extension is part of Separan v0.1-alpha and has not been published to the
+This v0.4 extension works with the Separan v0.1-alpha language and has not been published to the
 VS Code Marketplace.

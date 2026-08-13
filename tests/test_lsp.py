@@ -13,6 +13,7 @@ from separan.lsp import (
     Server, TOKEN_MODIFIERS, TOKEN_TYPES, completions, definition, diagnostic,
     document_symbols, folding_ranges, highlights, hover, inlay_hints, label_edits,
     semantic_tokens, signature_help,
+    structural_scope_at,
 )
 from separan.lsp_analysis import format_source
 from separan.parser import Parser
@@ -184,6 +185,23 @@ end_function:main
         after = format_ast(Parser(Lexer(formatted).scan_tokens()).parse())
         self.assertEqual(before, after)
         self.assertIn('        print "ok"', formatted)
+
+    def test_v04_structural_requests_use_parser_block_identity(self):
+        scope = structural_scope_at(SOURCE, 1, 11, "file:///x.sep")
+        self.assertEqual(scope["path"], "function:main#1/if:active#1")
+        server = Server(io.BytesIO(), io.BytesIO())
+        changed_inside = SOURCE.replace('print "ok"', 'print "changed"')
+        verified = server.dispatch({"method": "separan/verifyScope", "params": {
+            "uri": "file:///x.sep", "before": SOURCE, "after": changed_inside,
+            "scopes": [scope["path"]],
+        }})
+        self.assertTrue(verified["passed"])
+        changed_outside = SOURCE.replace("function:main", "function:renamed").replace("end_function:main", "end_function:renamed")
+        rejected = server.dispatch({"method": "separan/verifyScope", "params": {
+            "uri": "file:///x.sep", "before": SOURCE, "after": changed_outside,
+            "scopes": [scope["path"]],
+        }})
+        self.assertFalse(rejected["passed"])
 
 
 if __name__ == "__main__": unittest.main()
