@@ -8,15 +8,33 @@
   "repository": { "type": "git", "url": "https://github.com/mocchii2/Separan.git" },
   "engines": { "vscode": "^1.75.0" },
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:separan"],
+  "activationEvents": ["onLanguage:separan", "onCommand:separan.runFile"],
   "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
     "grammars": [{ "language": "separan", "scopeName": "source.separan", "path": "./syntaxes/separan.tmLanguage.json" }],
+    "commands": [
+      { "command": "separan.runFile", "title": "Separan: Run File", "icon": "$(play)" },
+      { "command": "separan.runTests", "title": "Separan: Run Tests" },
+      { "command": "separan.showAst", "title": "Separan: Show AST" },
+      { "command": "separan.goToMatchingLabel", "title": "Separan: Go to Matching Label" },
+      { "command": "separan.goToLabel", "title": "Separan: Go to Label" },
+      { "command": "separan.copyAiEditScope", "title": "Separan: Copy AI Edit Scope" }
+    ],
+    "menus": {
+      "editor/title": [{ "command": "separan.runFile", "when": "editorLangId == separan", "group": "navigation" }],
+      "editor/context": [
+        { "command": "separan.goToMatchingLabel", "when": "editorLangId == separan", "group": "navigation" },
+        { "command": "separan.copyAiEditScope", "when": "editorLangId == separan", "group": "navigation" }
+      ]
+    },
+    "keybindings": [{ "command": "separan.goToMatchingLabel", "key": "ctrl+shift+]", "when": "editorTextFocus && editorLangId == separan" }],
     "configuration": {
       "title": "Separan",
       "properties": {
-        "separan.pythonPath": { "type": "string", "default": "python", "description": "Python executable used to launch separan.lsp." }
+        "separan.pythonPath": { "type": "string", "default": "python", "description": "Python executable used to launch Separan and separan.lsp." },
+        "separan.autoCloseLabels": { "type": "boolean", "default": true, "description": "Insert the matching labeled closer after a block opener." },
+        "separan.inlayHints.types": { "type": "boolean", "default": true, "description": "Show inferred Separan public types after bindings." }
       }
     }
   },

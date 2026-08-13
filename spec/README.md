@@ -185,8 +185,9 @@ Diagnostics carry a stable code, category, file, line, Unicode code-point column
 source line, pointer, description, expected and actual syntax when applicable,
 and the related opening block. A generic `SyntaxError` is insufficient.
 
-LSP behavior, semantic tokens, and AI edit enforcement remain outside the
-current implementation. The following extensions, including objects, are
+LSP behavior and AI edit enforcement remain outside the stable language
+semantics. The [VS Code/LSP specification](vscode-extension.md) records the
+implemented editor preview and its safety boundaries. The following extensions, including objects, are
 implemented experimentally but are not yet stable.
 
 ## Experimentally implemented extensions

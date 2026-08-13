@@ -205,9 +205,11 @@ Stable execution metadata is available through the reserved read-only `system`
 context; dynamic values such as time, requests, randomness, and database state
 remain explicit functions or scoped values.
 
-The first v0.3 Language Server preview is available as `separan-lsp`. It reuses
-the reference parser for live diagnostics and supplies labeled document symbols
-and folding ranges to the VS Code extension.
+The Language Server preview is available as `separan-lsp`. It provides parser
+and simple fixed-type diagnostics, mismatch Quick Fixes, typed Semantic Tokens,
+Hover, definition, scope-safe label rename, matching highlights, completion,
+signature help, inlay hints, labeled symbols/folding, and AST-preserving
+formatting. See the [VS Code/LSP specification](spec/vscode-extension.md).
 
 The strict operator set includes power, integer floor division, null fallback,
 compound assignment, and typed membership. See

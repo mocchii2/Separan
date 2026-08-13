@@ -217,8 +217,11 @@ Oracle、Microsoft SQL Serverはoptional extraとして提供します。Separan
 SQL literalやcommentを壊さずnative placeholderへ変換します。SQL dialect自体は
 各database固有のままです。詳細は[DB仕様](../spec/database.ja.md)を参照してください。
 
-v0.3 Language Serverの初版は`separan-lsp`として利用できます。リファレンスParserを
-再利用したリアルタイム診断、label付きdocument symbol、folding rangeをVS Code拡張へ提供します。
+Language Server previewは`separan-lsp`として利用できます。parser／単純固定型診断、
+mismatch Quick Fix、型付きSemantic Token、Hover、definition、scope安全なlabel rename、
+matching highlight、completion、signature help、Inlay Hint、label付きsymbol／folding、
+AST保存formatterをVS Code拡張へ提供します。詳細は
+[VS Code／LSP仕様](../spec/vscode-extension.ja.md)を参照してください。
 
 厳密型の演算子として累乗、整数floor除算、null fallback、複合代入、型付き包含判定を
 利用できます。[演算子サンプル](../examples/operators.sep)と[言語仕様](../spec/README.ja.md#演算子)を参照してください。
