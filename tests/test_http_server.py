@@ -64,10 +64,10 @@ end_http_route:b
         source = 'http_static(url = "/static/", directory = "public")\n'
         app = create_application(source, capabilities=RuntimeCapabilities.local(root))
         index = app.dispatch_http(ServerRequest("GET", "/static/"))
-        self.assertEqual((index.status, index.body), (200, b"<h1>Separan</h1>\n"))
+        self.assertEqual((index.status, index.body), (200, (root / "public" / "index.html").read_bytes()))
         self.assertEqual(index.headers["Content-Type"], "text/html; charset=utf-8")
         text = app.dispatch_http(ServerRequest("HEAD", "/static/data.txt"))
-        self.assertEqual((text.status, text.body), (200, b"static data\n"))
+        self.assertEqual((text.status, text.body), (200, (root / "public" / "data.txt").read_bytes()))
         self.assertEqual(text.headers["Content-Type"], "text/plain; charset=utf-8")
         self.assertEqual(app.dispatch_http(ServerRequest("GET", "/static/%2e%2e/secret.txt")).status, 404)
         self.assertEqual(app.dispatch_http(ServerRequest("POST", "/static/index.html")).status, 404)

@@ -2,10 +2,32 @@
 
 > Explicit over implicit. Structure should be named, not guessed.
 
-The reference preview implements a driver boundary and the complete core API
-for SQLite. PostgreSQL, MySQL, and Oracle are recognized driver names but require
-separate host-installed adapters; requesting an unavailable or disallowed driver
-is `db_driver_error`.
+The DB API and driver adapters are fully separated. SQLite is built in through
+Python `sqlite3`; PostgreSQL, MySQL, and Oracle use lazy-loaded optional adapters
+backed by Psycopg 3, MySQL Connector/Python, and python-oracledb respectively.
+Requesting an unavailable or disallowed driver is `db_driver_error` and names
+the exact installation extra.
+
+```console
+pip install separan
+pip install "separan[postgresql]"
+pip install "separan[mysql]"
+pip install "separan[oracle]"
+pip install "separan[db-all]"
+```
+
+The implementation is divided into `db/core.py`, `db/registry.py`,
+`db/errors.py`, and one module per official adapter under `db/drivers/`.
+Optional Python packages are imported only when their driver is selected.
+The standalone CLI allows SQLite by default. A remote adapter must also be
+explicitly enabled for that run, for example:
+
+```console
+separan --allow-database-driver postgresql app.sep
+```
+
+Embedded hosts control the same boundary with
+`RuntimeCapabilities.database_drivers`.
 
 ```separan
 db = db_connect(driver = "sqlite", database = "app.db")
@@ -22,11 +44,18 @@ rows. `db_scalar` returns the first column of the first row or null. `db_execute
 returns affected rows, with unavailable DDL counts normalized to zero.
 
 Parameters are always bound. A homogeneous list uses positional `?` binding.
-An object uses named `:name` binding and is the v0.1 solution for heterogeneous
-parameters, because Separan deliberately does not weaken homogeneous lists.
+An object may supply heterogeneous positional values in declaration order for
+`?` placeholders. Named `:name` binding remains available where the selected
+driver supports it, but portable Separan SQL uses `?`.
 Supported values are null, number, string, boolean, bytes, and datetime.
 Secrets cannot be bound as ordinary data. SQL string concatenation remains
 possible but is strongly discouraged.
+
+Separan positional binding always uses `?`. The selected adapter rewrites only
+real placeholders to its native style; the scanner skips SQL string literals,
+quoted identifiers, line and block comments, and PostgreSQL dollar-quoted
+strings. SQL dialects themselves are not normalized: `LIMIT`, `RETURNING`,
+sequences, `MERGE`, PL/SQL, and conflict syntax remain database-specific.
 
 ## Transactions
 
@@ -45,8 +74,10 @@ commit without begin, and rollback without begin are `db_transaction_error`.
 ## Metadata and types
 
 `db_tables`, `db_columns`, `db_indexes`, `db_primary_key`, `db_server_info`, and
-`db_version` are implemented for SQLite. Lists are deterministically ordered.
-SQL NULL maps to null and BLOB maps to bytes. SQLite has no reliable declared
+`db_version` are adapter operations with a common result shape. Lists are
+deterministically ordered. `db_server_info` includes `driver`, `driver_version`,
+`server_version`, `database_name`, `server_host`, and `mode`; Oracle reports
+`thin` or `thick`. SQL NULL maps to null and BLOB maps to bytes. SQLite has no reliable declared
 boolean/datetime result type, so values returned by its native driver remain
 numbers or strings; other adapters may perform stronger documented mapping.
 

@@ -202,6 +202,11 @@ regexはmatch／search／find／replace／splitを分離し、不在はnullま�
 label付きobject/list、member access、namespace付きimport、label付き
 `try/catch/finally/throw`もリファレンス処理系へ先行実装済みです。
 
+DB APIはdriver adapterから分離済みです。SQLiteは標準搭載し、PostgreSQL、MySQL、
+Oracleはoptional extraとして提供します。Separan側は常に`?`でbindし、adapterが
+SQL literalやcommentを壊さずnative placeholderへ変換します。SQL dialect自体は
+各database固有のままです。詳細は[DB仕様](../spec/database.ja.md)を参照してください。
+
 ## 状態
 
 Separanは現在 **v0.1.0-alpha.1** の実験的な処理系です。v1.0までは構文や

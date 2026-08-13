@@ -2,9 +2,28 @@
 
 > Explicit over implicit. Structure should be named, not guessed.
 
-リファレンス実装はドライバ境界とSQLite用Core APIを実装する。PostgreSQL、MySQL、Oracleは
-正式なdriver名として予約するが、別adapterが必要である。未導入またはCapabilityで許可されない
-driverは `db_driver_error` となる。
+DB APIとdriver adapterは完全に分離する。SQLiteはPython標準`sqlite3`で標準搭載し、
+PostgreSQL、MySQL、OracleはそれぞれPsycopg 3、MySQL Connector/Python、
+python-oracledbをlazy loadするoptional adapterとして実装する。未導入または
+Capabilityで許可されていないdriverは`db_driver_error`となり、必要なinstall extraを表示する。
+
+```console
+pip install separan
+pip install "separan[postgresql]"
+pip install "separan[mysql]"
+pip install "separan[oracle]"
+pip install "separan[db-all]"
+```
+
+内部構成は`db/core.py`、`db/registry.py`、`db/errors.py`と、`db/drivers/`配下の
+公式adapterに分ける。optional Python packageはdriver選択時までimportしない。
+単体CLIはデフォルトでSQLiteだけを許可する。remote adapterは実行時にも明示する。
+
+```console
+separan --allow-database-driver postgresql app.sep
+```
+
+組み込みhostは同じ境界を`RuntimeCapabilities.database_drivers`で制御する。
 
 ```separan
 db = db_connect(driver = "sqlite", database = "app.db")
@@ -19,10 +38,16 @@ db_close(db)
 1件ならobject、2件以上ならerror。`db_scalar` は先頭行の先頭列、0行ならnull。
 `db_execute` は影響行数を返し、DDLで不明な場合は0に正規化する。
 
-値は必ずbindする。同型listは `?` positional binding、objectは `:name` named bindingに使う。
-Separanの同型list規則を弱めないため、異型parameterはobjectを使う。null、number、string、
+値は必ずbindする。同型listは`?` positional bindingに使う。異型parameterはobjectの
+宣言順を`?`へ対応させる。`:name` named bindingはdriverが対応する場合の互換機能とし、
+portableなSeparan SQLでは`?`を使う。null、number、string、
 boolean、bytes、datetimeをbindできる。secretを通常のSQL値としてbindすることは禁止する。
 SQL文字列連結は文法上禁止しないが強く非推奨とする。
+
+Separanの位置bindは常に`?`を使う。adapterはSQL文字列、quoted identifier、行・block
+comment、PostgreSQL dollar quote内を飛ばすscannerで、本物のplaceholderだけをnative
+形式へ変換する。`LIMIT`、`RETURNING`、sequence、`MERGE`、PL/SQL、conflict構文などの
+SQL dialectは統一せず、各database固有SQLをそのまま記述する。
 
 ## Transaction
 
@@ -37,8 +62,10 @@ end_transaction:transfer
 検証する。手動APIは `db_begin`、`db_commit`、`db_rollback`。同一接続のnested transaction、
 begin前のcommit/rollbackは `db_transaction_error`。
 
-SQLiteでは `db_tables`、`db_columns`、`db_indexes`、`db_primary_key`、
-`db_server_info`、`db_version` を実装する。結果順は決定的。SQL NULLはnull、BLOBはbytes。
+`db_tables`、`db_columns`、`db_indexes`、`db_primary_key`、`db_server_info`、
+`db_version`は共通result形を持つadapter操作として実装する。結果順は決定的。
+`db_server_info`は`driver`、`driver_version`、`server_version`、`database_name`、
+`server_host`、`mode`を返し、Oracleでは`thin`／`thick`も示す。SQL NULLはnull、BLOBはbytes。
 SQLiteがboolean/datetimeの確実な結果型情報を持たない場合、nativeのnumber/stringを維持する。
 
 DBアクセスには `database` Capabilityとdriver許可が必要。SQLite pathはfilesystem capability root内。

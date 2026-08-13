@@ -1,6 +1,8 @@
 import sys
 import unittest
+from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "reference"))
@@ -8,9 +10,28 @@ sys.path.insert(0, str(ROOT / "reference"))
 from separan.capabilities import RuntimeCapabilities
 from separan.cli import execute
 from separan.errors import SeparanError
+from separan.db.core import rewrite_qmark_placeholders, scan_qmark_placeholders
 
 
 class DatabaseTests(unittest.TestCase):
+    def test_placeholder_scanner_skips_literals_identifiers_and_comments(self):
+        sql = "select ?, '?' as a, \"?\" as b -- ?\nfrom t where id = ? /* ? */ and body = $$?$$"
+        self.assertEqual(len(scan_qmark_placeholders(sql)), 2)
+        self.assertEqual(
+            rewrite_qmark_placeholders(sql, "format"),
+            "select %s, '?' as a, \"?\" as b -- ?\nfrom t where id = %s /* ? */ and body = $$?$$",
+        )
+        self.assertEqual(rewrite_qmark_placeholders("select ?, ?", "numeric"), "select :1, :2")
+
+    def test_optional_driver_error_names_the_install_extra(self):
+        capabilities = replace(RuntimeCapabilities.local(ROOT), database_drivers=frozenset({"sqlite", "postgresql"}))
+        source = 'function:main\ndb = db_connect(driver = "postgresql", host = "localhost", database = "app")\nend_function:main\n'
+        with patch.dict(sys.modules, {"psycopg": None}):
+            with self.assertRaises(SeparanError) as caught:
+                execute(source, capabilities=capabilities)
+        self.assertEqual(caught.exception.code, "E900")
+        self.assertIn('pip install "separan[postgresql]"', caught.exception.description)
+
     def test_sqlite_query_one_scalar_execute_and_blob(self):
         source = '''function:main
 db = db_connect(driver = "sqlite", database = ":memory:")
@@ -25,6 +46,8 @@ name = "Alice"
 data = bytes_from_hex("00ff")
 end_object:params
 print db_execute(db, "insert into users(id, name, data) values (:id, :name, :data)", params)
+db_execute(db, "delete from users where id = ?", [1])
+print db_execute(db, "insert into users(id, name, data) values (?, ?, ?)", params)
 row = db_query_one(db, "select id, name, data from users where id = ?", [1])
 print row.id
 print row.name
@@ -37,7 +60,7 @@ db_close(db)
 end_function:main
 '''
         output = execute(source)[1]
-        self.assertEqual(output, "db_connection\ndb_connection(driver=sqlite, database=[REDACTED])\n0\n1\n1\n1\nAlice\n00FF\n1\n1\nnull\n")
+        self.assertEqual(output, "db_connection\ndb_connection(driver=sqlite, database=[REDACTED])\n0\n1\n1\n1\n1\nAlice\n00FF\n1\n1\nnull\n")
 
     def test_query_one_cardinality_and_errors_are_catchable(self):
         source = '''function:main

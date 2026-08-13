@@ -185,9 +185,10 @@ capability with host, scheme, port, redirect, timeout, and body-size checks.
 Labeled HTTP routes and a separately capability-gated development host are also
 available as a server preview. The dispatcher is transport-independent so a
 future Lambda or production adapter can reuse the same `.sep` application.
-The database preview adds parameter-bound SQLite queries, strict single-row and
-scalar APIs, labeled transactions, metadata inspection, redacted connections,
-and a driver boundary for future PostgreSQL, MySQL, and Oracle adapters.
+The database preview separates its common API from official SQLite, PostgreSQL,
+MySQL, and Oracle adapters. SQLite is built in; the other three are optional
+extras. Safe `?` placeholder scanning, strict single-row and scalar APIs,
+labeled transactions, common metadata, and redacted connections are available.
 Stable execution metadata is available through the reserved read-only `system`
 context; dynamic values such as time, requests, randomness, and database state
 remain explicit functions or scoped values.

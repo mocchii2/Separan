@@ -1,8 +1,10 @@
 import argparse
+from dataclasses import replace
 import sys
 from pathlib import Path
 
 from .ast_printer import format_ast
+from .capabilities import RuntimeCapabilities
 from .errors import SeparanError
 from .interpreter import Interpreter
 from .lexer import Lexer
@@ -31,6 +33,7 @@ def main(argv=None):
     parser.add_argument("source", type=Path, nargs="?")
     parser.add_argument("--ast", action="store_true", help="print the parsed AST instead of executing")
     parser.add_argument("--timezone-version", action="store_true", help="print the timezone database version")
+    parser.add_argument("--allow-database-driver", action="append", choices=("postgresql", "mysql", "oracle"), default=[], help="allow an optional database driver for this run")
     args, script_arguments = parser.parse_known_args(argv)
     if args.timezone_version:
         print(timezone_database_version())
@@ -43,9 +46,10 @@ def main(argv=None):
         if args.ast: print(format_ast(program))
         else:
             resolved = args.source.resolve()
+            capabilities = replace(RuntimeCapabilities.local(resolved.parent), database_drivers=frozenset({"sqlite", *args.allow_database_driver}))
             Interpreter(sys.stdout, command_arguments=script_arguments,
                         script_path=str(resolved), project_root=str(resolved.parent),
-                        input_stream=sys.stdin, error_output=sys.stderr).run(program)
+                        capabilities=capabilities, input_stream=sys.stdin, error_output=sys.stderr).run(program)
         return 0
     except (SeparanError, UnicodeDecodeError, OSError) as exc:
         print(exc, file=sys.stderr); return 1
