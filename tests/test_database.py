@@ -33,7 +33,7 @@ class DatabaseTests(unittest.TestCase):
             with self.assertRaises(SeparanError) as caught:
                 execute(source, capabilities=capabilities)
         self.assertEqual(caught.exception.code, "E900")
-        self.assertIn('pip install "separan-lang[postgresql]"', caught.exception.description)
+        self.assertIn('pip install "separan[postgresql]"', caught.exception.description)
 
     def test_sqlserver_is_registered_and_names_its_install_extra(self):
         capabilities = replace(RuntimeCapabilities.local(ROOT), database_drivers=frozenset({"sqlite", "sqlserver"}))
@@ -42,7 +42,7 @@ class DatabaseTests(unittest.TestCase):
             with self.assertRaises(SeparanError) as caught:
                 execute(source, capabilities=capabilities)
         self.assertEqual(caught.exception.code, "E900")
-        self.assertIn('pip install "separan-lang[sqlserver]"', caught.exception.description)
+        self.assertIn('pip install "separan[sqlserver]"', caught.exception.description)
 
     def test_sqlserver_connection_auth_and_certificate_defaults(self):
         calls = []

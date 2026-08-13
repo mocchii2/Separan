@@ -8,12 +8,12 @@ MySQL Connector/Python、python-oracledb、pyodbcをlazy loadするoptional adap
 Capabilityで許可されていないdriverは`db_driver_error`となり、必要なinstall extraを表示する。
 
 ```console
-pip install separan-lang
-pip install "separan-lang[postgresql]"
-pip install "separan-lang[mysql]"
-pip install "separan-lang[oracle]"
-pip install "separan-lang[sqlserver]"
-pip install "separan-lang[db-all]"
+pip install separan
+pip install "separan[postgresql]"
+pip install "separan[mysql]"
+pip install "separan[oracle]"
+pip install "separan[sqlserver]"
+pip install "separan[db-all]"
 ```
 
 SQL Server adapterはhost OSにMicrosoft ODBC Driver 18 for SQL Serverも必要とする。

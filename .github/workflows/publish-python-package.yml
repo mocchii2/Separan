@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/separan-lang/
+      url: https://pypi.org/project/separan/
     permissions:
       id-token: write
 

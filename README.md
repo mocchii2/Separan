@@ -12,7 +12,7 @@
 
 [日本語](https://github.com/mocchii2/Separan/blob/main/docs/README.ja.md) | English
 
-[![PyPI](https://img.shields.io/pypi/v/separan-lang?label=PyPI)](https://pypi.org/project/separan-lang/)
+[![PyPI](https://img.shields.io/pypi/v/separan?label=PyPI)](https://pypi.org/project/separan/)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 
 Separan makes AI-written code easier for people to read, understand, and
@@ -29,7 +29,7 @@ explain its structure to the human who remains responsible for it.
 
 ```console
 git clone https://github.com/mocchii2/Separan.git && cd Separan
-python -m pip install separan-lang
+python -m pip install separan
 separan examples/hello.sep
 ```
 

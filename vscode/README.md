@@ -90,7 +90,7 @@ code --install-extension separan.separan-language
 Install the Separan reference implementation from PyPI:
 
 ```bash
-python -m pip install separan-lang
+python -m pip install separan
 ```
 
 ### 3. Create a `.sep` file
