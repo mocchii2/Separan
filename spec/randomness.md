@@ -46,11 +46,14 @@ ordinary draws. They must not be used for passwords, tokens, keys, or nonces.
 | Function | Result |
 |---|---|
 | `secure_random_bytes(length)` | `bytes` containing exactly `length` random bytes |
+| `secure_random_number(min, max)` | securely selected integer with both endpoints included |
 | `secure_random_int(min, max)` | securely selected integer with both endpoints included |
 | `secure_random_string(length)` | URL-safe string of exactly `length` characters |
 
 Secure functions use the operating system's cryptographic random source. They
 have no deterministic seed operation and are never affected by `random_seed`.
+`secure_random_number` is the readable primary name; `secure_random_int` remains
+an alpha compatibility alias.
 `secure_random_string` uses exactly this 64-character alphabet:
 
 ```text

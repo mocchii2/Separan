@@ -77,7 +77,7 @@ print jwt_verify(token, "0123456789abcdef0123456789abcdef")
 
     def test_password_hash_and_verify(self):
         source = '''hash = password_hash("correct horse battery staple")
-print starts_with(hash, "$separan$scrypt$")
+print starts_with(hash, "$argon2id$")
 print password_verify("correct horse battery staple", hash)
 print password_verify("wrong", hash)
 print password_verify("x", "malformed")

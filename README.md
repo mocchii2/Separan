@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.2
+## v0.2.0-alpha.3
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -231,10 +231,16 @@ Binary values are immutable and never convert to strings implicitly. Explicit
 UTF encodings, strict hex/Base64 codecs, slicing, byte lookup, and binary
 concatenation are available in the reference preview.
 
-Authentication uses high-level primitives rather than user-built cryptography.
-Host-provided secrets are a distinct automatically redacted type; HTTP auth,
-OAuth client credentials, HMAC-SHA256, HS256 JWT, and scrypt password hashing
-have experimental reference implementations.
+Authentication and cryptography use safe-purpose APIs rather than user-built
+cipher constructions. Host-provided secrets are a distinct automatically
+redacted type; HTTP auth, OAuth client credentials, HMAC, HS256 JWT, and
+Argon2id password hashing have experimental reference implementations.
+
+The [cryptography preview](spec/cryptography.md) adds SHA-2/SHA-3 digests,
+SHA-256/SHA-512 HMAC, explicit bytes-to-hex/Base64 conversion, constant-time
+comparison, Argon2id key derivation, and versioned AES-256-GCM authenticated
+encryption. Keys cannot be strings, nonces are generated internally, decrypted
+secrets remain redacted, and obsolete or unauthenticated ciphers are omitted.
 
 HTTP supports one-shot cookies and explicit stateful Cookie Jars. Cookie values,
 jar display, and received response cookies are redacted; domain, path, expiry,
@@ -359,7 +365,7 @@ read-only execution metadata and its namespace boundary.
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.2**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.3**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

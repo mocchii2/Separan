@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.1] - 2026-08-15
+
+### Safe cryptography API highlighting
+
+- Highlights readable SHA-2/SHA-3, HMAC, Base64, hexadecimal, Argon2id, and
+  authenticated-encryption built-ins.
+- Highlights `crypto_error`, `crypto_authentication_error`, and the readable
+  `secure_random_number` alias.
+
 ## [0.7.0] - 2026-08-15
 
 ### Readable mathematics

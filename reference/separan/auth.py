@@ -6,8 +6,11 @@ import binascii
 import hashlib
 import hmac
 import json
-import os
 from urllib.parse import urlencode
+
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError
+from argon2.low_level import Type
 
 from .errors import error
 from .objects import ObjectValue
@@ -34,6 +37,16 @@ class OAuthTokenValue:
     token_type: str
     expires_in: int | None
     scope: str | None
+
+
+PASSWORD_HASHER = PasswordHasher(
+    time_cost=3,
+    memory_cost=65_536,
+    parallelism=4,
+    hash_len=32,
+    salt_len=16,
+    type=Type.ID,
+)
 
 
 def secret_bytes(value, name, position, runtime):
@@ -128,19 +141,23 @@ def _jwt_verify(arguments, named, position, runtime):
 
 
 def _password_hash(arguments, named, position, runtime):
-    password = secret_bytes(arguments[0], "password_hash() password", position, runtime); salt = os.urandom(16)
-    digest = hashlib.scrypt(password, salt=salt, n=2**14, r=8, p=1, dklen=32)
-    return "$separan$scrypt$n=16384,r=8,p=1$" + base64.b64encode(salt).decode() + "$" + base64.b64encode(digest).decode()
+    password = secret_bytes(arguments[0], "password_hash() password", position, runtime)
+    return PASSWORD_HASHER.hash(password)
 
 
 def _password_verify(arguments, named, position, runtime):
     password, encoded = arguments
     if type(encoded) is not str: runtime.type_error(position, "password hash string", runtime.type_name(encoded), "password_verify() hash must be a string.")
+    password_bytes = secret_bytes(password, "password_verify() password", position, runtime)
+    if encoded.startswith("$argon2id$"):
+        try: return PASSWORD_HASHER.verify(encoded, password_bytes)
+        except (InvalidHashError, VerificationError): return False
+    # v0.1 generated scrypt hashes remain verifiable during the alpha migration.
     try:
         prefix, scheme, params, salt_text, digest_text = encoded.rsplit("$", 4)
         if prefix != "$separan" or scheme != "scrypt" or params != "n=16384,r=8,p=1": return False
         salt = base64.b64decode(salt_text, validate=True); expected = base64.b64decode(digest_text, validate=True)
-        actual = hashlib.scrypt(secret_bytes(password, "password_verify() password", position, runtime), salt=salt, n=2**14, r=8, p=1, dklen=32)
+        actual = hashlib.scrypt(password_bytes, salt=salt, n=2**14, r=8, p=1, dklen=32)
         return hmac.compare_digest(actual, expected)
     except (ValueError, binascii.Error): return False
 

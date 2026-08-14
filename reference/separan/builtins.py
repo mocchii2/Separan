@@ -37,6 +37,7 @@ from .processes import PROCESS_BUILTINS
 from .http_client import HTTP_BUILTINS
 from .bytes_ops import BYTES_BUILTINS
 from .auth import AUTH_BUILTINS, SecretValue
+from .crypto_ops import CRYPTO_BUILTINS
 from .cookies import COOKIE_BUILTINS
 from .cookie_store import COOKIE_STORE_BUILTINS
 from .http_server import SERVER_BUILTINS
@@ -603,12 +604,16 @@ def _secure_random_bytes(arguments, position, runtime):
     length = arguments[0]; secure_length(length, "secure_random_bytes", position, runtime); return secure_bytes(length)
 
 
-def _secure_random_int(arguments, position, runtime):
+def _secure_random_integer(arguments, position, runtime, name):
     minimum, maximum = arguments
-    require_integer(minimum, "secure_random_int", position, runtime); require_integer(maximum, "secure_random_int", position, runtime)
+    require_integer(minimum, name, position, runtime); require_integer(maximum, name, position, runtime)
     if minimum > maximum:
-        raise error("E501", "Invalid secure random range", "secure_random_int() requires min <= max and includes both endpoints.", position, expected="min <= max", actual=f"{minimum}..{maximum}")
+        raise error("E501", "Invalid secure random range", f"{name}() requires min <= max and includes both endpoints.", position, expected="min <= max", actual=f"{minimum}..{maximum}")
     return secure_integer(minimum, maximum)
+
+
+def _secure_random_int(arguments, position, runtime): return _secure_random_integer(arguments, position, runtime, "secure_random_int")
+def _secure_random_number(arguments, position, runtime): return _secure_random_integer(arguments, position, runtime, "secure_random_number")
 
 
 def _secure_random_string(arguments, position, runtime):
@@ -714,6 +719,7 @@ BUILTINS = {
         BuiltinFunction("random_sample", 2, 2, _random_sample),
         BuiltinFunction("secure_random_bytes", 1, 1, _secure_random_bytes),
         BuiltinFunction("secure_random_int", 2, 2, _secure_random_int),
+        BuiltinFunction("secure_random_number", 2, 2, _secure_random_number),
         BuiltinFunction("secure_random_string", 1, 1, _secure_random_string),
         BuiltinFunction("list_append", 2, 2, list_append),
         BuiltinFunction("append", 2, 2, list_append),
@@ -780,8 +786,9 @@ BUILTINS = {
             "runtime_error", "type_error", "value_error", "index_error", "io_error",
             "parse_error", "import_error", "regex_error", "glob_error", "argument_error", "permission_error"
             , "auth_error", "secret_error", "oauth_error"
+            , "crypto_error", "crypto_authentication_error"
             , "cookie_error"
             , "db_connection_error", "db_auth_error", "db_query_error", "db_constraint_error", "db_timeout_error", "db_transaction_error", "db_driver_error"
         )),
-    ) + MATH_BUILTINS + (UtilityFunction("datetime", 1, 6, _datetime_construct, ("timezone",)),) + UTILITY_BUILTINS + PROCESS_BUILTINS + HTTP_BUILTINS + BYTES_BUILTINS + AUTH_BUILTINS + COOKIE_BUILTINS + COOKIE_STORE_BUILTINS + SERVER_BUILTINS + DB_BUILTINS
+    ) + MATH_BUILTINS + (UtilityFunction("datetime", 1, 6, _datetime_construct, ("timezone",)),) + UTILITY_BUILTINS + PROCESS_BUILTINS + HTTP_BUILTINS + BYTES_BUILTINS + AUTH_BUILTINS + CRYPTO_BUILTINS + COOKIE_BUILTINS + COOKIE_STORE_BUILTINS + SERVER_BUILTINS + DB_BUILTINS
 }

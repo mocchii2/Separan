@@ -86,4 +86,6 @@ BYTES_BUILTINS = (
     UtilityFunction("bytes_concat", 2, 2, _bytes_concat), UtilityFunction("hex_encode", 1, 1, _hex_encode),
     UtilityFunction("hex_decode", 1, 1, _hex_decode), UtilityFunction("bytes_from_hex", 1, 1, _hex_decode),
     UtilityFunction("base64_encode", 1, 1, _base64_encode), UtilityFunction("base64_decode", 1, 1, _base64_decode),
+    UtilityFunction("bytes_to_hexadecimal", 1, 1, _hex_encode), UtilityFunction("hexadecimal_to_bytes", 1, 1, _hex_decode),
+    UtilityFunction("bytes_to_base64", 1, 1, _base64_encode), UtilityFunction("base64_to_bytes", 1, 1, _base64_decode),
 )

@@ -14,6 +14,8 @@ Separan sourceで暗号algorithmを自作させず、用途が固定された標
 - `jwt_verify(token, key, algorithm = "HS256")`
 - `password_hash(password)`／`password_verify(password, hash)`
 
+一般的な暗号境界は[暗号仕様](cryptography.ja.md)へ分離しています。
+
 `secret`はstring／bytesと別型です。print、object表示、OAuth token表示では
 `[REDACTED]`となり、`string(secret)`は禁止です。hostがsecret providerと名前allowlistを
 注入しない限り`secret_get`は失敗します。
@@ -22,9 +24,9 @@ JWTはalgorithm confusionを避けるためHS256だけを明示対応し、32byt
 protected headerを固定検証し、signatureをconstant-time比較し、`exp`／`nbf`もruntime clockで
 検証します。claimsにsecretやbytesは格納できません。
 
-password hashはrandom 16byte salt付きscrypt（N=16384、r=8、p=1）です。普通のSHA-256を
-password保存APIとして提供しません。保存formatはversion markerを持ち、不正formatのverifyは
-falseです。
+password hashはrandom 16byte salt付きArgon2idです。旧alpha版のscrypt保存形式もverify互換だけは
+残します。普通のSHA-256をpassword保存APIとして提供しません。保存formatはversion markerを持ち、
+不正formatのverifyはfalseです。
 
 OAuth previewはclient credentialsだけです。form bodyとBasic client authenticationを使い、
 access tokenをstringではなくsecretとして返します。authorization code、device flow、browser

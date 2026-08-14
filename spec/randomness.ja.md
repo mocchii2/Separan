@@ -44,11 +44,13 @@ stream increment = 109
 | 関数 | 結果 |
 |---|---|
 | `secure_random_bytes(length)` | 正確に`length`バイトの`bytes` |
+| `secure_random_number(min, max)` | 両端を含む安全な整数値乱数 |
 | `secure_random_int(min, max)` | 両端を含む安全な整数値乱数 |
 | `secure_random_string(length)` | 正確に`length`文字のURL-safe string |
 
 セキュア関数はOSの暗号学的乱数源を利用します。決定的seed操作はなく、
 `random_seed`の影響を受けません。`secure_random_string`の文字集合は次の64文字だけです。
+`secure_random_number`を読みやすい正式名とし、`secure_random_int`はalpha互換aliasとして残します。
 
 ```text
 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-

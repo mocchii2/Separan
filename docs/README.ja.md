@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.2
+## v0.2.0-alpha.3
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -239,6 +239,11 @@ bytesはstringと完全分離した不変binary型です。text encoding、hex�
 password hashを高level APIとして提供します。host由来secretは自動redactされます。詳細は
 [認証とsecret仕様](../spec/authentication.ja.md)を参照してください。
 
+[暗号preview](../spec/cryptography.ja.md)にはSHA-2／SHA-3 digest、SHA-256／SHA-512 HMAC、
+明示的なbytes-to-hex／Base64変換、constant-time比較、Argon2id key導出、version付き
+AES-256-GCM認証付き暗号を実装しています。keyのstring指定とnonceの手動指定は禁止し、
+decryptしたsecretもredactを維持し、古い方式や認証なし暗号は提供しません。
+
 HTTP Cookieは単発objectと継続通信用Cookie Jarに分離しています。値はsecretとしてredactし、
 domain／path／expiry／Secureを送信時に検証します。詳細は
 [Cookie仕様](../spec/cookies.ja.md)を参照してください。
@@ -299,7 +304,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.2** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.3** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 
