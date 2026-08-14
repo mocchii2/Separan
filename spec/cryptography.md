@@ -80,5 +80,5 @@ name for `secure_random_int`; `secure_random_bytes(length)` remains the key and
 nonce material source for application protocols. Secure randomness cannot be
 seeded.
 
-Diagnostics use `E890`–`E899`. `crypto_authentication_error` is a child of
+Diagnostics use `E920`–`E929`. `crypto_authentication_error` is a child of
 `crypto_error` for labeled `try`/`catch` handling.

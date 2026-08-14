@@ -253,8 +253,8 @@ class Interpreter:
         if prefix == 871: return "secret_error"
         if 872 <= prefix <= 879: return value.category if value.category.endswith("_error") else "auth_error"
         if 880 <= prefix <= 889: return "cookie_error"
-        if 890 <= prefix <= 899: return value.category if value.category.endswith("_error") else "crypto_error"
         if 900 <= prefix <= 919: return value.category
+        if 920 <= prefix <= 929: return value.category if value.category.endswith("_error") else "crypto_error"
         return "runtime_error"
 
     @staticmethod

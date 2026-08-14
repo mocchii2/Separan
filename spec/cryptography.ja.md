@@ -70,5 +70,5 @@ saltとnonceを内部生成し、固定Argon2id profileからAES-256 keyを導�
 `secure_random_number(minimum, maximum)`は両端を含む整数`secure_random_int`の読みやすい正式名です。
 `secure_random_bytes(length)`も引き続き利用できます。secure乱数へseedは設定できません。
 
-診断は`E890`～`E899`です。label付き`try`／`catch`では
+診断は`E920`～`E929`です。label付き`try`／`catch`では
 `crypto_authentication_error`を`crypto_error`の子として扱います。

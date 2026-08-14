@@ -82,7 +82,7 @@ print base64_to_bytes(bytes_to_base64(b)) == b
         self.assertEqual(len(first.value), 32)
         self.assertEqual(first, second)
         self.assertEqual(execute('print derive_key_from_password("password", bytes_from_string("0123456789abcdef"))\n')[1], "[REDACTED]\n")
-        self.assert_error("derive_key_from_password", "E893", "password", BytesValue(b"short"))
+        self.assert_error("derive_key_from_password", "E923", "password", BytesValue(b"short"))
 
     def test_authenticated_encryption_round_trips_each_payload_type(self):
         key = BytesValue(b"K" * 32)
@@ -100,18 +100,18 @@ print base64_to_bytes(bytes_to_base64(b)) == b
         key = BytesValue(b"K" * 32)
         encrypted = self.call("encrypt_authenticated", key, "message")
         self.assert_error("encrypt_authenticated", "E201", "K" * 32, "message")
-        self.assert_error("encrypt_authenticated", "E890", BytesValue(b"short"), "message")
-        self.assert_error("decrypt_authenticated", "E892", BytesValue(b"W" * 32), encrypted)
+        self.assert_error("encrypt_authenticated", "E920", BytesValue(b"short"), "message")
+        self.assert_error("decrypt_authenticated", "E922", BytesValue(b"W" * 32), encrypted)
         changed = bytearray(encrypted.value)
         changed[-1] ^= 1
-        self.assert_error("decrypt_authenticated", "E892", key, BytesValue(bytes(changed)))
-        self.assert_error("decrypt_authenticated", "E891", key, BytesValue(b"not a container"))
+        self.assert_error("decrypt_authenticated", "E922", key, BytesValue(bytes(changed)))
+        self.assert_error("decrypt_authenticated", "E921", key, BytesValue(b"not a container"))
 
     def test_password_encryption_round_trip_and_authentication(self):
         encrypted = self.call("encrypt_with_password", "correct", SecretValue(b"api-key"))
         restored = self.call("decrypt_with_password", "correct", encrypted)
         self.assertEqual(restored, SecretValue(b"api-key"))
-        self.assert_error("decrypt_with_password", "E892", "wrong", encrypted)
+        self.assert_error("decrypt_with_password", "E922", "wrong", encrypted)
 
     def test_crypto_authentication_error_is_catchable(self):
         source = '''function:main
