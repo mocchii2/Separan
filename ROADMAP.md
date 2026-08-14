@@ -11,16 +11,12 @@ The roadmap describes direction, not a compatibility promise.
 
 ## v0.2 — specification and diagnostics
 
-- refine and version the language specification
-- add labeled `object:name` and multiline `list:name` data blocks
-- stabilize the preview `datetime`, `local_datetime`, `timezone`, and `duration` types
-- stabilize explicit timezone and unit-bearing Unix conversions
-- add objects/lists, namespaced imports, capability-based I/O, explicit JSON conversion, and labeled errors in that order
-- add a capability-gated HTTP client after named arguments, objects, and catchable errors
-- add capability-gated direct process execution; keep shell execution separately gated
-- add regex, deterministic capability-gated globbing, scoped environment access, and command-line helpers
-- strengthen diagnostics and recovery
-- grow conformance and negative tests beyond 100 cases
+- implemented: versioned v0.2 alpha specification and more than 290 conformance tests
+- implemented: labeled data blocks, temporal values, modules, capabilities, JSON, and labeled errors
+- implemented: HTTP client/server previews, process execution, regex, glob, environment, and command-line helpers
+- implemented: `#`/`##` comment syntax, strict escapes, raw strings, and Function Tag metadata
+- implemented: exact semantic-tag inspection and edit-scope verification
+- next: stabilize preview APIs and strengthen parser recovery before beta
 
 ## v0.3 — language tooling
 
@@ -28,7 +24,7 @@ The roadmap describes direction, not a compatibility promise.
   typed Semantic Tokens, Hover, definition, scoped label rename, completion,
   signature help, inlay hints, symbols, folding, and AST-preserving formatting
 - next: project-wide function argument inference, references/test CodeLens, and
-  Run Current Function
+  Run Current Function; Function Tag workspace UI and cross-file rename
 
 ## v0.4 — structural AI workflows
 
@@ -58,7 +54,8 @@ The roadmap describes direction, not a compatibility promise.
 ## 日本語概要
 
 - **v0.1-alpha:** 現在の処理系、ラベル検証、基本型、関数、制御構文
-- **v0.2:** 仕様整理、object、時間専用型、エラー診断強化、100ケースを超える適合テスト
+- **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Function Tag、
+  semantic scope検証、290件超の適合testを実装済み。次はbeta向け安定化
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
   label jump／rename、completion、signature、hint、symbol、fold、formatter）は実装済み。
   次はproject全体推論、CodeLens、専用structure view

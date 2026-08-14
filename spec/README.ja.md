@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.1.0-alpha.1
+# Separan言語仕様 — v0.2.0-alpha.1
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -18,11 +18,11 @@ endif:label
 `function:name`/`end_function:name`へ適用します。同時に開いている構造識別子は
 同じ名前空間に属し、一意でなければなりません。閉じたラベルは再利用できます。
 
-## v0.1の規則
+## v0.2 alphaの規則
 
 - ソースはUTF-8の`.sep`ファイル。
 - 1行1文。セミコロンは使用しない。
-- 識別子は`[A-Za-z_][A-Za-z0-9_]*`。明示的なblock labelと複数行comment labelには
+- 識別子は`[A-Za-z_][A-Za-z0-9_]*`。明示的なblock label、複数行comment label、function tagには
   NFC正規化済みUnicode identifierも使用できる。どちらも大文字小文字を区別し、絵文字、
   空白、句読点、非正規化labelは使用できない。
 - 型は`number`、`string`、`boolean`、`list`、`null`。
@@ -141,6 +141,21 @@ string検索位置はUnicodeコードポイント単位です。単一検索の�
 半角空白です。repeatとpaddingの結果は1,048,576コードポイント以下に制限し、
 無制限にメモリを確保せず`E607`を返します。
 
+## コメント、Function Tag、文字列literal
+
+`#`は行頭またはコードの後ろから行末までのコメントです。string内部の`#`は文字として
+残ります。複数行コメントは一致する`##label`で囲み、labelなしの`##`／`##`も利用できます。
+ネストは禁止です。`################################`のような装飾行は通常の1行コメントです。
+
+`:`はStructural Identity専用です。Function先頭のmetadata領域に置く`@tag`は、実行結果を
+変えずにSemantic IdentityをASTへ保持します。tagはNFC正規化済みUnicode identifierを許可し、
+重複、Function外、最初の実行文より後への配置を拒否します。詳細は
+[記号・Function Tag・文字列](symbols-tags.ja.md)を参照してください。
+
+通常stringは`\\`、`\"`、`\n`、`\r`、`\t`、`\0`、`\uXXXX`、`\UXXXXXXXX`を
+解釈します。未知、不完全、surrogate、範囲外のescapeはerrorです。`r"..."`はbackslashを
+解釈しないRaw Stringです。
+
 ## 診断
 
 診断には安定したコード、分類、ファイル、行、Unicodeコードポイント単位の列、
@@ -170,7 +185,7 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
 - [regex・glob・environment・command line](system-utilities.ja.md): 検索不在、決定的な
   file探索、process内だけの環境変更、script名を分離した引数APIを実装しています。
 - [構造AI workflow](structural-ai.ja.md): Parser連動block identity、AST-aware diff、
-  scope検証、JSON review metadata、CI向けexit codeを実装しています。
+  structural／semantic tag scope検証、JSON review metadata、CI向けexit codeを実装しています。
 - [Browser automation境界](browser-automation.ja.md): HTTP clientがbrowserを装わない、
   本物のengine用独立adapter契約を実装しています。
 - [Structure Explorer](structure-explorer.ja.md): 人間向けblock階層、直接の

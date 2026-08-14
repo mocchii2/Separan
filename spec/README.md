@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.1.0-alpha.1
+# Separan Language Specification — v0.2.0-alpha.1
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -18,12 +18,12 @@ The same rule applies to `while`/`endwhile`, `for`/`endfor`, and function names
 in `function:name`/`end_function:name`. All currently open structure identifiers
 share one namespace and must be unique. Closed labels may be reused.
 
-## v0.1 syntax
+## v0.2 alpha syntax
 
 - UTF-8 source files use the `.sep` extension.
 - One line contains one statement; semicolons have no meaning.
-- Identifiers match `[A-Za-z_][A-Za-z0-9_]*`. Explicit block and multiline
-  comment labels may instead be NFC-normalized Unicode identifiers. Both are
+- Identifiers match `[A-Za-z_][A-Za-z0-9_]*`. Explicit block labels,
+  multiline-comment labels, and function tags may instead be NFC-normalized Unicode identifiers. They are
   case-sensitive; emoji, spaces, punctuation, and non-normalized labels are invalid.
 - Types are `number`, `string`, `boolean`, `list`, and `null`.
 - Variables keep the type inferred by their first assignment.
@@ -170,14 +170,26 @@ for item in items :items_loop
 endfor:items_loop
 
 function:add(a, b)
+@math
 return a + b
 end_function:add
 ```
 
 ## Comments
 
-A single `:` at the beginning of a line starts a line comment. Matching `::label`
-lines delimit a non-nestable multiline comment.
+`#` begins a line comment at the start of a line or after code. A `#` inside a
+string remains string data. Exact matching `##label` lines delimit a
+non-nestable multiline comment; an unlabeled `##`/`##` form is also valid.
+Decorative runs such as `################################` are ordinary line comments.
+
+`:` is reserved for structural identity. `@tag` lines in a function's initial
+metadata area attach semantic identity without runtime behavior. Tags may be
+Unicode, must be NFC-normalized, and cannot be duplicated or placed after the
+first executable statement. See [symbols, tags, and strings](symbols-tags.md).
+
+Normal strings support `\\`, `\"`, `\n`, `\r`, `\t`, `\0`, `\uXXXX`, and
+`\UXXXXXXXX`. Unknown, incomplete, surrogate, and out-of-range escapes are
+errors. `r"..."` is a raw string and preserves backslashes literally.
 
 ## Diagnostics
 
@@ -211,7 +223,7 @@ implemented experimentally but are not yet stable.
   search absence, deterministic file discovery, scoped environment mutation,
   and script-name-free arguments.
 - [Structural AI workflows](structural-ai.md): parser-backed block identities,
-  AST-aware diffs, scope verification, JSON review metadata, and CI exit codes.
+  AST-aware diffs, structural and semantic-tag scope verification, JSON review metadata, and CI exit codes.
 - [Browser automation boundary](browser-automation.md): a separate real-engine
   adapter contract with no fake HTTP-client fallback.
 - [Structure Explorer](structure-explorer.md): human-readable block hierarchy,

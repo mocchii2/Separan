@@ -13,7 +13,7 @@ function:main#1/if:active_user#1
 ```
 
 `inspect` emits the identity, parent identity, kind, label, source location,
-and SHA-256 fingerprints using the versioned `separan.structure.v1` JSON
+function tags, and SHA-256 fingerprints using the versioned `separan.structure.v2` JSON
 schema. Positions, indentation, blank lines, and comments are excluded from
 the fingerprint.
 
@@ -54,3 +54,24 @@ The VS Code v0.4 extension exposes **Show Structural Diff Against HEAD** and
 **Verify AI Edit Scope Against HEAD**. It reads the baseline with direct
 `git show` argument execution and sends source text to the language server's
 parser-backed review requests.
+
+## Semantic tag scopes
+
+Functions can declare semantic tags in their leading metadata area. Exact tag
+inspection works for one file or a recursively scanned workspace:
+
+```console
+separan-structure inspect . --tag notification
+separan-structure inspect src --tag notification --json
+```
+
+The same tag can authorize a set of otherwise separate functions:
+
+```console
+separan-structure verify app.before.sep app.after.sep --allow-tag notification
+```
+
+All tagged function boundaries are resolved from the before AST. Changes within
+those functions pass; changes elsewhere, removing a function, or removing its
+allowed tag fail. Initial tag queries use one exact tag—there is no implicit
+name inference or AND/OR query language.

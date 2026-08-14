@@ -1,6 +1,6 @@
 # Python reference implementation
 
-`reference/separan/` contains the Separan v0.1-alpha lexer, parser, AST,
+`reference/separan/` contains the Separan v0.2-alpha lexer, parser, AST,
 interpreter, diagnostics, AST printer, and CLI. It prioritizes readable behavior
 and conformance with `spec/` over optimization.
 

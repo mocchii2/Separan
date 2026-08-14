@@ -10,6 +10,7 @@ Structure Explorerは、AIが書いた`.sep` fileの構造を、人間が短時�
 
 - 内側のfunctionとlabel付き構造
 - function parameter
+- function semantic tag
 - そのblockが直接読む名前
 - そのblockが直接書くbinding
 - そのblockが直接呼ぶfunction／member function
@@ -24,5 +25,5 @@ accessは`user`へ潰さず、修飾名のまま表示します。
 未追跡fileやGit外のfileでも階層と静的要約は利用でき、変更状態だけを省略します。
 
 LSP request `separan/documentStructure`はversion付き
-`separan.document-structure.v1` schemaを返します。安定identity path、1始まりのソース範囲、
-直接のreads／writes／calls、parameter、再帰childrenをeditorやreview toolから利用できます。
+`separan.document-structure.v2` schemaを返します。安定identity path、1始まりのソース範囲、
+直接のreads／writes／calls、parameter、tag、再帰childrenをeditorやreview toolから利用できます。

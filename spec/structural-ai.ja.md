@@ -13,7 +13,7 @@ function:main#1/if:active_user#1
 ```
 
 `inspect`はidentity、親identity、kind、label、ソース位置、SHA-256 fingerprintを、
-version付き`separan.structure.v1` JSON schemaで出力します。位置、indent、空行、commentは
+function tag、SHA-256 fingerprintをversion付き`separan.structure.v2` JSON schemaで出力します。位置、indent、空行、commentは
 fingerprintから除外されます。
 
 ```console
@@ -49,3 +49,22 @@ CI、review bot、editor連携で利用できます。
 VS Code v0.4拡張には **Show Structural Diff Against HEAD** と
 **Verify AI Edit Scope Against HEAD** があります。baselineは引数配列による直接`git show`で
 取得し、ソース本文をLanguage ServerのParser連動review requestへ渡します。
+
+## Semantic Tag Scope
+
+Function先頭metadataのtagをfileまたはworkspaceから完全一致で検索できます。
+
+```console
+separan-structure inspect . --tag notification
+separan-structure inspect src --tag notification --json
+```
+
+離れた複数Functionを同じsemantic編集範囲として検証できます。
+
+```console
+separan-structure verify app.before.sep app.after.sep --allow-tag notification
+```
+
+許可Function集合はbefore ASTから確定します。そのFunction内だけの変更はPASSし、外側の変更、
+Function境界の削除、許可tagの削除はFAILします。初期queryは単一tagの完全一致のみで、名前の
+推測やAND／OR queryは行いません。

@@ -11,6 +11,7 @@ For each named block it shows:
 
 - nested functions and labeled structures;
 - function parameters;
+- function semantic tags;
 - names directly read by that block;
 - bindings directly written by that block;
 - functions and member functions directly called by that block;
@@ -28,6 +29,6 @@ still receive the full hierarchy and static summaries, only without change
 status.
 
 The LSP request `separan/documentStructure` returns the versioned
-`separan.document-structure.v1` schema. It includes stable identity paths,
-one-based source ranges, direct reads/writes/calls, parameters, and recursive
+`separan.document-structure.v2` schema. It includes stable identity paths,
+one-based source ranges, direct reads/writes/calls, parameters, tags, and recursive
 children for editor or review-tool integrations.

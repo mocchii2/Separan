@@ -139,20 +139,36 @@ Allowed changes 1, violations 0
 The label is simultaneously human documentation, parser-checked structure, and
 a machine-verifiable edit boundary.
 
+Function tags add a second, semantic dimension when related code is separated:
+
+```separan
+function:send_notification
+@notification
+@aws
+send_message()
+end_function:send_notification
+```
+
+`@notification` is AST metadata, so tools can enumerate the exact function set
+instead of asking an AI to guess what “notification-related” means.
+
 ```console
 separan-structure diff before.sep after.sep
 separan-structure verify before.sep after.sep --allow active_user
+separan-structure inspect . --tag notification
+separan-structure verify before.sep after.sep --allow-tag notification
 ```
 
 Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.1.0-alpha.2
+## v0.2.0-alpha.1
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
-`main` auto-start, conditionals, loops, comments, and AST output. The v0.4
+`main` auto-start, conditionals, loops, `#`/`##` comments, strict escaped and raw
+strings, Function Tag metadata, and AST output. The v0.4
 tooling layer adds a dependency-free LSP, rich VS Code support, structural
 diffs, and enforced AI edit scopes without changing v0.1 language semantics.
 
@@ -311,7 +327,7 @@ read-only execution metadata and its namespace boundary.
 
 ## Status
 
-Separan is experimental software at **v0.1.0-alpha.2**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.1**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

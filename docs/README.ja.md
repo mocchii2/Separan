@@ -130,20 +130,36 @@ Allowed changes 1, violations 0
 同じラベルが、人間向けの説明、Parserが検証する構造、機械検証可能な編集境界を
 兼ねます。
 
+離れた関連FunctionにはSemantic Tagを付けられます。
+
+```separan
+function:send_notification
+@notification
+@aws
+send_message()
+end_function:send_notification
+```
+
+`@notification`はAST metadataなので、AIに「通知関連らしいFunction」を推測させず、
+toolが対象Function集合を完全一致で列挙できます。
+
 ```console
 separan-structure diff before.sep after.sep
 separan-structure verify before.sep after.sep --allow active_user
+separan-structure inspect . --tag notification
+separan-structure verify before.sep after.sep --allow-tag notification
 ```
 
 CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集中fileをGit `HEAD`と
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.1.0-alpha.2
+## v0.2.0-alpha.1
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
-コメント、AST表示が含まれます。v0.4 tooling層では、v0.1言語意味論を変えずに
+`#`／`##`コメント、厳密escape／Raw String、Function Tag metadata、AST表示が含まれます。
+v0.4 tooling層では、v0.1言語意味論を変えずに
 依存なしLSP、VS Code支援、構造diff、AI edit scope強制を追加しています。
 
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
@@ -265,7 +281,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.1.0-alpha.2** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.1** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

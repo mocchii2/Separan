@@ -8,16 +8,18 @@ inferred public types without changing source text.
 
 ## Implemented editor core
 
-- syntax highlighting, quote/bracket matching, comment toggle, and indentation;
+- syntax highlighting for `#`/`##` comments, raw/escaped strings, labels and tags,
+  plus quote/bracket matching, comment toggle, and indentation;
 - live parser and simple fixed-binding type diagnostics;
 - `E104`/`E105` label and block-kind mismatch quick fixes;
 - nested Outline, breadcrumbs, and label-based folding;
 - label and variable hover, including object members and redacted secrets;
 - matching-label highlights, definition, block-scoped label rename, and commands;
-- open-block closer, label-name, and built-in completion;
+- `:end` structural completion, with open-block closers ordered innermost first
+  and annotated with opening lines; tag and built-in completion;
 - built-in signature help;
 - semantic tokens for labels, functions, parameters, variables, properties,
-  literals, keywords, comments, and operators, with public-type modifiers;
+  literals, keywords, comments, function tags, and operators, with public-type modifiers;
 - optional inferred-type inlay hints;
 - a formatter whose conformance test requires identical structural AST output;
 - Run File, Run Tests, Show AST, Go to Label, Go to Matching Label, and Copy AI
@@ -48,6 +50,11 @@ shell command. The editor sends the baseline and current text to the language
 server; both are parsed before comparison. Whitespace/comments are ignored,
 while AST changes outside the selected subtree fail verification. Ambiguous
 short labels require the full path copied by Copy AI Edit Scope.
+
+Function tags are included in parser-backed structure metadata. The LSP supports
+same-document tag completion and rename plus `separan/verifyTagScope`. Workspace
+tag trees and cross-file rename require a stable workspace index and remain a
+future editor UI layer; the CLI already performs recursive exact-tag inspection.
 
 ## Planned advanced tooling
 
