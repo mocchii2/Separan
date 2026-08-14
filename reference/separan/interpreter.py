@@ -22,6 +22,7 @@ from .cookies import CookieJarValue
 from .http_server import HttpReturned, ServerRequest, ServerResponse, compile_path, match_path, static_response
 from .database import DbConnectionValue, begin as db_begin, commit as db_commit, rollback as db_rollback
 from .system_context import SystemContextValue, build_system_context
+from .mail import MailAddressValue, MailMessageValue, MailSendResultValue, MailSenderValue, send_transport as mail_send_transport
 from .token import SourcePosition
 
 
@@ -52,6 +53,10 @@ def type_name(value):
     if isinstance(value, HttpAuthValue): return "http_auth"
     if isinstance(value, OAuthTokenValue): return "oauth_token"
     if isinstance(value, CookieJarValue): return "cookie_jar"
+    if isinstance(value, MailAddressValue): return "mail_address"
+    if isinstance(value, MailMessageValue): return "mail_message"
+    if isinstance(value, MailSenderValue): return "mail_sender"
+    if isinstance(value, MailSendResultValue): return "mail_send_result"
     if isinstance(value, DbConnectionValue): return "db_connection"
     temporal = public_type(value)
     if temporal != "unknown": return temporal
@@ -112,7 +117,7 @@ class Returned(Exception):
 
 
 class Interpreter:
-    def __init__(self, output=None, clock=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, module_cache=None, import_stack=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None):
+    def __init__(self, output=None, clock=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, module_cache=None, import_stack=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None, mail_transport=None):
         self.output = output or StringIO()
         self.input_stream = input_stream or StringIO()
         self.error_output = error_output or StringIO()
@@ -139,6 +144,7 @@ class Interpreter:
         self.http_transport = http_transport or urllib_transport
         self.secret_provider = secret_provider
         self.cookie_key_provider = cookie_key_provider
+        self.mail_transport = mail_transport or mail_send_transport
         self.http_request_context = None
         self.database_connections = []
 
@@ -255,6 +261,7 @@ class Interpreter:
         if 880 <= prefix <= 889: return "cookie_error"
         if 900 <= prefix <= 919: return value.category
         if 920 <= prefix <= 929: return value.category if value.category.endswith("_error") else "crypto_error"
+        if 930 <= prefix <= 939: return value.category if value.category.endswith("_error") else "mail_error"
         return "runtime_error"
 
     @staticmethod
@@ -267,6 +274,8 @@ class Interpreter:
             "http_limit_error": "http_error",
             "oauth_error": "auth_error", "secret_error": "auth_error",
             "crypto_authentication_error": "crypto_error",
+            "mail_address_error": "mail_error", "mail_attachment_error": "mail_error", "mail_provider_error": "mail_error",
+            "mail_connection_error": "mail_error", "mail_authentication_error": "mail_error", "mail_send_error": "mail_error",
         }
         current = actual
         while current in parents:
@@ -304,7 +313,7 @@ class Interpreter:
             self.import_stack.append(key)
             module = Interpreter(self.output, self.clock, self.command_arguments, key, root,
                                  self.environment_variables, self.module_cache, self.import_stack, self.capabilities,
-                                 self.input_stream, self.error_output, self.http_transport, self.secret_provider, self.cookie_key_provider)
+                                 self.input_stream, self.error_output, self.http_transport, self.secret_provider, self.cookie_key_provider, self.mail_transport)
             try: module.run(program, invoke_main=False)
             finally: self.import_stack.pop()
             exports = frozenset([item.name for item in program.statements if isinstance(item, (FunctionDecl, ConstDeclaration, ErrorDecl))])
@@ -342,6 +351,10 @@ class Interpreter:
             if isinstance(target, HttpResponseValue) and expr.name in ("status", "url", "headers", "bytes", "text", "encoding", "redirects", "cookies"):
                 return getattr(target, expr.name)
             if isinstance(target, OAuthTokenValue) and expr.name in ("access_token", "token_type", "expires_in", "scope"):
+                return getattr(target, expr.name)
+            if isinstance(target, MailAddressValue) and expr.name in ("address", "display_name"):
+                return getattr(target, expr.name)
+            if isinstance(target, MailSendResultValue) and expr.name in ("provider", "message_id", "accepted_recipients"):
                 return getattr(target, expr.name)
             if isinstance(target, NamespaceValue):
                 if expr.name not in target.exports: raise error("E706", "Private or missing export", f"Module does not export '{expr.name}'.", expr.position, actual=expr.name)
@@ -555,6 +568,10 @@ class Interpreter:
         if isinstance(value, HttpAuthValue): return "http_auth:[REDACTED]"
         if isinstance(value, OAuthTokenValue): return "oauth_token:[REDACTED]"
         if isinstance(value, CookieJarValue): return "cookie_jar:[REDACTED]"
+        if isinstance(value, MailAddressValue): return f"mail_address:{value.address}"
+        if isinstance(value, MailMessageValue): return f"mail_message(recipients={len(value.to) + len(value.cc) + len(value.bcc)}, attachments={len(value.attachments)})"
+        if isinstance(value, MailSenderValue): return f"mail_sender(provider={value.provider}, credentials=[REDACTED])"
+        if isinstance(value, MailSendResultValue): return f"mail_send_result(provider={value.provider}, accepted={value.accepted_recipients})"
         if isinstance(value, DbConnectionValue): return f"db_connection(driver={value.driver}, database=[REDACTED])"
         if isinstance(value, BytesValue): return "0x" + value.value.hex()
         if isinstance(value, DatetimeValue): return format_datetime(value)

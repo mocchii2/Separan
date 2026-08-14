@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "separan"
-version = "0.2.0a3"
+version = "0.2.0a4"
 description = "Python reference interpreter for the label-structured Separan language"
 readme = "README.md"
 license = "Apache-2.0"
@@ -44,6 +44,7 @@ postgresql = ["psycopg[binary]>=3.2,<4"]
 mysql = ["mysql-connector-python>=9,<10"]
 oracle = ["oracledb>=3,<5"]
 sqlserver = ["pyodbc>=5,<6"]
+ses = ["boto3>=1.35,<2"]
 db-all = [
     "psycopg[binary]>=3.2,<4",
     "mysql-connector-python>=9,<10",

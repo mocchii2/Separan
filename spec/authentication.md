@@ -9,9 +9,14 @@ HMAC-SHA256, HS256-only JWT signing and verification, and Argon2id password
 hashing. General-purpose cryptographic boundaries are specified separately in
 [Cryptography](cryptography.md).
 
+`secret_from_environment(name)` provides an explicit redacted alternative to
+ordinary `env_get` for credentials such as SMTP passwords. It uses the same
+host-controlled environment read capability and variable-name allowlist.
+
 `secret` is distinct from strings and bytes. Display is always `[REDACTED]`,
 `string(secret)` is forbidden, and `secret_get` requires a host provider plus an
-optional name allowlist. OAuth access tokens remain secrets.
+optional name allowlist. `secret_from_environment` uses the environment
+capability instead. OAuth access tokens remain secrets.
 
 JWT keys must contain at least 32 bytes. The protected header is fixed and
 verified, signatures use constant-time comparison, and `exp`/`nbf` use the

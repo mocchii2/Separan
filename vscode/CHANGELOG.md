@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0] - 2026-08-15
+
+### Provider-independent mail APIs
+
+- Highlights readable mail message, address, recipient, body, attachment,
+  SMTP/SES sender, and send-result APIs.
+- Highlights the redacted `secret_from_environment` boundary and typed mail
+  error hierarchy.
+
 ## [0.7.1] - 2026-08-15
 
 ### Safe cryptography API highlighting

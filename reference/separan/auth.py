@@ -70,6 +70,17 @@ def _secret_get(arguments, named, position, runtime):
     return SecretValue(value)
 
 
+def _secret_from_environment(arguments, named, position, runtime):
+    name = arguments[0]
+    if type(name) is not str or not name or "\0" in name:
+        runtime.type_error(position, "non-empty environment name", runtime.type_name(name), "secret_from_environment() requires a safe environment variable name.")
+    runtime.capabilities.environment(name, False, position)
+    value = runtime.environment_variables.get(name)
+    if value is None: raise error("E871", "Secret unavailable", "The requested environment variable does not exist.", position, actual=name)
+    if type(value) is not str: raise error("E871", "Secret unavailable", "Environment secret values must be strings.", position, actual=name)
+    return SecretValue(value.encode("utf-8"))
+
+
 def _basic_auth(arguments, named, position, runtime):
     username = arguments[0]
     if type(username) is not str or ":" in username: raise error("E872", "Invalid Basic auth username", "Username must be a string without ':'.", position)
@@ -183,7 +194,8 @@ def _oauth_client_credentials(arguments, named, position, runtime):
 
 
 AUTH_BUILTINS = (
-    UtilityFunction("secret_get", 1, 1, _secret_get), UtilityFunction("basic_auth", 2, 2, _basic_auth),
+    UtilityFunction("secret_get", 1, 1, _secret_get), UtilityFunction("secret_from_environment", 1, 1, _secret_from_environment),
+    UtilityFunction("basic_auth", 2, 2, _basic_auth),
     UtilityFunction("bearer_auth", 1, 1, _bearer_auth), UtilityFunction("api_key_auth", 2, 2, _api_key_auth, ("location",)),
     UtilityFunction("hmac_sha256", 2, 2, _hmac_sha256), UtilityFunction("jwt_sign", 2, 2, _jwt_sign, ("algorithm",)),
     UtilityFunction("jwt_verify", 2, 2, _jwt_verify, ("algorithm",)), UtilityFunction("password_hash", 1, 1, _password_hash),

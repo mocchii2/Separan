@@ -30,6 +30,14 @@ class AuthTests(unittest.TestCase):
         with self.assertRaises(SeparanError) as caught: execute('print secret_get("denied")\n', capabilities=self.capability, secret_provider=provider)
         self.assertEqual(caught.exception.code, "E870")
 
+    def test_environment_secret_is_redacted_and_allowlisted(self):
+        capability = replace(RuntimeCapabilities.local(ROOT), readable_environment=frozenset({"SMTP_PASSWORD"}))
+        output = execute('value = secret_from_environment("SMTP_PASSWORD")\nprint value\nprint type(value)\n', capabilities=capability, environment_variables={"SMTP_PASSWORD": "mail-secret"})[1]
+        self.assertEqual(output, "[REDACTED]\nsecret\n")
+        with self.assertRaises(SeparanError) as caught:
+            execute('print secret_from_environment("OTHER")\n', capabilities=capability, environment_variables={"OTHER": "hidden"})
+        self.assertEqual(caught.exception.code, "E720")
+
     def test_basic_bearer_and_api_key_http_auth(self):
         responses = [HttpTransportResponse(200, "https://api.test/", {}, b"ok") for _ in range(3)]
         transport = FakeTransport(responses)

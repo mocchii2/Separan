@@ -5,6 +5,7 @@
 Separan sourceで暗号algorithmを自作させず、用途が固定された標準primitiveだけを提供します。
 
 - `secret_get(name)` → 自動redactされる`secret`
+- `secret_from_environment(name)` → environment capability経由でredactされる`secret`
 - `basic_auth(username, password)`
 - `bearer_auth(token)`
 - `api_key_auth(name, value, location = "header")`
