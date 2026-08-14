@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.1
+# Separan Language Specification — v0.2.0-alpha.2
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -109,6 +109,10 @@ does not serialize lists in v0.1. Invalid textual conversions produce `E304`.
 A future fallible conversion such as `try_number(value) -> number | null` is
 preferred over default-on-failure conversion, because failure remains explicit
 in the program's control flow.
+
+The expanded [readable mathematics specification](mathematics.md) defines
+descriptive function names, strict statistics, base conversion, and grouped
+binary/octal/hexadecimal literals. Short mathematical names remain compatibility aliases.
 
 ### String functions
 

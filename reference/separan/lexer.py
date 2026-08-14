@@ -83,6 +83,16 @@ class Lexer:
     def _name_continue(value):
         return ("_" + value).isidentifier()
 
+    @staticmethod
+    def _valid_digits(value, allowed):
+        return (
+            bool(value)
+            and not value.startswith("_")
+            and not value.endswith("_")
+            and "__" not in value
+            and all(character == "_" or character in allowed for character in value)
+        )
+
     def _scan_line(self, text, line_no, out):
         i = 0
         single = {"+": TokenType.PLUS, "-": TokenType.MINUS, "*": TokenType.STAR,
@@ -155,16 +165,28 @@ class Lexer:
                     raise error("E103", "Unterminated string", "Strings must close on the same line.", pos)
                 i += 1
                 out.append(Token(TokenType.STRING, text[start:i], "".join(chars), pos)); continue
-            if c.isdigit():
+            if c in "0123456789":
                 start = i
-                while i < len(text) and text[i].isdigit(): i += 1
+                prefixes = {"b": (2, "01"), "o": (8, "01234567"), "x": (16, "0123456789abcdefABCDEF")}
+                if c == "0" and i + 1 < len(text) and text[i + 1].lower() in prefixes:
+                    marker = text[i + 1].lower(); base, allowed = prefixes[marker]; i += 2
+                    while i < len(text) and (text[i].isalnum() or text[i] in "_."): i += 1
+                    lex = text[start:i]; digits = lex[2:]
+                    if not self._valid_digits(digits, allowed):
+                        raise error("E101", "Invalid number literal", f"Base-{base} literals require valid digits with underscores only between digits.", pos, actual=lex)
+                    out.append(Token(TokenType.NUMBER, lex, int(digits.replace("_", ""), base), pos)); continue
+                while i < len(text) and (text[i] in "0123456789" or text[i] == "_"): i += 1
+                integer = text[start:i]
+                fractional = None
                 if i < len(text) and text[i] == ".":
-                    i += 1
-                    if i >= len(text) or not text[i].isdigit():
-                        raise error("E101", "Invalid number", "A decimal point must be followed by digits.", pos)
-                    while i < len(text) and text[i].isdigit(): i += 1
+                    i += 1; fraction_start = i
+                    while i < len(text) and (text[i] in "0123456789" or text[i] == "_"): i += 1
+                    fractional = text[fraction_start:i]
                 lex = text[start:i]
-                out.append(Token(TokenType.NUMBER, lex, float(lex) if "." in lex else int(lex), pos)); continue
+                if not self._valid_digits(integer, "0123456789") or (fractional is not None and not self._valid_digits(fractional, "0123456789")):
+                    raise error("E101", "Invalid number literal", "Decimal underscores must appear only between digits, and a decimal point must be followed by digits.", pos, actual=lex)
+                normalized = lex.replace("_", "")
+                out.append(Token(TokenType.NUMBER, lex, float(normalized) if fractional is not None else int(normalized), pos)); continue
             if self._name_start(c):
                 start = i
                 while i < len(text) and self._name_continue(text[i]): i += 1

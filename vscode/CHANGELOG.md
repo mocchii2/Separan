@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0] - 2026-08-15
+
+### Readable mathematics
+
+- Highlights the expanded readable mathematics, statistics, and base-conversion APIs.
+- Highlights binary, octal, hexadecimal, and underscore-grouped number literals.
+
 ## [0.6.1] - 2026-08-15
 
 ### Structural completion reliability

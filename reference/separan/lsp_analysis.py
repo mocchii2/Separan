@@ -43,6 +43,58 @@ BUILTIN_SIGNATURES = {
     "write_text": "write_text(path: string, text: string) -> null",
     "http_get": "http_get(url: string, options...) -> string",
     "db_query": "db_query(connection: db_connection, sql: string, parameters: list) -> list<object>",
+    "absolute": "absolute(value: number) -> number",
+    "minimum": "minimum(values: list<number>) -> number",
+    "maximum": "maximum(values: list<number>) -> number",
+    "round": "round(value: number, digits?: number) -> number",
+    "truncate": "truncate(value: number) -> number",
+    "clamp": "clamp(value: number, minimum: number, maximum: number) -> number",
+    "sign": "sign(value: number) -> number",
+    "square_root": "square_root(value: number) -> number",
+    "cube_root": "cube_root(value: number) -> number",
+    "power": "power(base: number, exponent: number) -> number",
+    "hypotenuse": "hypotenuse(a: number, b: number) -> number",
+    "exponential": "exponential(value: number) -> number",
+    "exponential_base2": "exponential_base2(value: number) -> number",
+    "natural_log": "natural_log(value: number) -> number",
+    "log_base2": "log_base2(value: number) -> number",
+    "log_base10": "log_base10(value: number) -> number",
+    "log_one_plus": "log_one_plus(value: number) -> number",
+    "arc_sin": "arc_sin(value: number) -> number",
+    "arc_cos": "arc_cos(value: number) -> number",
+    "arc_tan": "arc_tan(value: number) -> number",
+    "arc_tan2": "arc_tan2(y: number, x: number) -> number",
+    "sinh": "sinh(value: number) -> number",
+    "cosh": "cosh(value: number) -> number",
+    "tanh": "tanh(value: number) -> number",
+    "arc_sinh": "arc_sinh(value: number) -> number",
+    "arc_cosh": "arc_cosh(value: number) -> number",
+    "arc_tanh": "arc_tanh(value: number) -> number",
+    "to_radians": "to_radians(degrees: number) -> number",
+    "to_degrees": "to_degrees(radians: number) -> number",
+    "greatest_common_divisor": "greatest_common_divisor(a: number, b: number) -> number",
+    "least_common_multiple": "least_common_multiple(a: number, b: number) -> number",
+    "factorial": "factorial(value: number) -> number",
+    "is_finite": "is_finite(value: number) -> boolean",
+    "is_infinite": "is_infinite(value: number) -> boolean",
+    "is_nan": "is_nan(value: number) -> boolean",
+    "is_close": "is_close(a: number, b: number) -> boolean",
+    "is_integer_value": "is_integer_value(value: number) -> boolean",
+    "median": "median(values: list<number>) -> number",
+    "variance": "variance(values: list<number>) -> number",
+    "sample_variance": "sample_variance(values: list<number>) -> number",
+    "standard_deviation": "standard_deviation(values: list<number>) -> number",
+    "sample_standard_deviation": "sample_standard_deviation(values: list<number>) -> number",
+    "percentile": "percentile(values: list<number>, percent: number) -> number",
+    "moving_average": "moving_average(values: list<number>, window: number) -> list<number>",
+    "number_to_binary": "number_to_binary(value: number) -> string",
+    "number_to_octal": "number_to_octal(value: number) -> string",
+    "number_to_hexadecimal": "number_to_hexadecimal(value: number) -> string",
+    "binary_to_number": "binary_to_number(text: string) -> number",
+    "octal_to_number": "octal_to_number(text: string) -> number",
+    "hexadecimal_to_number": "hexadecimal_to_number(text: string) -> number",
+    "number_to_base": "number_to_base(value: number, base: number) -> string",
+    "base_to_number": "base_to_number(text: string, base: number) -> number",
 }
 
 
@@ -143,7 +195,9 @@ def block_at(source, line, character):
 
 def _literal_type(expression):
     text = expression.strip()
-    if re.fullmatch(r"-?[0-9]+(?:\.[0-9]+)?", text): return "number"
+    digits = r"[0-9]+(?:_[0-9]+)*"
+    based = r"(?:0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|0[xX][0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*)"
+    if re.fullmatch(rf"-?(?:{based}|{digits}(?:\.{digits})?)", text): return "number"
     if text.startswith('"') and text.endswith('"'): return "string"
     if text in ("true", "false"): return "boolean"
     if text == "null": return "null"
@@ -151,10 +205,10 @@ def _literal_type(expression):
     call = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", text)
     if call:
         name = call.group(1)
-        if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow"): return "number"
-        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get"): return "string"
+        if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow", "absolute", "minimum", "maximum", "truncate", "clamp", "sign", "square_root", "cube_root", "power", "hypotenuse", "exponential", "exponential_base2", "natural_log", "log_base2", "log_base10", "log_one_plus", "arc_sin", "arc_cos", "arc_tan", "arc_tan2", "sinh", "cosh", "tanh", "arc_sinh", "arc_cosh", "arc_tanh", "to_radians", "to_degrees", "greatest_common_divisor", "least_common_multiple", "factorial", "median", "variance", "sample_variance", "standard_deviation", "sample_standard_deviation", "percentile", "binary_to_number", "octal_to_number", "hexadecimal_to_number", "base_to_number"): return "number"
+        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base"): return "string"
         if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search"): return "boolean"
-        if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines"): return "list"
+        if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average"): return "list"
         if name in ("datetime", "datetime_now", "datetime_parse"): return "datetime"
         if name == "duration": return "duration"
         if name in ("read_bytes", "bytes_from_string", "bytes_from_hex", "hex_decode", "base64_decode"): return "bytes"

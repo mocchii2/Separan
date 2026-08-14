@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.1
+## v0.2.0-alpha.2
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -208,8 +208,10 @@ functions; implicit coercion remains forbidden.
 Higher-order collection processing uses explicit `function` values:
 `map`, `filter`, and initial-value-required `reduce` preserve strict callback
 contracts. One-level `flatten`, `sum`, `average`, and value `count` complete the
-core aggregates. Math includes finite real trigonometric, logarithmic, and
-exponential functions with domain errors instead of NaN/Infinity results.
+core aggregates. [Readable mathematics](spec/mathematics.md) includes explicit
+root/log names, statistics, moving averages, base conversion, and grouped
+binary/octal/hexadecimal literals, with domain errors instead of silent
+NaN/Infinity results.
 
 String processing includes `trim`, `upper`, `lower`, `contains`, `starts_with`,
 `ends_with`, `split`, `join`, `replace`, code-point-based `substring`/`char_at`,
@@ -321,7 +323,7 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
-The suite currently contains more than 1,150 tests. Its dedicated negative
+The suite currently contains more than 1,300 tests. Its dedicated negative
 conformance corpus checks syntax, structure, type and runtime failures, plus
 too few, too many, and unknown named arguments across every registered built-in.
 
@@ -357,7 +359,7 @@ read-only execution metadata and its namespace boundary.
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.1**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.2**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

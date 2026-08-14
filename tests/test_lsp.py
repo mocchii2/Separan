@@ -151,6 +151,17 @@ end_function:second
         tags = completions(source + 'function:other\n@not', 5, 4)["items"]
         self.assertEqual(tags[0]["label"], "@notification")
 
+    def test_readable_math_signatures_and_number_literal_hints(self):
+        source = "binary = 0b1111_0000\nhexadecimal = 0xff_ff\naverage = moving_average([1, 2, 3], 2)\n"
+        hints = inlay_hints(source, {"start": {"line": 0}, "end": {"line": 3}})
+        self.assertEqual([hint["label"] for hint in hints], [": number", ": number", ": list"])
+        signature = signature_help("print percentile([1, 2, 3], ", 0, 31)
+        self.assertIn("percent: number", signature["signatures"][0]["label"])
+        math_hover = hover("print square_root(16)\n", 0, 10)
+        self.assertIn("square_root(value: number)", math_hover["contents"]["value"])
+        labels = [item["label"] for item in completions("print square_", 0, 13)["items"]]
+        self.assertIn("square_root", labels)
+
     def test_semantic_tokens_include_typed_variables_parameters_and_labels(self):
         source = '''function:main(value)
 const count = 10

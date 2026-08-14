@@ -1,4 +1,4 @@
-"""Strict, side-effect-free built-in functions for Separan v0.1."""
+"""Strict built-in functions for the Separan v0.2 alpha reference runtime."""
 
 from dataclasses import dataclass
 from datetime import datetime as PyDateTime, timezone as py_timezone
@@ -42,6 +42,7 @@ from .cookie_store import COOKIE_STORE_BUILTINS
 from .http_server import SERVER_BUILTINS
 from .database import DB_BUILTINS
 from .collection_ops import average, count as count_values, filter_list, flatten, map_list, reduce_list, sum_list
+from .math_ops import MATH_BUILTINS
 
 
 MAX_TEXT_LENGTH = 1_048_576
@@ -782,5 +783,5 @@ BUILTINS = {
             , "cookie_error"
             , "db_connection_error", "db_auth_error", "db_query_error", "db_constraint_error", "db_timeout_error", "db_transaction_error", "db_driver_error"
         )),
-    ) + (UtilityFunction("datetime", 1, 6, _datetime_construct, ("timezone",)),) + UTILITY_BUILTINS + PROCESS_BUILTINS + HTTP_BUILTINS + BYTES_BUILTINS + AUTH_BUILTINS + COOKIE_BUILTINS + COOKIE_STORE_BUILTINS + SERVER_BUILTINS + DB_BUILTINS
+    ) + MATH_BUILTINS + (UtilityFunction("datetime", 1, 6, _datetime_construct, ("timezone",)),) + UTILITY_BUILTINS + PROCESS_BUILTINS + HTTP_BUILTINS + BYTES_BUILTINS + AUTH_BUILTINS + COOKIE_BUILTINS + COOKIE_STORE_BUILTINS + SERVER_BUILTINS + DB_BUILTINS
 }

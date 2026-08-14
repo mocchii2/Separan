@@ -10,7 +10,7 @@
       { "name": "invalid.illegal.escape.separan", "match": "\\\\." }
     ] },
     { "name": "entity.name.tag.separan", "match": "@[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*" },
-    { "name": "constant.numeric.separan", "match": "\\b[0-9]+(?:\\.[0-9]+)?\\b" },
+    { "name": "constant.numeric.separan", "match": "\\b(?:0[bB][01]+(?:_[01]+)*|0[oO][0-7]+(?:_[0-7]+)*|0[xX][0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*|[0-9]+(?:_[0-9]+)*(?:\\.[0-9]+(?:_[0-9]+)*)?)\\b" },
     { "name": "constant.language.separan", "match": "\\b(?:true|false|null)\\b" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:print|print_error)\\b" },
     { "name": "keyword.operator.separan", "match": "\\*\\*=|//=|\\+=|-=|\\*=|/=|%=|\\?\\?|\\*\\*|//|==|!=|>=|<=|&&|\\|\\||[+\\-*/%><!=]|\\b(?:in|not)\\b" },
@@ -20,6 +20,7 @@
     { "name": "keyword.control.separan", "match": "\\b(?:http_route|end_http_route)\\b" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:compare|compare_ignore_case|substring_before|substring_after|count_occurrences|format|type_of|is_null|is_number|is_string|is_boolean|is_list|is_object|is_bytes|is_datetime|is_duration|is_secret|char_at|find_all|append|prepend|remove|remove_at|unique|map|filter|reduce|flatten|sum|average|count)(?=\\s*\\()" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:ceil|floor|round|min|max|sqrt|sin|cos|tan|log|log10|log2|exp|pow)(?=\\s*\\()" },
+    { "name": "support.function.builtin.separan", "match": "\\b(?:absolute|minimum|maximum|truncate|clamp|sign|square_root|cube_root|power|hypotenuse|exponential|exponential_base2|natural_log|log_base2|log_base10|log_one_plus|arc_sin|arc_cos|arc_tan|arc_tan2|sinh|cosh|tanh|arc_sinh|arc_cosh|arc_tanh|to_radians|to_degrees|greatest_common_divisor|least_common_multiple|factorial|is_finite|is_infinite|is_nan|is_close|is_integer_value|median|variance|sample_variance|standard_deviation|sample_standard_deviation|percentile|moving_average|number_to_binary|number_to_octal|number_to_hexadecimal|binary_to_number|octal_to_number|hexadecimal_to_number|number_to_base|base_to_number)(?=\\s*\\()" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:datetime_parse|datetime_valid|datetime_format|datetime_weekday|unix_time|datetime_from_unix)(?=\\s*\\()" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:file_exists|file_size|copy_file|move_file|delete_file|read_lines|directory_exists|create_directory|delete_directory|list_directory|file_name|file_extension|parent_directory|absolute_path)(?=\\s*\\()" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:db_connect|db_close|db_query|db_query_one|db_scalar|db_execute|db_begin|db_commit|db_rollback|db_tables|db_columns|db_indexes|db_primary_key|db_server_info|db_version)(?=\\s*\\()" },

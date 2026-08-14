@@ -29,7 +29,7 @@ def create_application(source, filename="<source>", **runtime_options):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="separan", description="Separan v0.1 interpreter")
+    parser = argparse.ArgumentParser(prog="separan", description="Separan v0.2 alpha interpreter")
     parser.add_argument("source", type=Path, nargs="?")
     parser.add_argument("--ast", action="store_true", help="print the parsed AST instead of executing")
     parser.add_argument("--timezone-version", action="store_true", help="print the timezone database version")

@@ -1,0 +1,20 @@
+# Readable mathematics, statistics, and explicit base conversion
+function:main
+
+samples = [12, 18, 24, 30]
+
+print minimum(samples)
+print maximum(samples)
+print average(samples)
+print median(samples)
+print moving_average(samples, 2)
+
+right_angle = to_radians(90)
+print is_close(sin(right_angle), 1)
+print hypotenuse(3, 4)
+
+mask = 0b1111_0000
+print number_to_hexadecimal(mask)
+print hexadecimal_to_number("ff")
+
+end_function:main

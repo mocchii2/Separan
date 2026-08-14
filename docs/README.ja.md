@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.1
+## v0.2.0-alpha.2
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -188,7 +188,8 @@ stringとlistで共通です。
 
 高階list処理では、ユーザー関数と組み込み関数を明示的な`function`値として渡せます。
 `map`、厳密boolean predicateの`filter`、初期値必須の`reduce`に加え、1階層`flatten`、
-`sum`、`average`、値の`count`を提供します。三角・対数・指数関数は有限実数だけを返し、
+`sum`、`average`、値の`count`を提供します。[読みやすい数学機能](../spec/mathematics.ja.md)には、
+明示的なroot／log名、統計、移動平均、進数変換、区切り付き2／8／16進数literalが含まれ、
 定義域外やoverflowを黙ってNaN／Infinityにせずmath domain errorにします。
 
 ## 監視dogfoodingモデル
@@ -206,7 +207,7 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
-現在のテストは1,150件を超えています。専用の異常系適合テストでは、構文・構造・型・
+現在のテストは1,300件を超えています。専用の異常系適合テストでは、構文・構造・型・
 実行時エラーに加え、登録済みの全組み込み関数について引数不足、引数過剰、未知の
 名前付き引数を検証します。
 
@@ -298,7 +299,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.1** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.2** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

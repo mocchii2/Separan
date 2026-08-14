@@ -11,7 +11,8 @@ The roadmap describes direction, not a compatibility promise.
 
 ## v0.2 — specification and diagnostics
 
-- implemented: versioned v0.2 alpha specification and more than 1,150 conformance tests, including an API-wide negative suite
+- implemented: versioned v0.2 alpha specification and more than 1,300 conformance tests, including an API-wide negative suite
+- implemented: readable mathematics, strict statistics, base conversion, and grouped binary/octal/hexadecimal literals
 - implemented: labeled data blocks, temporal values, modules, capabilities, JSON, and labeled errors
 - implemented: HTTP client/server previews, process execution, regex, glob, environment, and command-line helpers
 - implemented: `#`/`##` comment syntax, strict escapes, raw strings, and Function Tag metadata

@@ -98,7 +98,7 @@ print pow(2, 10)
             with self.subTest(call=call): self.assert_error("print " + call + "\n", "E201")
         for call in ("sqrt(-1)", "pow(-1, 0.5)"):
             with self.subTest(call=call): self.assert_error("print " + call + "\n", "E308")
-        for call in ("min()", "pow(2)", "round(1, 2)"):
+        for call in ("min()", "pow(2)", "round(1, 2, 3)"):
             with self.subTest(call=call): self.assert_error("print " + call + "\n", "E207")
 
 
