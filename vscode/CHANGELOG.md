@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1] - 2026-08-15
+
+### Structural completion reliability
+
+- Automatically opens completion when a standalone `:end` trigger is fully typed.
+- Keeps the LSP-provided innermost-first closers and replaces the complete `:end` trigger on selection.
+
 ## [0.6.0] - 2026-08-15
 
 ### Semantic identity and symbol cleanup

@@ -10,6 +10,7 @@ let client;
 let autoClosing = false;
 let reviewOutput;
 let structureRefreshTimer;
+let structuralCompletionTimer;
 
 const blockPairs = {
   function: "end_function", if: "endif", while: "endwhile", for: "endfor",
@@ -335,6 +336,23 @@ async function autoClose(event) {
   } finally { autoClosing = false; }
 }
 
+function triggerStructuralCompletion(event) {
+  if (event.document.languageId !== "separan") return;
+  if (!event.contentChanges.some((change) => change.text.endsWith("d"))) return;
+  const editor = currentEditor();
+  if (!editor || editor.document !== event.document) return;
+  clearTimeout(structuralCompletionTimer);
+  structuralCompletionTimer = setTimeout(() => {
+    const activeEditor = currentEditor();
+    if (!activeEditor || activeEditor.document !== event.document) return;
+    const position = activeEditor.selection.active;
+    const prefix = activeEditor.document.lineAt(position.line).text.slice(0, position.character);
+    if (/^\s*:end$/u.test(prefix)) {
+      void vscode.commands.executeCommand("editor.action.triggerSuggest");
+    }
+  }, 0);
+}
+
 function activate(context) {
   const config = vscode.workspace.getConfiguration("separan");
   const serverOptions = { command: config.get("pythonPath", "python"), args: ["-m", "separan.lsp"], transport: TransportKind.stdio };
@@ -366,6 +384,7 @@ function activate(context) {
     reviewOutput,
     structureView,
     vscode.workspace.onDidChangeTextDocument(autoClose),
+    vscode.workspace.onDidChangeTextDocument(triggerStructuralCompletion),
     vscode.workspace.onDidChangeTextDocument(refreshStructureSoon),
     vscode.workspace.onDidSaveTextDocument((document) => { if (document.languageId === "separan") structureProvider.refresh(); }),
     vscode.window.onDidChangeActiveTextEditor(() => structureProvider.refresh()),

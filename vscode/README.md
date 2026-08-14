@@ -13,7 +13,7 @@ Language support for the label-structured Separan programming language.
 - **Syntax highlighting** for keywords, values, functions, types, and labels
 - **Label-aware structure** with diagnostics, navigation, Outline, folding, and rename
 - **Semantic function tags** for related code that is separated across structures
-- **`:end` structural completion** ordered from the innermost open block
+- **`:end` structural completion** that opens automatically and orders valid closers from the innermost open block
 - **`.sep` file support** in Visual Studio Code
 - **[GitHub repository](https://github.com/mocchii2/Separan)** with the interpreter, specification, and examples
 
@@ -84,7 +84,7 @@ structural problem.
 - **🌳 Structure Explorer** - Browse block hierarchy, reads, writes, calls, and Git changes
 - **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
 - **🔗 Function Tags** - Highlight, complete, rename, inspect, and verify semantic groups
-- **⌨️ Structural Completion** - Type `:end` to choose a valid closer with its opening line
+- **⌨️ Structural Completion** - Type `:end` to automatically choose a valid closer with its opening line
 - **⚡ Live Diagnostics** - Catch label mismatches, type errors, scope violations instantly
 - **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
 - **🌍 Unicode Labels** - Full support for Japanese and other Unicode labels
