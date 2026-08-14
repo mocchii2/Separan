@@ -206,6 +206,10 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
+現在のテストは1,150件を超えています。専用の異常系適合テストでは、構文・構造・型・
+実行時エラーに加え、登録済みの全組み込み関数について引数不足、引数過剰、未知の
+名前付き引数を検証します。
+
 Python 3.10以降が必要です。
 
 ## Separanが大切にすること

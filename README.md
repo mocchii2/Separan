@@ -321,6 +321,10 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
+The suite currently contains more than 1,150 tests. Its dedicated negative
+conformance corpus checks syntax, structure, type and runtime failures, plus
+too few, too many, and unknown named arguments across every registered built-in.
+
 Python 3.10 or newer is required.
 
 ## Repository
