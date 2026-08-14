@@ -65,11 +65,24 @@ expected:
 ```text
 SEPARAN E104: Block label mismatch
 
+ --> demo.sep:3:7
+  |
+3 | endif:wrong
+  |       ^^^^^
+
+The closing or branch label must match its opening block.
+
 Expected:
 endif:check
 
 Actual:
 endif:wrong
+
+Opened here:
+ --> demo.sep:1:10
+  |
+1 | if true :check
+  |          ^
 ```
 
 That diagnostic is the language in miniature: structure is named and verified,
@@ -105,11 +118,24 @@ endif:admin_user
 ```text
 SEPARAN E104: Block label mismatch
 
+ --> demo.sep:3:7
+  |
+3 | endif:admin_user
+  |       ^^^^^^^^^^
+
+The closing or branch label must match its opening block.
+
 Expected:
 endif:active_user
 
 Actual:
 endif:admin_user
+
+Opened here:
+ --> demo.sep:1:17
+  |
+1 | if user.active :active_user
+  |                 ^
 ```
 
 ## The 30-second demo

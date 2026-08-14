@@ -57,7 +57,22 @@ end_function:main
         for source, code in cases:
             with self.subTest(code=code), self.assertRaises(SeparanError) as caught: parse(source)
             self.assertEqual(caught.exception.code, code)
-            self.assertIn("File: test.sep", str(caught.exception))
+            self.assertIn("--> test.sep:", str(caught.exception))
+
+    def test_diagnostic_includes_numbered_source_location(self):
+        with self.assertRaises(SeparanError) as caught:
+            parse('function:main\nif true :check\nendif:wrong\nend_function:main\n')
+        diagnostic = str(caught.exception)
+        self.assertIn("--> test.sep:3:7", diagnostic)
+        self.assertIn("3 | endif:wrong", diagnostic)
+        self.assertIn("  |       ^^^^^", diagnostic)
+        self.assertIn("Opened here:\n --> test.sep:2:10", diagnostic)
+
+    def test_diagnostic_caret_accounts_for_wide_unicode(self):
+        position = Lexer('print \"あ\" + true\n', "unicode.sep").scan_tokens()[2].position
+        rendered = str(SeparanError("E000", "Example", "Example diagnostic.", position))
+        pointer = next(line for line in rendered.splitlines() if "^" in line)
+        self.assertEqual(pointer, "  | " + " " * 11 + "^")
 
     def test_type_safety(self):
         with self.assertRaisesRegex(SeparanError, "fixed type number"): execute('x = 1\nx = "one"\n')

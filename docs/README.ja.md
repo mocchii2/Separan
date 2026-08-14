@@ -62,11 +62,24 @@ Separanは構造上の間違いを指し、必要だった終了ラベルを具�
 ```text
 SEPARAN E104: Block label mismatch
 
+ --> demo.sep:3:7
+  |
+3 | endif:wrong
+  |       ^^^^^
+
+The closing or branch label must match its opening block.
+
 Expected:
 endif:check
 
 Actual:
 endif:wrong
+
+Opened here:
+ --> demo.sep:1:10
+  |
+1 | if true :check
+  |          ^
 ```
 
 構造をインデントや括弧の数から推測せず、名前を付けて検証する。これだけで
@@ -99,8 +112,8 @@ print "active"
 endif:admin_user
 ```
 
-この場合は単なる`SyntaxError`ではなく、期待されたラベル、実際のラベル、
-開始位置を含む診断を表示します。
+この場合は単なる`SyntaxError`ではなく、`file:line:column`、行番号付きの
+ソースコード、期待されたラベル、実際のラベル、開始位置を含む診断を表示します。
 
 ## 30秒デモ
 
