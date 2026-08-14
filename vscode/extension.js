@@ -26,8 +26,29 @@ function currentEditor() {
   return editor && editor.document.languageId === "separan" ? editor : undefined;
 }
 
+function codeText(text) {
+  let quoted = false; let escaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') quoted = false;
+    } else if (char === '"') quoted = true;
+    else if (char === "#") return text.slice(0, index).trimEnd();
+  }
+  return text;
+}
+
+function multilineCommentDelimiter(text) {
+  const candidate = text.trim();
+  if (candidate === "##") return "";
+  const found = /^##([\p{L}_][\p{L}\p{M}\p{N}_]*)$/u.exec(candidate);
+  return found ? found[1] : undefined;
+}
+
 function labelAt(editor) {
-  const line = editor.document.lineAt(editor.selection.active.line).text;
+  const line = codeText(editor.document.lineAt(editor.selection.active.line).text);
   const cursor = editor.selection.active.character;
   const matcher = /:([^\s:()]+)/gu;
   for (const found of line.matchAll(matcher)) {
@@ -44,8 +65,12 @@ async function goToMatchingLabel() {
   const openPattern = /^\s*(function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
   const closePattern = /^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
   const closerKinds = { end_function: "function", endif: "if", endwhile: "while", endfor: "for", end_object: "object", end_list: "list", endtry: "try", end_error: "error", end_http_route: "http_route", end_transaction: "transaction" };
+  let commentLabel;
   for (let line = 0; line < editor.document.lineCount; line += 1) {
-    const text = editor.document.lineAt(line).text; const opened = openPattern.exec(text); const closed = closePattern.exec(text);
+    const raw = editor.document.lineAt(line).text; const delimiter = multilineCommentDelimiter(raw);
+    if (delimiter !== undefined) { commentLabel = commentLabel === delimiter ? undefined : (commentLabel === undefined ? delimiter : commentLabel); continue; }
+    if (commentLabel !== undefined) continue;
+    const text = codeText(raw); const opened = openPattern.exec(text); const closed = closePattern.exec(text);
     if (opened) stack.push({ kind: opened[1], label: opened[2], open: line });
     else if (closed && stack.length && stack[stack.length - 1].kind === closerKinds[closed[1]] && stack[stack.length - 1].label === closed[2]) {
       const item = stack.pop(); item.close = line; completed.push(item);
@@ -65,8 +90,12 @@ async function goToLabel() {
   const items = []; const stack = [];
   const pattern = /^\s*(function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
   const closePattern = /^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
+  let commentLabel;
   for (let line = 0; line < editor.document.lineCount; line += 1) {
-    const text = editor.document.lineAt(line).text; const match = pattern.exec(text); const closed = closePattern.exec(text);
+    const raw = editor.document.lineAt(line).text; const delimiter = multilineCommentDelimiter(raw);
+    if (delimiter !== undefined) { commentLabel = commentLabel === delimiter ? undefined : (commentLabel === undefined ? delimiter : commentLabel); continue; }
+    if (commentLabel !== undefined) continue;
+    const text = codeText(raw); const match = pattern.exec(text); const closed = closePattern.exec(text);
     if (match) {
       const parent = stack.length ? `${stack.map((item) => item.label).join(" › ")} › ` : "";
       items.push({ label: match[2], description: `${parent}${match[1]} — line ${line + 1}`, line }); stack.push({ label: match[2] });
@@ -144,7 +173,7 @@ class StructureTreeItem {
     this.data = data; this.parent = parent;
     this.children = (data.children || []).map((child) => new StructureTreeItem(child, this));
     this.insights = [];
-    for (const [key, title, icon] of [["parameters", "Parameters", "symbol-parameter"], ["reads", "Reads", "eye"], ["writes", "Writes", "edit"], ["calls", "Calls", "call-outgoing"]]) {
+    for (const [key, title, icon] of [["tags", "Tags", "tag"], ["parameters", "Parameters", "symbol-parameter"], ["reads", "Reads", "eye"], ["writes", "Writes", "edit"], ["calls", "Calls", "call-outgoing"]]) {
       if (data[key] && data[key].length) this.insights.push(new InsightGroup(title, icon, data[key], this));
     }
   }
@@ -156,7 +185,7 @@ class StructureTreeItem {
     item.description = this.data.status ? `${this.data.kind} • ${this.data.status}` : this.data.kind;
     item.iconPath = new vscode.ThemeIcon(this.data.status === "modified" ? "diff-modified" : this.data.status === "added" ? "diff-added" : (structureIcons[this.data.kind] || "symbol-namespace"));
     const details = [`**${this.data.path}**`, `Lines ${this.data.start_line}–${this.data.end_line}`];
-    for (const [key, title] of [["parameters", "Parameters"], ["reads", "Reads"], ["writes", "Writes"], ["calls", "Calls"]]) {
+    for (const [key, title] of [["tags", "Tags"], ["parameters", "Parameters"], ["reads", "Reads"], ["writes", "Writes"], ["calls", "Calls"]]) {
       if (this.data[key] && this.data[key].length) details.push(`${title}: \`${this.data[key].join("`, `")}\``);
     }
     item.tooltip = new vscode.MarkdownString(details.join("  \n"));
@@ -178,7 +207,7 @@ class InsightGroup {
 
 class InsightValue {
   constructor(value, parent) { this.value = value; this.parent = parent; this.children = []; }
-  treeItem() { const item = new vscode.TreeItem(this.value, vscode.TreeItemCollapsibleState.None); item.iconPath = new vscode.ThemeIcon("symbol-variable"); return item; }
+  treeItem() { const tag = this.parent.label === "Tags"; const item = new vscode.TreeItem(tag ? `@${this.value}` : this.value, vscode.TreeItemCollapsibleState.None); item.iconPath = new vscode.ThemeIcon(tag ? "tag" : "symbol-variable"); return item; }
 }
 
 class RemovedGroup {
@@ -294,7 +323,7 @@ async function autoClose(event) {
   if (autoClosing || event.document.languageId !== "separan" || !vscode.workspace.getConfiguration("separan").get("autoCloseLabels", true)) return;
   if (!event.contentChanges.some((change) => change.text.includes("\n"))) return;
   const editor = currentEditor(); if (!editor || editor.document !== event.document) return;
-  const lineNumber = Math.max(0, editor.selection.active.line - 1); const text = event.document.lineAt(lineNumber).text;
+  const lineNumber = Math.max(0, editor.selection.active.line - 1); const text = codeText(event.document.lineAt(lineNumber).text);
   const match = /^\s*(function|if|while|for|object|list|try|error|transaction|http_route)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u.exec(text);
   if (!match || !blockPairs[match[1]]) return;
   const closer = `${blockPairs[match[1]]}:${match[2]}`;

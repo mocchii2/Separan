@@ -1,0 +1,6 @@
+*.vsix
+package-lock.json
+node_modules/.bin/**
+node_modules/**/test/**
+node_modules/**/tests/**
+node_modules/**/*.map

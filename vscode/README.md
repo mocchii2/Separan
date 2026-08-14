@@ -12,6 +12,8 @@ Language support for the label-structured Separan programming language.
 
 - **Syntax highlighting** for keywords, values, functions, types, and labels
 - **Label-aware structure** with diagnostics, navigation, Outline, folding, and rename
+- **Semantic function tags** for related code that is separated across structures
+- **`:end` structural completion** ordered from the innermost open block
 - **`.sep` file support** in Visual Studio Code
 - **[GitHub repository](https://github.com/mocchii2/Separan)** with the interpreter, specification, and examples
 
@@ -19,6 +21,16 @@ Language support for the label-structured Separan programming language.
 if user.active :active_user
     print "active"
 endif:active_user
+```
+
+Related functions can also declare machine-readable semantic identity:
+
+```separan
+function:send_email
+@notification
+@email
+send_message()
+end_function:send_email
 ```
 
 The label names the structure and its exact boundary. Even before using the
@@ -71,6 +83,8 @@ structural problem.
 - **🧭 Human-Readable Structure** - Make generated control flow explain its intent
 - **🌳 Structure Explorer** - Browse block hierarchy, reads, writes, calls, and Git changes
 - **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
+- **🔗 Function Tags** - Highlight, complete, rename, inspect, and verify semantic groups
+- **⌨️ Structural Completion** - Type `:end` to choose a valid closer with its opening line
 - **⚡ Live Diagnostics** - Catch label mismatches, type errors, scope violations instantly
 - **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
 - **🌍 Unicode Labels** - Full support for Japanese and other Unicode labels
@@ -214,6 +228,7 @@ This is not just style—it's enforced by the language. Mismatches are caught im
 2. **Nested labels work** - Each block gets its own identity
 3. **Japanese labels OK** - Use `:認証チェック` if you prefer
 4. **Verify often** - Run "Verify AI Edit Scope" before committing
+5. **Tag related functions** - Use `@notification` when semantic scope crosses block/file boundaries
 
 ## 🐛 Issues & Feedback
 
@@ -223,5 +238,5 @@ This is not just style—it's enforced by the language. Mismatches are caught im
 
 ---
 
-**This v0.5 extension works with the Separan v0.1-alpha language. Structure
+**This v0.6 extension works with the Separan v0.2-alpha language. Structure
 Explorer, structural diff, and AI edit-scope verification are implemented.**

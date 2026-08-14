@@ -2,9 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Separan", "scopeName": "source.separan",
   "patterns": [
-    { "name": "comment.block.separan", "begin": "^\\s*::([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*$", "end": "^\\s*::\\1\\s*$" },
-    { "name": "comment.line.colon.separan", "match": "^\\s*:(?!:).*$" },
-    { "name": "string.quoted.double.separan", "begin": "\"", "end": "\"", "patterns": [{ "name": "constant.character.escape.separan", "match": "\\\\[nrt\"\\\\]" }] },
+    { "name": "comment.block.separan", "begin": "^\\s*##([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*|)\\s*$", "end": "^\\s*##\\1\\s*$" },
+    { "name": "comment.line.number-sign.separan", "match": "#.*$" },
+    { "name": "string.quoted.double.raw.separan", "begin": "r\"", "end": "\"" },
+    { "name": "string.quoted.double.separan", "begin": "\"", "end": "\"", "patterns": [
+      { "name": "constant.character.escape.separan", "match": "\\\\(?:[nrt0\"\\\\]|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})" },
+      { "name": "invalid.illegal.escape.separan", "match": "\\\\." }
+    ] },
+    { "name": "entity.name.tag.separan", "match": "@[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*" },
     { "name": "constant.numeric.separan", "match": "\\b[0-9]+(?:\\.[0-9]+)?\\b" },
     { "name": "constant.language.separan", "match": "\\b(?:true|false|null)\\b" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:print|print_error)\\b" },

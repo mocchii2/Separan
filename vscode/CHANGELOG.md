@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - 2026-08-15
+
+### Semantic identity and symbol cleanup
+
+- Replaced legacy `:`/`::label` comments with `#`/`##label` comments.
+- Added Function Tag highlighting, completion, rename, and Structure Explorer metadata.
+- Added `:end` completion with innermost-first valid closers and opening lines.
+- Added strict Unicode escapes and `r"..."` raw strings.
+- Added parser-backed semantic tag scope inspection and verification.
+
 All notable changes to the Separan VS Code extension will be documented in this file.
 
 ## [0.5.4] - 2026-08-14
