@@ -37,27 +37,26 @@ class Lexer:
         for line_no, text in enumerate(lines, 1):
             stripped = text.lstrip()
             column_offset = len(text) - len(stripped)
-            if stripped.startswith("::"):
-                label = stripped[2:].strip()
+            delimiter = self._comment_delimiter(stripped)
+            if delimiter is not None:
+                label = delimiter
                 pos = SourcePosition(self.filename, line_no, column_offset + 1, text)
-                if not self._valid_name(label):
-                    raise error("E102", "Invalid comment label", "A multiline comment needs a valid label.", pos, actual=label)
                 if comment_label is None:
                     comment_label, comment_open = label, pos
                 elif label == comment_label:
                     comment_label, comment_open = None, None
                 else:
-                    raise error("E104", "Comment label mismatch", "Nested comments are not supported and the closing label must match.", pos, expected=f"::{comment_label}", actual=f"::{label}", related=comment_open)
+                    raise error("E104", "Multiline comment label mismatch", "Nested comments are not supported and the closing label must match.", pos, expected=f"##{comment_label}", actual=f"##{label}", related=comment_open)
                 tokens.append(Token(TokenType.NEWLINE, "\n", None, pos))
                 continue
-            if comment_label is not None or (stripped.startswith(":") and not stripped.startswith("::")):
+            if comment_label is not None:
                 pos = SourcePosition(self.filename, line_no, 1, text)
                 tokens.append(Token(TokenType.NEWLINE, "\n", None, pos))
                 continue
             self._scan_line(text, line_no, tokens)
             tokens.append(Token(TokenType.NEWLINE, "\n", None, SourcePosition(self.filename, line_no, len(text) + 1, text)))
         if comment_label is not None:
-            raise error("E106", "Unclosed comment", f"Multiline comment :{comment_label} was not closed.", comment_open, expected=f"::{comment_label}")
+            raise error("E106", "Unclosed comment", f"Multiline comment ##{comment_label} was not closed.", comment_open, expected=f"##{comment_label}")
         eof_line = len(lines) + 1
         tokens.append(Token(TokenType.EOF, "", None, SourcePosition(self.filename, eof_line, 1, "")))
         return tokens
@@ -65,6 +64,16 @@ class Lexer:
     @staticmethod
     def _valid_name(value):
         return bool(value) and value.isidentifier() and unicodedata.is_normalized("NFC", value)
+
+    @classmethod
+    def _comment_delimiter(cls, stripped):
+        """Return the exact ## label, or None for an ordinary # line comment."""
+        candidate = stripped.rstrip()
+        if candidate == "##":
+            return ""
+        if candidate.startswith("##") and cls._valid_name(candidate[2:]):
+            return candidate[2:]
+        return None
 
     @staticmethod
     def _name_start(value):
@@ -84,6 +93,18 @@ class Lexer:
             c = text[i]
             if c in " \t\r": i += 1; continue
             pos = SourcePosition(self.filename, line_no, i + 1, text)
+            if c == "#":
+                break
+            if c == "@":
+                start = i; i += 1
+                if i >= len(text) or not self._name_start(text[i]):
+                    raise error("E216", "Invalid function tag", "Expected an NFC-normalized tag name immediately after '@'.", pos, actual=text[start:i])
+                name_start = i
+                while i < len(text) and self._name_continue(text[i]): i += 1
+                name = text[name_start:i]
+                if not self._valid_name(name):
+                    raise error("E216", "Invalid function tag", "Function tags must be NFC-normalized identifiers without whitespace.", pos, actual="@" + name)
+                out.append(Token(TokenType.TAG, name, name, pos)); continue
             triples = {"//=": TokenType.FLOOR_DIV_EQUAL, "**=": TokenType.POWER_EQUAL}
             triple = text[i:i+3]
             if triple in triples:
@@ -103,15 +124,31 @@ class Lexer:
             singles = {"=": TokenType.EQUAL, "!": TokenType.BANG, ">": TokenType.GREATER, "<": TokenType.LESS}
             if c in singles:
                 out.append(Token(singles[c], c, None, pos)); i += 1; continue
-            if c == '"':
-                start = i; i += 1; chars = []
-                escapes = {"n": "\n", "r": "\r", "t": "\t", '"': '"', "\\": "\\"}
+            raw = c == "r" and i + 1 < len(text) and text[i + 1] == '"'
+            if c == '"' or raw:
+                start = i; i += 2 if raw else 1; chars = []
+                escapes = {"n": "\n", "r": "\r", "t": "\t", "0": "\0", '"': '"', "\\": "\\"}
                 while i < len(text) and text[i] != '"':
-                    if text[i] == "\\":
+                    if text[i] == "\\" and not raw:
+                        escape_position = SourcePosition(self.filename, line_no, i + 1, text)
                         i += 1
-                        if i >= len(text) or text[i] not in escapes:
-                            raise error("E101", "Invalid string escape", 'Supported escapes are \\n, \\r, \\t, \\" and \\\\.', SourcePosition(self.filename, line_no, i + 1, text))
-                        chars.append(escapes[text[i]])
+                        if i >= len(text):
+                            raise error("E219", "Unknown escape sequence", "A backslash must be followed by a supported escape.", escape_position, actual="\\")
+                        marker = text[i]
+                        if marker in ("u", "U"):
+                            digits = 4 if marker == "u" else 8
+                            value = text[i + 1:i + 1 + digits]
+                            actual = "\\" + marker + value
+                            if len(value) != digits or any(ch not in "0123456789abcdefABCDEF" for ch in value):
+                                raise error("E220", "Invalid Unicode escape", f"\\{marker} must be followed by exactly {digits} hexadecimal digits.", escape_position, actual=actual)
+                            codepoint = int(value, 16)
+                            if codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF:
+                                raise error("E220", "Invalid Unicode escape", "Unicode escapes must identify a valid Unicode scalar value.", escape_position, actual=actual)
+                            chars.append(chr(codepoint)); i += digits
+                        elif marker in escapes:
+                            chars.append(escapes[marker])
+                        else:
+                            raise error("E219", "Unknown escape sequence", "Unknown escapes are errors; use a raw string when backslashes are literal.", escape_position, actual="\\" + marker)
                     else: chars.append(text[i])
                     i += 1
                 if i >= len(text):

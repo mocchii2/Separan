@@ -85,6 +85,20 @@ end_function:main
         branch = program.statements[0].body[0].branches[1]
         self.assertEqual((branch.position.line, branch.position.column), (3, 3))
 
+    def test_function_tags_are_ast_metadata(self):
+        program = parse('function:notify\n@notification\n@通知\nprint "ok"\nend_function:notify\n')
+        self.assertEqual(program.statements[0].tags, ["notification", "通知"])
+        self.assertEqual(execute('function:main\n@demo\nprint "ok"\nend_function:main\n')[1], "ok\n")
+
+    def test_function_tag_placement_and_duplicates(self):
+        self.assert_code('@notification\nfunction:main\nend_function:main\n', "E216")
+        self.assert_code('function:main\nprint "x"\n@notification\nend_function:main\n', "E217")
+        self.assert_code('function:main\n@notification\n@notification\nend_function:main\n', "E218")
+
+    def test_incomplete_structural_completion_lists_open_closers(self):
+        exc = self.assert_code('function:main\nif true :active\n:end\nendif:active\nend_function:main\n', "E122")
+        self.assertEqual(exc.expected, "endif:active\nend_function:main")
+
 
 class RuntimeEdgeTests(unittest.TestCase):
     def assert_runtime_error(self, source, code):
@@ -141,16 +155,30 @@ class LexerEdgeTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, code)
 
     def test_unterminated_string(self): self.assert_lex_error('print "x\n', "E103")
-    def test_invalid_escape(self): self.assert_lex_error('print "\\q"\n', "E101")
-    def test_unterminated_comment(self): self.assert_lex_error('::note\ntext\n', "E106")
-    def test_comment_label_mismatch(self): self.assert_lex_error('::note\ntext\n::other\n', "E104")
+    def test_invalid_escape(self): self.assert_lex_error('print "\\q"\n', "E219")
+    def test_unterminated_comment(self): self.assert_lex_error('##note\ntext\n', "E106")
+    def test_comment_label_mismatch(self): self.assert_lex_error('##note\ntext\n##other\n', "E104")
     def test_unicode_comment_label(self):
-        self.assertEqual(execute('::説明\n名前 = invalid text here\n::説明\nprint "ok"\n')[1], "ok\n")
+        self.assertEqual(execute('##説明\n名前 = invalid text here\n##説明\nprint "ok"\n')[1], "ok\n")
     def test_non_normalized_unicode_label(self):
         self.assert_lex_error('function:main\nif true :cafe\u0301\nendif:cafe\u0301\nend_function:main\n', "E102")
     def test_non_ascii_identifier(self): self.assert_lex_error('名前 = 1\n', "E101")
     def test_supported_escapes(self):
-        self.assertEqual(execute('print "a\\n\\r\\t\\\"\\\\"\n')[1], 'a\n\r\t"\\\n')
+        self.assertEqual(execute('print "a\\n\\r\\t\\0\\\"\\\\\\u65E5\\U0000672C"\n')[1], 'a\n\r\t\0"\\日本\n')
+
+    def test_raw_strings_keep_backslashes_literal(self):
+        self.assertEqual(execute('print r"C:\\Program Files\\App\\logs"\n')[1], "C:\\Program Files\\App\\logs\n")
+
+    def test_invalid_unicode_escapes(self):
+        for value in ('\\u123', '\\uZZZZ', '\\U00110000', '\\uD800'):
+            with self.subTest(value=value): self.assert_lex_error(f'print "{value}"\n', "E220")
+
+    def test_hash_inside_string_is_not_a_comment(self):
+        self.assertEqual(execute('print "ERROR #123" # actual comment\n')[1], "ERROR #123\n")
+
+    def test_unlabeled_multiline_and_decorative_comments(self):
+        source = '################################\n##\nignored syntax !@[]\n##\nprint "ok"\n'
+        self.assertEqual(execute(source)[1], "ok\n")
 
 
 if __name__ == "__main__": unittest.main()

@@ -1,4 +1,4 @@
-: Separan first program
+# Separan first program
 function:main
 name = "Separan"
 count = 10

@@ -5,6 +5,7 @@ from enum import Enum, auto
 class TokenType(Enum):
     IDENTIFIER = auto()
     LABEL = auto()
+    TAG = auto()
     NUMBER = auto()
     STRING = auto()
     TRUE = auto()

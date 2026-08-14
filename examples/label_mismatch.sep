@@ -1,4 +1,4 @@
-: Intentionally invalid: demonstrates structural diagnostics
+# Intentionally invalid: demonstrates structural diagnostics
 function:main
 if true :check
 print "ok"

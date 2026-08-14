@@ -1,0 +1,4 @@
+function:notify
+@notification
+print "new"
+end_function:notify

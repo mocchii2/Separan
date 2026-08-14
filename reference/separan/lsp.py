@@ -12,7 +12,7 @@ from .errors import SeparanError
 from .builtins import BUILTINS
 from .lexer import Lexer
 from .parser import Parser
-from .structural import ScopeResolutionError, inspect_source, structural_diff, verify_scopes
+from .structural import ScopeResolutionError, inspect_source, structural_diff, verify_scopes, verify_tag_scope
 from .structure_insights import document_structure
 from .lsp_analysis import (
     BLOCK_KINDS, BUILTIN_SIGNATURES, analyze_blocks, block_at, format_source,
@@ -78,11 +78,32 @@ def folding_ranges(source):
     return result
 
 
-TOKEN_TYPES = ["namespace", "type", "function", "parameter", "variable", "property", "label", "number", "string", "keyword", "comment", "operator"]
+TOKEN_TYPES = ["namespace", "type", "function", "parameter", "variable", "property", "label", "decorator", "number", "string", "keyword", "comment", "operator"]
 TOKEN_MODIFIERS = ["declaration", "readonly", "number", "string", "boolean", "list", "object", "bytes", "datetime", "duration", "secret", "constant", "parameter"]
 TYPE_MODIFIER = {name: TOKEN_MODIFIERS.index(name) for name in ("number", "string", "boolean", "list", "object", "bytes", "datetime", "duration", "secret")}
 KEYWORDS = {"function", "end_function", "if", "elseif", "else", "endif", "while", "endwhile", "for", "endfor", "return", "const", "object", "end_object", "list", "end_list", "try", "catch", "finally", "endtry", "throw", "transaction", "end_transaction", "http_route", "end_http_route", "import", "as", "in", "not"}
 RENAMABLE_LABEL_KINDS = {"if", "while", "for", "try", "transaction", "http_route"}
+
+
+def _comment_start(text):
+    quoted, escaped = False, False
+    for index, char in enumerate(text):
+        if quoted:
+            if escaped: escaped = False
+            elif char == "\\": escaped = True
+            elif char == '"': quoted = False
+        elif char == '"': quoted = True
+        elif char == "#": return index
+    return None
+
+
+def _tag_at(source, line, character):
+    lines = source.splitlines()
+    if line >= len(lines): return None
+    found = re.match(r"^\s*@([^\s#]+)", lines[line])
+    if not found: return None
+    start, end = found.start(1), found.end(1)
+    return (found.group(1), start, end) if start <= character <= end else None
 
 
 def semantic_tokens(source):
@@ -101,14 +122,20 @@ def semantic_tokens(source):
         occupied.update(cells); entries.append((line, start, length, TOKEN_TYPES.index(token_type), modifiers))
     comment_label = None
     for line_no, text in enumerate(lines):
-        stripped = text.lstrip(); offset = len(text) - len(stripped)
-        if stripped.startswith("::"):
-            label = stripped[2:].strip(); add(line_no, offset, len(text) - offset, "comment")
-            comment_label = None if comment_label == label else label if comment_label is None else comment_label
+        stripped = text.lstrip(); offset = len(text) - len(stripped); candidate = stripped.rstrip()
+        delimiter = "" if candidate == "##" else candidate[2:] if candidate.startswith("##") and candidate[2:].isidentifier() else None
+        if delimiter is not None:
+            add(line_no, offset, len(text) - offset, "comment")
+            comment_label = None if comment_label == delimiter else delimiter if comment_label is None else comment_label
             continue
-        if comment_label is not None or stripped.startswith(":"):
+        if comment_label is not None:
             add(line_no, offset, len(text) - offset, "comment"); continue
-        for found in re.finditer(r'"(?:\\.|[^"\\])*"', text): add(line_no, found.start(), len(found.group()), "string")
+        comment = _comment_start(text)
+        code = text if comment is None else text[:comment]
+        if comment is not None: add(line_no, comment, len(text) - comment, "comment")
+        for found in re.finditer(r'r?"(?:\\.|[^"\\])*"', code): add(line_no, found.start(), len(found.group()), "string")
+        tag = re.match(r"^\s*@([^\s#]+)", code)
+        if tag: add(line_no, tag.start(), len(tag.group()), "decorator", 1)
     for block in analyze_blocks(source)[1]:
         for occurrence in block.occurrences: add(occurrence.line, occurrence.start, occurrence.end - occurrence.start, "label", 1 if occurrence.role == "open" else 0)
     namespaces = set(re.findall(r'^\s*import\s+"[^"]+"\s+as\s+([A-Za-z_][A-Za-z0-9_]*)', source, re.MULTILINE))
@@ -196,9 +223,27 @@ def completions(source, line, character):
     items = []
     roots, all_blocks = analyze_blocks("\n".join(lines[:line + 1]))
     open_blocks = [item for item in all_blocks if item.end_line is None]
+    structural_trigger = re.search(r":end$", prefix)
     for priority, block in enumerate(reversed(open_blocks)):
         closer = BLOCK_KINDS[block.kind][0] + ":" + block.label
-        items.append({"label": closer, "kind": 14, "sortText": f"0{priority:03}", "insertText": closer, "detail": f"Close {block.kind} :{block.label}"})
+        item = {"label": closer, "kind": 14, "sortText": f"0{priority:03}", "insertText": closer,
+                "detail": f"Close {block.kind} :{block.label}; opened at line {block.line + 1}"}
+        if structural_trigger:
+            item["textEdit"] = {"range": _range(line, character - 4, character), "newText": closer}
+        items.append(item)
+    if structural_trigger:
+        return {"isIncomplete": False, "items": items}
+    tag_prefix = re.match(r"^\s*@([^\s#]*)$", prefix)
+    if tag_prefix:
+        typed = tag_prefix.group(1)
+        known_tags = sorted(tag for tag in set(re.findall(r"^\s*@([^\s#]+)\s*(?:#.*)?$", source, re.MULTILINE))
+                            if tag.startswith(typed) and tag != typed)
+        start = prefix.index("@")
+        return {"isIncomplete": False, "items": [
+            {"label": "@" + tag, "kind": 14, "sortText": "0" + tag,
+             "textEdit": {"range": _range(line, start, character), "newText": "@" + tag},
+             "detail": "Separan function semantic tag"} for tag in known_tags
+        ]}
     for name, signature in BUILTIN_SIGNATURES.items():
         items.append({"label": name, "kind": 3, "sortText": "1" + name, "insertText": name + "($0)", "insertTextFormat": 2, "detail": signature})
     for function in re.finditer(r"^\s*function:([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?", source, re.MULTILINE):
@@ -277,11 +322,11 @@ class Server:
             self.initialization_options = params.get("initializationOptions") or {}
             return {"capabilities": {"textDocumentSync": 1, "documentSymbolProvider": True, "foldingRangeProvider": True,
                     "hoverProvider": True, "definitionProvider": True, "renameProvider": {"prepareProvider": True},
-                    "documentHighlightProvider": True, "completionProvider": {"triggerCharacters": [":", "_"]},
+                    "documentHighlightProvider": True, "completionProvider": {"triggerCharacters": [":", "_", "@"]},
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]}, "codeActionProvider": True,
                     "documentFormattingProvider": True, "inlayHintProvider": True,
                     "semanticTokensProvider": {"legend": {"tokenTypes": TOKEN_TYPES, "tokenModifiers": TOKEN_MODIFIERS}, "full": True}},
-                    "serverInfo": {"name": "separan-lsp", "version": "0.5.0"}}
+                    "serverInfo": {"name": "separan-lsp", "version": "0.6.0"}}
         if method == "shutdown": self.shutdown_requested = True; return None
         if method == "exit": raise SystemExit(0 if self.shutdown_requested else 1)
         if method in ("textDocument/didOpen", "textDocument/didChange"):
@@ -306,12 +351,23 @@ class Server:
             if method.endswith("documentHighlight"): return highlights(source, line, character)
             if method.endswith("completion"): return completions(source, line, character)
             if method.endswith("signatureHelp"): return signature_help(source, line, character)
+            tag = _tag_at(source, line, character)
+            if tag:
+                return {"range": lsp_range(line, tag[1], tag[2]), "placeholder": tag[0]}
             block = block_at(source, line, character)
             return {"range": lsp_range(line, next((o.start for o in block.occurrences if o.line == line), 0), next((o.end for o in block.occurrences if o.line == line), 0)), "placeholder": block.label} if block and block.kind in RENAMABLE_LABEL_KINDS else None
         elif method == "textDocument/rename":
             uri = params["textDocument"]["uri"]; position = params["position"]
             new_name = params["newName"]
             if not new_name.isidentifier() or not unicodedata.is_normalized("NFC", new_name): return None
+            tag = _tag_at(self.source(uri), position["line"], position["character"])
+            if tag:
+                edits = []
+                for number, text in enumerate(self.source(uri).splitlines()):
+                    found = re.match(r"^\s*@" + re.escape(tag[0]) + r"(?=\s|#|$)", text)
+                    if found:
+                        start = found.end() - len(tag[0]); edits.append({"range": lsp_range(number, start, start + len(tag[0])), "newText": new_name})
+                return {"changes": {uri: edits}}
             return label_edits(self.source(uri), position["line"], position["character"], new_name, uri)
         elif method == "textDocument/semanticTokens/full":
             return semantic_tokens(self.source(params["textDocument"]["uri"]))
@@ -333,7 +389,7 @@ class Server:
                     actions.append({"title": f"Replace with {data.get('title', replacement)}", "kind": "quickfix", "diagnostics": [item],
                         "edit": {"changes": {uri: [{"range": item["range"], "newText": replacement}]}}})
             return actions
-        elif method in ("separan/structuralDiff", "separan/verifyScope"):
+        elif method in ("separan/structuralDiff", "separan/verifyScope", "separan/verifyTagScope"):
             before_source = params.get("before", ""); after_source = params.get("after", "")
             uri = params.get("uri", "<document>")
             try:
@@ -341,6 +397,8 @@ class Server:
                 after = inspect_source(after_source, uri + "@after")
                 if method == "separan/structuralDiff":
                     return structural_diff(before, after)
+                if method == "separan/verifyTagScope":
+                    return verify_tag_scope(before, after, params.get("tag", ""))
                 return verify_scopes(before, after, params.get("scopes") or [])
             except (SeparanError, ScopeResolutionError) as exc:
                 return {"error": str(exc)}

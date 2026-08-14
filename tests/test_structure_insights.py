@@ -18,7 +18,7 @@ end_function:main
 class StructureInsightsTests(unittest.TestCase):
     def test_hierarchy_ranges_and_parameters(self):
         report = document_structure(SOURCE, "app.sep")
-        self.assertEqual(report["schema"], "separan.document-structure.v1")
+        self.assertEqual(report["schema"], "separan.document-structure.v2")
         self.assertEqual(report["block_count"], 3)
         function = report["roots"][0]
         self.assertEqual((function["kind"], function["label"]), ("function", "main"))

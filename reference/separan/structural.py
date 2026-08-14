@@ -35,6 +35,7 @@ class BlockRecord:
     parent_id: str | None
     start_line: int
     start_column: int
+    tags: tuple[str, ...]
     own_fingerprint: str
     tree_fingerprint: str
 
@@ -47,7 +48,7 @@ class StructureSnapshot:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "schema": "separan.structure.v1",
+            "schema": "separan.structure.v2",
             "source": self.source_name,
             "source_fingerprint": self.source_fingerprint,
             "blocks": [asdict(item) for item in self.blocks],
@@ -130,7 +131,7 @@ def inspect_source(source: str, source_name: str = "<source>") -> StructureSnaps
     root_own = _canonical(program, boundary_root=program, replace_blocks=True)
     records.append(BlockRecord(
         id="root", path="root", kind="program", label="root", parent_id=None,
-        start_line=1, start_column=1, own_fingerprint=_fingerprint(root_own),
+        start_line=1, start_column=1, tags=(), own_fingerprint=_fingerprint(root_own),
         tree_fingerprint=_fingerprint(_canonical(program)),
     ))
 
@@ -148,6 +149,7 @@ def inspect_source(source: str, source_name: str = "<source>") -> StructureSnaps
             records.append(BlockRecord(
                 id=identity, path=path, kind=kind, label=label, parent_id=parent_id,
                 start_line=position.line, start_column=position.column,
+                tags=tuple(node.tags) if isinstance(node, FunctionDecl) else (),
                 own_fingerprint=_fingerprint(own),
                 tree_fingerprint=_fingerprint(_canonical(node)),
             ))
@@ -247,6 +249,107 @@ def verify_scopes(before: StructureSnapshot, after: StructureSnapshot, requested
     }
 
 
+def resolve_tag(snapshot: StructureSnapshot, tag: str) -> tuple[BlockRecord, ...]:
+    query = tag[1:] if tag.startswith("@") else tag
+    matches = tuple(item for item in snapshot.blocks if item.kind == "function" and query in item.tags)
+    if not matches:
+        raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
+    return matches
+
+
+def verify_tag_scope(before: StructureSnapshot, after: StructureSnapshot, tag: str) -> dict[str, Any]:
+    query = tag[1:] if tag.startswith("@") else tag
+    scopes = resolve_tag(before, query)
+    diff = structural_diff(before, after)
+    after_by_id = {item.id: item for item in after.blocks}
+    allowed, violations = [], []
+
+    def inside(identity: str) -> bool:
+        return any(identity == scope.id or identity.startswith(scope.id + "/") for scope in scopes)
+
+    for scope in scopes:
+        current = after_by_id.get(scope.id)
+        if current is None or query not in current.tags:
+            violations.append({"status": "boundary_removed", "id": scope.id, "path": scope.path,
+                               "reason": f"The function was removed, moved, renamed, or detached from '@{query}'."})
+    for change in diff["changes"]:
+        if inside(change["id"]):
+            allowed.append(change)
+        else:
+            violations.append(change | {"reason": f"Structural change is outside semantic scope '@{query}'."})
+    return {
+        "schema": "separan.semantic-scope-verification.v1",
+        "passed": not violations,
+        "tag": query,
+        "functions": [{"id": item.id, "path": item.path, "name": item.label} for item in scopes],
+        "summary": {"resolved_functions": len(scopes), "allowed_changes": len(allowed), "violations": len(violations)},
+        "allowed_changes": allowed, "violations": violations, "diff": diff,
+    }
+
+
+def inspect_tag_path(path: Path, tag: str) -> dict[str, Any]:
+    query = tag[1:] if tag.startswith("@") else tag
+    paths = [path] if path.is_file() else sorted(path.rglob("*.sep"))
+    functions = []
+    for source_path in paths:
+        snapshot = inspect_file(source_path)
+        for item in snapshot.blocks:
+            if item.kind == "function" and query in item.tags:
+                functions.append({"source": str(source_path), "path": item.path, "function": item.label,
+                                  "line": item.start_line, "tags": list(item.tags)})
+    if not functions:
+        raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
+    return {"schema": "separan.semantic-tag-index.v1", "tag": query,
+            "function_count": len(functions), "functions": functions}
+
+
+def verify_tag_paths(before_path: Path, after_path: Path, tag: str) -> dict[str, Any]:
+    """Verify an exact semantic scope across either two files or two workspaces."""
+    if before_path.is_file() and after_path.is_file():
+        return verify_tag_scope(inspect_file(before_path), inspect_file(after_path), tag)
+    if not before_path.is_dir() or not after_path.is_dir():
+        raise ScopeResolutionError("S405", "Semantic workspace verification requires two files or two directories.")
+    query = tag[1:] if tag.startswith("@") else tag
+    before_files = {path.relative_to(before_path): path for path in before_path.rglob("*.sep")}
+    after_files = {path.relative_to(after_path): path for path in after_path.rglob("*.sep")}
+    snapshots_before = {relative: inspect_file(path) for relative, path in before_files.items()}
+    snapshots_after = {relative: inspect_file(path) for relative, path in after_files.items()}
+    scopes = [(relative, item) for relative, snapshot in snapshots_before.items()
+              for item in snapshot.blocks if item.kind == "function" and query in item.tags]
+    if not scopes:
+        raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
+    allowed, violations, all_changes = [], [], []
+    empty = lambda name: inspect_source("", name)
+    for relative in sorted(set(before_files) | set(after_files), key=str):
+        before = snapshots_before[relative] if relative in snapshots_before else empty(str(relative) + "@before")
+        after = snapshots_after[relative] if relative in snapshots_after else empty(str(relative) + "@after")
+        diff = structural_diff(before, after)
+        file_scopes = [item for file_name, item in scopes if file_name == relative]
+        for change in diff["changes"]:
+            contextual = change | {"source": str(relative), "path": f"{relative}:{change['path']}"}
+            all_changes.append(contextual)
+            if any(change["id"] == scope.id or change["id"].startswith(scope.id + "/") for scope in file_scopes):
+                allowed.append(contextual)
+            else:
+                violations.append(contextual | {"reason": f"Structural change is outside semantic scope '@{query}'."})
+    for relative, scope in scopes:
+        after_snapshot = snapshots_after[relative] if relative in snapshots_after else empty(str(relative))
+        current = next((item for item in after_snapshot.blocks
+                        if item.id == scope.id), None)
+        if current is None or query not in current.tags:
+            violations.append({"status": "boundary_removed", "id": scope.id,
+                               "path": f"{relative}:{scope.path}", "source": str(relative),
+                               "reason": f"The function was removed, moved, renamed, or detached from '@{query}'."})
+    return {
+        "schema": "separan.semantic-workspace-verification.v1", "passed": not violations, "tag": query,
+        "functions": [{"source": str(relative), "id": item.id, "path": f"{relative}:{item.path}", "name": item.label}
+                      for relative, item in scopes],
+        "summary": {"resolved_functions": len(scopes), "allowed_changes": len(allowed), "violations": len(violations)},
+        "allowed_changes": allowed, "violations": violations,
+        "diff": {"schema": "separan.workspace-structural-diff.v1", "changes": all_changes},
+    }
+
+
 def _human_diff(report: dict[str, Any]) -> str:
     symbols = {"added": "+", "removed": "-", "modified": "~", "unchanged": "="}
     lines = ["Separan structural diff"]
@@ -260,8 +363,14 @@ def _human_diff(report: dict[str, Any]) -> str:
 
 
 def _human_verification(report: dict[str, Any]) -> str:
-    lines = ["PASS: AI edit scope verified." if report["passed"] else "FAIL: AI edit scope violation."]
-    lines.append("Allowed: " + ", ".join(item["path"] for item in report["scopes"]))
+    semantic = "tag" in report
+    lines = [("PASS: semantic edit scope verified." if semantic else "PASS: AI edit scope verified.") if report["passed"] else
+             ("FAIL: semantic edit scope violation." if semantic else "FAIL: AI edit scope violation.")]
+    if semantic:
+        lines.append("Allowed tag: @" + report["tag"])
+        lines.append("Resolved functions: " + ", ".join(item["path"] for item in report["functions"]))
+    else:
+        lines.append("Allowed: " + ", ".join(item["path"] for item in report["scopes"]))
     for item in report["violations"]:
         lines.append(f"! {item['path']}: {item['reason']}")
     lines.append(f"Allowed changes {report['summary']['allowed_changes']}, violations {report['summary']['violations']}")
@@ -272,26 +381,39 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="separan-structure", description="AST-aware Separan review tools")
     subparsers = parser.add_subparsers(dest="command", required=True)
     inspect_parser = subparsers.add_parser("inspect", help="emit machine-readable block identities")
-    inspect_parser.add_argument("source", type=Path); inspect_parser.add_argument("--json", action="store_true")
+    inspect_parser.add_argument("source", type=Path, nargs="?", default=Path(".")); inspect_parser.add_argument("--json", action="store_true")
+    inspect_parser.add_argument("--tag", metavar="TAG", help="list functions carrying an exact semantic tag")
     diff_parser = subparsers.add_parser("diff", help="compare two Separan programs structurally")
     diff_parser.add_argument("before", type=Path); diff_parser.add_argument("after", type=Path)
     diff_parser.add_argument("--json", action="store_true"); diff_parser.add_argument("--include-unchanged", action="store_true")
     verify_parser = subparsers.add_parser("verify", help="reject changes outside named AI edit scopes")
     verify_parser.add_argument("before", type=Path); verify_parser.add_argument("after", type=Path)
-    verify_parser.add_argument("--allow", action="append", required=True, metavar="SCOPE")
+    scope_group = verify_parser.add_mutually_exclusive_group(required=True)
+    scope_group.add_argument("--allow", action="append", metavar="SCOPE")
+    scope_group.add_argument("--allow-tag", metavar="TAG")
     verify_parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.command == "inspect":
+            if args.tag:
+                report = inspect_tag_path(args.source, args.tag)
+                if args.json: print(json.dumps(report, ensure_ascii=False, indent=2))
+                else:
+                    print("Tag: @" + report["tag"])
+                    for item in report["functions"]: print(f"{item['source']}\n  function:{item['function']}")
+                return 0
             report = inspect_file(args.source).to_dict()
             print(json.dumps(report, ensure_ascii=False, indent=2) if args.json else "\n".join(item["path"] for item in report["blocks"]))
             return 0
-        before, after = inspect_file(args.before), inspect_file(args.after)
         if args.command == "diff":
+            before, after = inspect_file(args.before), inspect_file(args.after)
             report = structural_diff(before, after, include_unchanged=args.include_unchanged)
             print(json.dumps(report, ensure_ascii=False, indent=2) if args.json else _human_diff(report))
             return 0
-        report = verify_scopes(before, after, args.allow)
+        if args.allow_tag:
+            report = verify_tag_paths(args.before, args.after, args.allow_tag)
+        else:
+            report = verify_scopes(inspect_file(args.before), inspect_file(args.after), args.allow)
         print(json.dumps(report, ensure_ascii=False, indent=2) if args.json else _human_verification(report))
         return 0 if report["passed"] else 1
     except (SeparanError, ScopeResolutionError, UnicodeDecodeError, OSError) as exc:

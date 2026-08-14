@@ -8,8 +8,8 @@ else:利用者は有効
 print "inactive user"
 endif:利用者は有効
 
-::日本語コメント
+##日本語コメント
 Indentation does not close this comment.
-::日本語コメント
+##日本語コメント
 
 end_function:main

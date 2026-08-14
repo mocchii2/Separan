@@ -46,6 +46,26 @@ BUILTIN_SIGNATURES = {
 }
 
 
+def _code_text(text):
+    """Remove a # comment while retaining # characters inside quoted strings."""
+    quoted, escaped = False, False
+    for index, char in enumerate(text):
+        if quoted:
+            if escaped: escaped = False
+            elif char == "\\": escaped = True
+            elif char == '"': quoted = False
+        elif char == '"': quoted = True
+        elif char == "#": return text[:index].rstrip()
+    return text
+
+
+def _multiline_delimiter(text):
+    candidate = text.strip()
+    if candidate == "##": return ""
+    if candidate.startswith("##") and candidate[2:].isidentifier(): return candidate[2:]
+    return None
+
+
 def lsp_range(line, start, end):
     return {"start": {"line": line, "character": start}, "end": {"line": line, "character": end}}
 
@@ -84,21 +104,27 @@ class Variable:
 
 
 def analyze_blocks(source):
-    roots, stack, all_blocks = [], [], []
+    roots, stack, all_blocks = [], [], []; comment_label = None
     for number, text in enumerate(source.splitlines()):
-        opened = OPEN_RE.match(text)
+        delimiter = _multiline_delimiter(text)
+        if delimiter is not None:
+            comment_label = None if comment_label == delimiter else delimiter if comment_label is None else comment_label
+            continue
+        if comment_label is not None: continue
+        code = _code_text(text)
+        opened = OPEN_RE.match(code)
         if opened:
             kind, label = opened.groups(); label_start = text.rfind(":" + label) + 1
             item = Block(kind, label, number, label_start, BLOCK_KINDS[kind][1], stack[-1] if stack else None)
             item.occurrences.append(LabelOccurrence(number, label_start, label_start + len(label), "open"))
             (stack[-1].children if stack else roots).append(item); stack.append(item); all_blocks.append(item)
             continue
-        branch = BRANCH_RE.match(text)
+        branch = BRANCH_RE.match(code)
         if branch and stack:
             label = branch.group(2); start = text.rfind(":" + label) + 1
             if stack[-1].label == label: stack[-1].occurrences.append(LabelOccurrence(number, start, start + len(label), "branch"))
             continue
-        closed = CLOSE_RE.match(text)
+        closed = CLOSE_RE.match(code)
         if closed:
             closer, label = closed.groups(); start = text.rfind(":" + label) + 1
             if stack and stack[-1].kind == CLOSER_KIND[closer] and stack[-1].label == label:
@@ -137,9 +163,15 @@ def _literal_type(expression):
 
 
 def variables(source):
-    result, scope_stack, object_stack = [], ["global"], []
+    result, scope_stack, object_stack = [], ["global"], []; comment_label = None
     for number, text in enumerate(source.splitlines()):
-        function = FUNCTION_RE.match(text)
+        delimiter = _multiline_delimiter(text)
+        if delimiter is not None:
+            comment_label = None if comment_label == delimiter else delimiter if comment_label is None else comment_label
+            continue
+        if comment_label is not None: continue
+        code = _code_text(text)
+        function = FUNCTION_RE.match(code)
         if function:
             scope_stack.append("function " + function.group(1))
             search_start = text.find("(") + 1
@@ -147,24 +179,24 @@ def variables(source):
                 start = text.find(parameter, search_start); search_start = start + len(parameter)
                 result.append(Variable(parameter, "unknown", number, start, False, scope_stack[-1], True))
             continue
-        if re.match(r"^\s*end_function:", text):
+        if re.match(r"^\s*end_function:", code):
             if len(scope_stack) > 1: scope_stack.pop()
             continue
-        opened_object = re.match(r"^\s*object:([A-Za-z_][A-Za-z0-9_]*)", text)
+        opened_object = re.match(r"^\s*object:([A-Za-z_][A-Za-z0-9_]*)", code)
         if opened_object:
             name = opened_object.group(1); start = text.index(name)
             value = Variable(name, "object", number, start, False, scope_stack[-1]); result.append(value); object_stack.append(value); continue
-        if re.match(r"^\s*end_object:", text):
+        if re.match(r"^\s*end_object:", code):
             if object_stack: object_stack.pop()
             continue
-        match = ASSIGN_RE.match(text)
+        match = ASSIGN_RE.match(code)
         if match:
             const, name, expression = match.groups(); start = text.index(name)
             inferred = _literal_type(expression)
             if object_stack:
                 object_stack[-1].members[name] = inferred
             else: result.append(Variable(name, inferred, number, start, bool(const), scope_stack[-1]))
-        loop = FOR_RE.match(text)
+        loop = FOR_RE.match(code)
         if loop:
             name = loop.group(1); result.append(Variable(name, "unknown", number, text.index(name), False, scope_stack[-1]))
     return result
@@ -179,11 +211,16 @@ def word_at(source, line, character):
 
 
 def scope_at(source, line):
-    scope = "global"
+    scope = "global"; comment_label = None
     for text in source.splitlines()[:line + 1]:
-        opened = FUNCTION_RE.match(text)
+        delimiter = _multiline_delimiter(text)
+        if delimiter is not None:
+            comment_label = None if comment_label == delimiter else delimiter if comment_label is None else comment_label
+            continue
+        if comment_label is not None: continue
+        code = _code_text(text); opened = FUNCTION_RE.match(code)
         if opened: scope = "function " + opened.group(1)
-        elif re.match(r"^\s*end_function:", text): scope = "global"
+        elif re.match(r"^\s*end_function:", code): scope = "global"
     return scope
 
 
@@ -212,11 +249,19 @@ def static_type_diagnostics(source):
 
 
 def format_source(source, indent="    "):
-    result, depth = [], 0
+    result, depth, comment_label = [], 0, None
     for raw in source.splitlines():
         stripped = raw.strip()
         if not stripped: result.append(""); continue
-        if CLOSE_RE.match(stripped) or re.match(r"^(elseif\b|else:|catch\b|finally:)", stripped): depth = max(0, depth - 1)
+        delimiter = _multiline_delimiter(stripped)
+        if delimiter is not None:
+            result.append(indent * depth + stripped)
+            comment_label = None if comment_label == delimiter else delimiter if comment_label is None else comment_label
+            continue
+        if comment_label is not None:
+            result.append(indent * depth + stripped); continue
+        code = _code_text(stripped)
+        if CLOSE_RE.match(code) or re.match(r"^(elseif\b|else:|catch\b|finally:)", code): depth = max(0, depth - 1)
         result.append(indent * depth + stripped)
-        if OPEN_RE.match(stripped) or re.match(r"^(elseif\b|else:|catch\b|finally:)", stripped): depth += 1
+        if OPEN_RE.match(code) or re.match(r"^(elseif\b|else:|catch\b|finally:)", code): depth += 1
     return "\n".join(result) + ("\n" if source.endswith(("\n", "\r")) else "")

@@ -125,6 +125,7 @@ def document_structure(source: str, source_name: str = "<source>") -> dict[str, 
             "end_line": end_line,
             "reads": list(insights.reads), "writes": list(insights.writes),
             "calls": list(insights.calls), "parameters": list(insights.parameters),
+            "tags": list(node.tags) if isinstance(node, FunctionDecl) else [],
             "children": [],
         }
         items.append(item)
@@ -132,7 +133,7 @@ def document_structure(source: str, source_name: str = "<source>") -> dict[str, 
     for item in items:
         item["children"] = by_parent.get(item["id"], [])
     return {
-        "schema": "separan.document-structure.v1",
+        "schema": "separan.document-structure.v2",
         "source": source_name,
         "roots": by_parent.get("root", []),
         "block_count": len(items),

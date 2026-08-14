@@ -2,10 +2,12 @@ import contextlib
 import io
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from separan.structural import (
     ScopeResolutionError, inspect_source, main, structural_diff, verify_scopes,
+    verify_tag_paths, verify_tag_scope,
 )
 
 
@@ -28,14 +30,14 @@ class StructuralTests(unittest.TestCase):
             "root", "function:main#1", "function:main#1/if:active_user#1",
         ])
         data = snapshot.to_dict()
-        self.assertEqual(data["schema"], "separan.structure.v1")
+        self.assertEqual(data["schema"], "separan.structure.v2")
         self.assertEqual(data["blocks"][2]["parent_id"], "root/function:main#1")
         self.assertEqual(data["blocks"][2]["start_line"], 3)
 
     def test_comments_whitespace_and_indentation_are_not_structural_changes(self):
-        after = """::note
+        after = """##note
 ignored
-::note
+##note
   function:main
     print "outside"
     if true :active_user
@@ -110,6 +112,41 @@ end_function:second
             status = main(["verify", "before.sep", "after.sep", "--allow", "active_user", "--json"])
         self.assertEqual(status, 1)
         self.assertFalse(json.loads(output.getvalue())["passed"])
+
+    def test_semantic_tag_scope_resolves_all_tagged_functions(self):
+        before = '''function:notify
+@notification
+print "one"
+end_function:notify
+function:archive
+@notification
+print "two"
+end_function:archive
+function:config
+print "fixed"
+end_function:config
+'''
+        after = before.replace('print "one"', 'print "changed"')
+        report = verify_tag_scope(self.snapshot(before, "a"), self.snapshot(after, "b"), "notification")
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["summary"]["resolved_functions"], 2)
+        rejected = verify_tag_scope(self.snapshot(before, "a"), self.snapshot(before.replace('print "fixed"', 'print "changed"'), "b"), "@notification")
+        self.assertFalse(rejected["passed"])
+
+    def test_tag_metadata_is_exposed_in_snapshot(self):
+        snapshot = self.snapshot('function:notify\n@notification\n@通知\nend_function:notify\n', "tag.sep")
+        self.assertEqual(snapshot.blocks[1].tags, ("notification", "通知"))
+
+    def test_workspace_tag_inspection_and_verification(self):
+        fixtures = Path(__file__).parent / "fixtures"
+        before, after, outside = fixtures / "tag_before", fixtures / "tag_after", fixtures / "tag_after_outside"
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main(["inspect", str(before), "--tag", "notification", "--json"])
+        self.assertEqual(status, 0)
+        self.assertEqual(json.loads(output.getvalue())["function_count"], 1)
+        self.assertTrue(verify_tag_paths(before, after, "notification")["passed"])
+        self.assertFalse(verify_tag_paths(before, outside, "notification")["passed"])
 
 
 if __name__ == "__main__":

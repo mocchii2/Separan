@@ -109,8 +109,8 @@ end_function:main
             self.assertEqual(caught.exception.code, "E111")
 
     def test_comments(self):
-        self.assertEqual(execute(': one\n::skip\nprint "no"\n::skip\nprint "yes"\n')[1], "yes\n")
-        with self.assertRaises(SeparanError) as caught: parse('::a\nignored\n::b\n')
+        self.assertEqual(execute('# one\n##skip\nprint "no"\n##skip\nprint "yes" # inline\n')[1], "yes\n")
+        with self.assertRaises(SeparanError) as caught: parse('##a\nignored\n##b\n')
         self.assertEqual(caught.exception.code, "E104")
 
     def test_list_errors(self):

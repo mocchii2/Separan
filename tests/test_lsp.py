@@ -142,6 +142,15 @@ end_function:second
         hints = inlay_hints('count = 10\nname = "Alice"\n', {"start": {"line": 0}, "end": {"line": 2}})
         self.assertEqual([hint["label"] for hint in hints], [": number", ": string"])
 
+    def test_structural_end_and_tag_completion(self):
+        source = 'function:main\n@notification\nif true :active\n:end\n'
+        items = completions(source, 3, 4)["items"]
+        self.assertEqual([item["label"] for item in items[:2]], ["endif:active", "end_function:main"])
+        self.assertEqual(items[0]["textEdit"]["newText"], "endif:active")
+        self.assertIn("opened at line 3", items[0]["detail"])
+        tags = completions(source + 'function:other\n@not', 5, 4)["items"]
+        self.assertEqual(tags[0]["label"], "@notification")
+
     def test_semantic_tokens_include_typed_variables_parameters_and_labels(self):
         source = '''function:main(value)
 const count = 10
@@ -186,6 +195,22 @@ end_function:main
         self.assertEqual(before, after)
         self.assertIn('        print "ok"', formatted)
 
+    def test_multiline_comment_content_is_not_editor_structure(self):
+        source = '''function:main
+##note
+if true :fake
+endif:fake
+##note
+if true :real # inline comment
+endif:real
+end_function:main
+'''
+        symbols = document_symbols(source)
+        self.assertEqual([item["name"] for item in symbols[0]["children"]], ["real"])
+        formatted = format_source(source)
+        self.assertIn("    if true :fake", formatted)
+        self.assertTrue(Parser(Lexer(formatted).scan_tokens()).parse())
+
     def test_v04_structural_requests_use_parser_block_identity(self):
         scope = structural_scope_at(SOURCE, 1, 11, "file:///x.sep")
         self.assertEqual(scope["path"], "function:main#1/if:active#1")
@@ -215,7 +240,7 @@ end_function:main
         server.documents[uri] = source
         report = server.dispatch({"method": "separan/documentStructure", "params": {"textDocument": {"uri": uri}}})
         function = report["roots"][0]
-        self.assertEqual(report["schema"], "separan.document-structure.v1")
+        self.assertEqual(report["schema"], "separan.document-structure.v2")
         self.assertEqual(function["reads"], ["source"])
         self.assertEqual(function["writes"], ["value"])
         self.assertEqual(function["calls"], ["load"])

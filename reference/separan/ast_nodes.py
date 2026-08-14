@@ -94,6 +94,7 @@ class ForStmt(Stmt):
 class FunctionDecl(Stmt):
     name: str
     parameters: list[str]
+    tags: list[str]
     body: list[Stmt]
     label_position: SourcePosition
 @dataclass

@@ -37,6 +37,14 @@ class Parser:
 
     def _statement(self, top_level=False):
         token = self._peek()
+        if token.type == T.TAG:
+            inside_function = any(opened.kind == "function" for opened in self.stack)
+            category = "Function tag must appear before executable statements" if inside_function else "Function tag outside function"
+            description = "Function tags belong to the metadata area before the first executable statement." if inside_function else "Function tags are valid only inside a function metadata area."
+            raise error("E217" if inside_function else "E216", category, description, token.position, actual="@" + token.lexeme)
+        if token.type == T.COLON and self._peek(1).type == T.IDENTIFIER and self._peek(1).lexeme == "end":
+            expected = "\n".join(self._closer_text(item.kind, item.label) for item in reversed(self.stack)) or "a complete block closer"
+            raise error("E122", "Incomplete structural completion token", ":end is an editor completion trigger, not executable Separan syntax.", token.position, expected=expected, actual=":end")
         if token.type == T.IMPORT:
             if not top_level: raise error("E703", "Nested import", "Imports are allowed only at top level.", token.position)
             return self._import()
@@ -108,10 +116,16 @@ class Parser:
                     params.append(parameter.lexeme)
                     if not self._match(T.COMMA): break
             self._consume(T.RPAREN, "Expected ')' after parameters.")
-        self._line_end(); self._push("function", name)
+        self._line_end(); self._push("function", name); self._newlines()
+        tags = []
+        while self._match(T.TAG):
+            tag = self._previous()
+            if tag.lexeme in tags:
+                raise error("E218", "Duplicate function tag", f"Tag '@{tag.lexeme}' is already attached to function '{name.lexeme}'.", tag.position, actual="@" + tag.lexeme)
+            tags.append(tag.lexeme); self._line_end(); self._newlines()
         body = self._body_until({T.END_FUNCTION})
         self._close(T.END_FUNCTION, "function")
-        return FunctionDecl(start.position, name.lexeme, params, body, name.position)
+        return FunctionDecl(start.position, name.lexeme, params, tags, body, name.position)
 
     def _import(self):
         start = self._advance(); path = self._consume(T.STRING, "Expected quoted .sep path after import.")

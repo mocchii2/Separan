@@ -1,0 +1,21 @@
+########################################
+# Function Tag and string syntax preview
+########################################
+
+function:notification_path
+@notification
+@windows
+@通知
+
+##implementation_note
+Tags are metadata and this comment is ignored by the runtime.
+##implementation_note
+
+path = r"C:\App\logs\application.log" # Backslashes stay literal.
+print "監視対象:\n" + path
+end_function:notification_path
+
+function:main
+@example
+notification_path()
+end_function:main
