@@ -2,7 +2,7 @@
 
 [![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 
-![Separan mark](https://raw.githubusercontent.com/mocchii2/Separan/main/vscode/images/icon.png)
+![Separan logo](https://raw.githubusercontent.com/mocchii2/Separan/main/logo/separan_logo.png)
 
 **Make AI-written code understandable and verifiable to humans.**
 
