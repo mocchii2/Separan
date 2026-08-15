@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.7
+## v0.2.0-alpha.8
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -178,9 +178,62 @@ v0.4 tooling層では、v0.1言語意味論を変えずに
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
 HTTP client／server preview、認証、capability制御mail、YAML／XML構造化データ、Cookie、parameter bindingを使うSQLite、
-capability検証付きembedded board profileが
+native interface／DNS／TCP／UDP network、capability検証付きembedded board profileが
 実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
 厳密に診断します。
+
+## Native LAN／Wi-Fi／DNS／TCP／UDP
+
+`0.2.0-alpha.8`のreference runtimeには、PC／server向けのcapability制御native network層を
+追加しました。曖昧なstringをすべての操作へ流さず、`ip_address`、
+`network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
+
+```separan
+function:main
+
+@network
+@diagnostics
+
+interfaces = network_interfaces()
+
+for interface in interfaces :show_interfaces
+print interface.name
+print interface.kind
+print interface.connected
+print interface.ip_address
+endfor:show_interfaces
+
+end_function:main
+```
+
+host照会を明示許可してサンプルを実行します。
+
+```console
+separan examples/network.sep --allow-network-inspection
+```
+
+DNSは検証済みaddressを任意の1件へ絞らず決定的なlistで返します。TCP／UDPはbytesを
+返すため、text化も明示します。
+
+```separan
+addresses = dns_resolve("example.com")
+
+connection = tcp_connect(
+    "example.com",
+    80,
+    timeout = duration("5s")
+)
+
+tcp_send(connection, "GET / HTTP/1.0\r\nHost: example.com\r\n\r\n")
+reply = tcp_receive(connection, 65536)
+print string_from_bytes(reply)
+tcp_close(connection)
+```
+
+interface照会、外向き宛先、private addressアクセス、UDP bindは別capabilityです。
+native previewがsystem Wi-Fi profile、DHCP／固定address、AP mode、machine hostnameを
+黙って変更することはありません。詳細は[Native Network仕様](../spec/network.ja.md)を
+参照してください。
 
 ## 1つのsourceで複数のEmbedded board
 
@@ -363,7 +416,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.7** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.8** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

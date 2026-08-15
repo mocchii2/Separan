@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.7
+# Separan Language Specification — v0.2.0-alpha.8
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -225,6 +225,8 @@ implemented experimentally but are not yet stable.
 - [HTTP client](http.md): text-first retrieval, detailed immutable responses,
   honest profiles, and network capabilities. The boundary from browser
   automation is fixed by the specification.
+- [Native network](network.md): dedicated IP/interface/socket values,
+  capability-separated inspection, deterministic DNS, and bounded TCP/UDP.
 - [External process execution](process-execution.md): direct argv execution,
   checked execution, explicit shell risk, bounded output, and host capabilities.
 - [Regex, glob, environment, and command line](system-utilities.md): explicit

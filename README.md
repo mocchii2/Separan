@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.7
+## v0.2.0-alpha.8
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -202,9 +202,63 @@ The standard library now covers explicit type conversion, Unicode string and
 homogeneous-list processing, immutable bytes, datetime and duration values,
 reproducible and secure randomness, filesystem and process utilities, HTTP
 client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies,
-parameter-bound SQLite, and capability-checked embedded board profiles.
+parameter-bound SQLite, native interface/DNS/TCP/UDP networking, and capability-checked embedded board profiles.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
+
+## Native LAN, Wi-Fi, DNS, TCP, and UDP
+
+The `0.2.0-alpha.8` reference runtime adds a capability-gated native network
+layer for desktop and server scripts. It uses dedicated `ip_address`,
+`network_interface`, `tcp_connection`, and `udp_socket` values rather than
+passing ambiguous strings through every operation.
+
+```separan
+function:main
+
+@network
+@diagnostics
+
+interfaces = network_interfaces()
+
+for interface in interfaces :show_interfaces
+print interface.name
+print interface.kind
+print interface.connected
+print interface.ip_address
+endfor:show_interfaces
+
+end_function:main
+```
+
+Run the inspection sample with explicit host permission:
+
+```console
+separan examples/network.sep --allow-network-inspection
+```
+
+DNS returns every validated address deterministically. TCP and UDP return
+bytes, so decoding remains explicit:
+
+```separan
+addresses = dns_resolve("example.com")
+
+connection = tcp_connect(
+    "example.com",
+    80,
+    timeout = duration("5s")
+)
+
+tcp_send(connection, "GET / HTTP/1.0\r\nHost: example.com\r\n\r\n")
+reply = tcp_receive(connection, 65536)
+print string_from_bytes(reply)
+tcp_close(connection)
+```
+
+Network inspection, outbound destinations, private-address access, and UDP
+binding are separate host capabilities. The native preview does not silently
+change system Wi-Fi profiles, DHCP, static addresses, access-point mode, or the
+machine hostname. See the [native network specification](spec/network.md).
 
 ## One source, multiple embedded boards
 
@@ -426,7 +480,7 @@ plus static `separan build --board` capability validation. Firmware generation i
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.7**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.8**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

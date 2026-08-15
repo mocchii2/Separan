@@ -15,7 +15,7 @@ from separan.lsp import (
     semantic_tokens, signature_help,
     structural_scope_at,
 )
-from separan.lsp_analysis import format_source
+from separan.lsp_analysis import format_source, variables
 from separan.parser import Parser
 
 
@@ -171,6 +171,23 @@ end_function:second
         self.assertIn("analog_input", hover_value)
         signature = signature_help("print i2c_open(0, ", 0, 19)
         self.assertIn("sda?: pin", signature["signatures"][0]["label"])
+
+    def test_network_completion_signatures_and_inferred_types(self):
+        labels = [item["label"] for item in completions("print network_", 0, 14)["items"]]
+        self.assertIn("network_interfaces", labels)
+        self.assertIn("network_preferred_interface", labels)
+        signature = signature_help('print tcp_connect("example.com", 443, ', 0, 39)
+        self.assertIn("timeout?: duration", signature["signatures"][0]["label"])
+        inferred = {item.name: item.type for item in variables('''address = ip_address("192.0.2.1")
+interfaces = network_interfaces()
+tcp = tcp_connect("example.test", 443)
+udp = udp_open()
+packet = udp_receive(udp)
+''')}
+        self.assertEqual(inferred, {
+            "address": "ip_address", "interfaces": "list", "tcp": "tcp_connection",
+            "udp": "udp_socket", "packet": "object",
+        })
 
     def test_semantic_tokens_include_typed_variables_parameters_and_labels(self):
         source = '''function:main(value)

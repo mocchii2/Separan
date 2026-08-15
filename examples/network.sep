@@ -1,0 +1,22 @@
+########################################
+# Native network inspection
+########################################
+
+function:main
+
+@network
+@diagnostics
+@sample
+
+print "host=" + network_hostname()
+
+interfaces = network_interfaces()
+
+for interface in interfaces :show_interfaces
+print interface.name
+print interface.kind
+print interface.connected
+print interface.ip_address
+endfor:show_interfaces
+
+end_function:main

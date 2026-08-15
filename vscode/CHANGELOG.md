@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.3] - 2026-08-15
+
+### Native network API preview
+
+- Highlights and completes strict IP address, interface inspection, DNS, TCP,
+  UDP, Ethernet, and Wi-Fi status APIs.
+- Adds signatures and inferred public types for network values and operations.
+
 ## [0.9.2] - 2026-08-15
 
 ### Portable embedded examples

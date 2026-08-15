@@ -42,6 +42,45 @@ BUILTIN_SIGNATURES = {
     "read_text": "read_text(path: string) -> string",
     "write_text": "write_text(path: string, text: string) -> null",
     "http_get": "http_get(url: string, options...) -> string",
+    "ip_address": "ip_address(value: string) -> ip_address",
+    "ip_address_version": "ip_address_version(value: ip_address) -> number",
+    "ip_address_is_private": "ip_address_is_private(value: ip_address) -> boolean",
+    "ip_address_is_loopback": "ip_address_is_loopback(value: ip_address) -> boolean",
+    "ip_address_is_global": "ip_address_is_global(value: ip_address) -> boolean",
+    "network_interfaces": "network_interfaces() -> list<network_interface>",
+    "network_interface": "network_interface(name: string) -> network_interface",
+    "network_status": "network_status(interface: network_interface) -> object",
+    "network_is_connected": "network_is_connected(interface: network_interface) -> boolean",
+    "network_ip_address": "network_ip_address(interface: network_interface) -> ip_address | null",
+    "network_ip_addresses": "network_ip_addresses(interface: network_interface) -> list<ip_address>",
+    "network_gateway": "network_gateway(interface: network_interface) -> ip_address | null",
+    "network_subnet_mask": "network_subnet_mask(interface: network_interface) -> ip_address | null",
+    "network_dns_servers": "network_dns_servers(interface: network_interface) -> list<ip_address>",
+    "network_mac_address": "network_mac_address(interface: network_interface) -> string | null",
+    "network_hostname": "network_hostname() -> string",
+    "network_set_preferred_interfaces": "network_set_preferred_interfaces(names: list<string>) -> null",
+    "network_preferred_interface": "network_preferred_interface() -> network_interface | null",
+    "ethernet_open": "ethernet_open(name?: string) -> network_interface",
+    "ethernet_status": "ethernet_status(interface: network_interface) -> object",
+    "wifi_open": "wifi_open(name?: string) -> network_interface",
+    "wifi_scan": "wifi_scan(interface: network_interface) -> list<object>",
+    "wifi_status": "wifi_status(interface: network_interface) -> object",
+    "wifi_is_connected": "wifi_is_connected(interface: network_interface) -> boolean",
+    "wifi_ssid": "wifi_ssid(interface: network_interface) -> string | null",
+    "wifi_bssid": "wifi_bssid(interface: network_interface) -> string | null",
+    "wifi_channel": "wifi_channel(interface: network_interface) -> number | null",
+    "wifi_signal_strength": "wifi_signal_strength(interface: network_interface) -> number | null",
+    "wifi_wait_until_connected": "wifi_wait_until_connected(interface: network_interface, timeout: duration) -> boolean",
+    "dns_resolve": "dns_resolve(hostname: string) -> list<ip_address>",
+    "dns_reverse_lookup": "dns_reverse_lookup(address: ip_address) -> string | null",
+    "tcp_connect": "tcp_connect(host: string | ip_address, port: number, timeout?: duration) -> tcp_connection",
+    "tcp_send": "tcp_send(connection: tcp_connection, data: string | bytes) -> number",
+    "tcp_receive": "tcp_receive(connection: tcp_connection, max_bytes?: number, timeout?: duration) -> bytes",
+    "tcp_close": "tcp_close(connection: tcp_connection) -> null",
+    "udp_open": "udp_open(local_address?: string, local_port?: number, timeout?: duration) -> udp_socket",
+    "udp_send": "udp_send(socket: udp_socket, host: string | ip_address, port: number, data: string | bytes) -> number",
+    "udp_receive": "udp_receive(socket: udp_socket, max_bytes?: number, timeout?: duration) -> object",
+    "udp_close": "udp_close(socket: udp_socket) -> null",
     "db_query": "db_query(connection: db_connection, sql: string, parameters: list) -> list<object>",
     "yaml_to_object": "yaml_to_object(text: string) -> value",
     "object_to_yaml": "object_to_yaml(value: value, indent?: number, sort_keys?: boolean) -> string",
@@ -246,13 +285,19 @@ def _literal_type(expression):
     call = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", text)
     if call:
         name = call.group(1)
-        if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow", "absolute", "minimum", "maximum", "truncate", "clamp", "sign", "square_root", "cube_root", "power", "hypotenuse", "exponential", "exponential_base2", "natural_log", "log_base2", "log_base10", "log_one_plus", "arc_sin", "arc_cos", "arc_tan", "arc_tan2", "sinh", "cosh", "tanh", "arc_sinh", "arc_cosh", "arc_tanh", "to_radians", "to_degrees", "greatest_common_divisor", "least_common_multiple", "factorial", "median", "variance", "sample_variance", "standard_deviation", "sample_standard_deviation", "percentile", "binary_to_number", "octal_to_number", "hexadecimal_to_number", "base_to_number"): return "number"
-        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape"): return "string"
-        if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search", "yaml_validate", "yaml_validate_file"): return "boolean"
-        if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average", "yaml_to_objects", "yaml_file_to_objects", "xml_children", "xml_find_all"): return "list"
+        if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow", "absolute", "minimum", "maximum", "truncate", "clamp", "sign", "square_root", "cube_root", "power", "hypotenuse", "exponential", "exponential_base2", "natural_log", "log_base2", "log_base10", "log_one_plus", "arc_sin", "arc_cos", "arc_tan", "arc_tan2", "sinh", "cosh", "tanh", "arc_sinh", "arc_cosh", "arc_tanh", "to_radians", "to_degrees", "greatest_common_divisor", "least_common_multiple", "factorial", "median", "variance", "sample_variance", "standard_deviation", "sample_standard_deviation", "percentile", "binary_to_number", "octal_to_number", "hexadecimal_to_number", "base_to_number", "ip_address_version", "tcp_send", "udp_send"): return "number"
+        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape", "network_hostname"): return "string"
+        if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search", "yaml_validate", "yaml_validate_file", "network_is_connected", "wifi_is_connected", "wifi_wait_until_connected", "ip_address_is_private", "ip_address_is_loopback", "ip_address_is_global"): return "boolean"
+        if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average", "yaml_to_objects", "yaml_file_to_objects", "xml_children", "xml_find_all", "network_interfaces", "network_ip_addresses", "network_dns_servers", "wifi_scan", "dns_resolve"): return "list"
         if name in ("datetime", "datetime_now", "datetime_parse"): return "datetime"
         if name == "duration": return "duration"
         if name in ("read_bytes", "bytes_from_string", "bytes_from_hex", "hex_decode", "base64_decode"): return "bytes"
+        if name in ("tcp_receive",): return "bytes"
+        if name == "ip_address": return "ip_address"
+        if name in ("network_interface", "network_preferred_interface", "ethernet_open", "wifi_open"): return "network_interface"
+        if name == "tcp_connect": return "tcp_connection"
+        if name == "udp_open": return "udp_socket"
+        if name in ("network_status", "ethernet_status", "wifi_status", "udp_receive"): return "object"
         if name == "secret_get": return "secret"
         if name in ("xml_document_parse", "xml_document_read"): return "xml_document"
         if name in ("xml_root", "xml_create_element", "xml_find", "xml_child"): return "xml_element"
