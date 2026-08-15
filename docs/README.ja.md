@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../logo/separan_logo.png" alt="Separan" width="720">
+  <img src="../logo/separan_logo.png" alt="Separan" width="640">
 </p>
 
 # Separan
@@ -424,4 +424,5 @@ Separanは[Apache License 2.0](../LICENSE)で提供されます。帰属情報�
 [NOTICE](../NOTICE)を参照してください。
 
 公式ブランド画像として、横長の[Separanロゴ](../logo/separan_logo.png)と
-正方形の[Separanマーク](../logo/separan_mark.png)を原本のまま収録しています。
+正方形の[Separanマーク](../logo/separan_mark.png)を収録しています。表示用ロゴは
+外側の余白を抑え、READMEやMarketplaceで見やすい比率に調整しています。

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mocchii2/Separan/main/logo/separan_logo.png" alt="Separan" width="720">
+  <img src="https://raw.githubusercontent.com/mocchii2/Separan/main/logo/separan_logo.png" alt="Separan" width="640">
 </p>
 
 # Separan
@@ -463,8 +463,7 @@ Separan/
 ```
 
 Brand assets are available as the full [Separan logo](https://github.com/mocchii2/Separan/blob/main/logo/separan_logo.png)
-and square [Separan mark](https://github.com/mocchii2/Separan/blob/main/logo/separan_mark.png). The original PNG files are
-kept unchanged in the repository. A separately optimized 128px derivative is
+and square [Separan mark](https://github.com/mocchii2/Separan/blob/main/logo/separan_mark.png). The display-ready PNG logo uses compact outer spacing, while a separately optimized 128px derivative is
 used as the [VS Code extension icon](https://github.com/mocchii2/Separan/blob/main/vscode/images/icon.png).
 
 Read the [language specification](https://github.com/mocchii2/Separan/blob/main/spec/README.md), the [design philosophy](https://github.com/mocchii2/Separan/blob/main/docs/philosophy.md),
