@@ -106,5 +106,43 @@ print bearer_auth(token.access_token)
         self.assertEqual(request["method"], "POST"); self.assertEqual(request["body"], b"grant_type=client_credentials&scope=read")
         self.assertEqual(request["headers"]["Authorization"], "Basic Y2xpZW50OnNlY3JldA==")
 
+    def test_oauth_client_auth_uses_form_encoding_before_basic_auth(self):
+        transport = FakeTransport([HttpTransportResponse(200, "https://auth.test/token", {}, b'{"access_token":"abc123","token_type":"bearer"}')])
+        source = 'token = oauth_client_credentials("https://auth.test/token", "client:name", "p@ss word")\nprint token.token_type\n'
+        self.assertEqual(execute(source, capabilities=self.capability, http_transport=transport)[1], "Bearer\n")
+        self.assertEqual(transport.requests[0]["headers"]["Authorization"], "Basic Y2xpZW50JTNBbmFtZTpwJTQwc3Mrd29yZA==")
+
+    def test_oauth_requires_https_and_valid_scope(self):
+        with self.assertRaises(SeparanError) as caught:
+            execute('print oauth_client_credentials("http://auth.test/token", "client", "secret")\n', capabilities=self.capability, http_transport=FakeTransport([]))
+        self.assertEqual(caught.exception.code, "E877")
+        with self.assertRaises(SeparanError) as caught:
+            execute('print oauth_client_credentials("https://user:top-secret@auth.test/token", "client", "secret")\n', capabilities=self.capability, http_transport=FakeTransport([]))
+        self.assertEqual(caught.exception.code, "E877")
+        self.assertIsNone(caught.exception.actual)
+        with self.assertRaises(SeparanError) as caught:
+            execute('print oauth_client_credentials("https://auth.test/token", "client", "secret", scope = "read  write")\n', capabilities=self.capability, http_transport=FakeTransport([]))
+        self.assertEqual(caught.exception.code, "E877")
+
+    def test_oauth_reports_safe_protocol_errors(self):
+        transport = FakeTransport([HttpTransportResponse(401, "https://auth.test/token", {}, b'{"error":"invalid_client","error_description":"do not echo this detail"}')])
+        with self.assertRaises(SeparanError) as caught:
+            execute('print oauth_client_credentials("https://auth.test/token", "client", "secret")\n', capabilities=self.capability, http_transport=transport)
+        self.assertEqual(caught.exception.code, "E877")
+        self.assertIn("invalid_client", str(caught.exception))
+        self.assertNotIn("do not echo", str(caught.exception))
+
+    def test_oauth_rejects_non_bearer_and_refresh_token_responses(self):
+        responses = [
+            HttpTransportResponse(200, "https://auth.test/token", {}, b'{"access_token":"abc123","token_type":"DPoP"}'),
+            HttpTransportResponse(200, "https://auth.test/token", {}, b'{"access_token":"abc123","token_type":"Bearer","refresh_token":"unexpected"}'),
+        ]
+        transport = FakeTransport(responses)
+        source = 'print oauth_client_credentials("https://auth.test/token", "client", "secret")\n'
+        for _ in responses:
+            with self.assertRaises(SeparanError) as caught:
+                execute(source, capabilities=self.capability, http_transport=transport)
+            self.assertEqual(caught.exception.code, "E877")
+
 
 if __name__ == "__main__": unittest.main()

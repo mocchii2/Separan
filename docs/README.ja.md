@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.9
+## v0.2.0-alpha.10
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -347,6 +347,15 @@ bytesはstringと完全分離した不変binary型です。text encoding、hex�
 password hashを高level APIとして提供します。host由来secretは自動redactされます。詳細は
 [認証とsecret仕様](../spec/authentication.ja.md)を参照してください。
 
+```separan
+client_secret = secret_from_environment("OAUTH_CLIENT_SECRET")
+token = oauth_client_credentials("https://auth.example.com/oauth/token", "monitor-client", client_secret, scope = "monitor.read")
+response = http_request(api_url, auth = bearer_auth(token.access_token))
+```
+
+OAuth token交換はHTTPS限定で、access tokenはsecretとしてredactし、明示的なBearer response
+だけを受理します。対話的なbrowser loginは別subsystemとして今後設計します。
+
 [暗号preview](../spec/cryptography.ja.md)にはSHA-2／SHA-3 digest、SHA-256／SHA-512 HMAC、
 明示的なbytes-to-hex／Base64変換、constant-time比較、Argon2id key導出、version付き
 AES-256-GCM認証付き暗号を実装しています。keyのstring指定とnonceの手動指定は禁止し、
@@ -427,7 +436,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.9** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.10** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

@@ -6,7 +6,7 @@ import binascii
 import hashlib
 import hmac
 import json
-from urllib.parse import urlencode
+from urllib.parse import quote_plus, urlencode, urlsplit
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
@@ -173,24 +173,73 @@ def _password_verify(arguments, named, position, runtime):
     except (ValueError, binascii.Error): return False
 
 
+def _oauth_scope_is_valid(scope):
+    if type(scope) is not str or not scope: return False
+    return all(token and all(char == "!" or "#" <= char <= "[" or "]" <= char <= "~" for char in token) for token in scope.split(" "))
+
+
+def _oauth_token_endpoint(token_url, position):
+    if type(token_url) is not str:
+        raise error("E877", "oauth_error", "OAuth token endpoint must be a string URL.", position)
+    try: parsed = urlsplit(token_url)
+    except ValueError: raise error("E877", "oauth_error", "OAuth token endpoint is not a valid URL.", position)
+    if parsed.scheme.casefold() != "https" or not parsed.hostname or parsed.username is not None or parsed.password is not None or parsed.fragment:
+        raise error("E877", "oauth_error", "OAuth token endpoint must be an absolute HTTPS URL without embedded credentials or a fragment.", position)
+    return token_url
+
+
+def _oauth_client_auth(client_id, client_secret, position, runtime):
+    if type(client_id) is not str or not client_id or any(ord(char) < 32 or ord(char) == 127 for char in client_id):
+        runtime.type_error(position, "non-empty string client ID", runtime.type_name(client_id), "OAuth client ID must be a non-empty string.")
+    try: secret_text = secret_bytes(client_secret, "OAuth client secret", position, runtime).decode("utf-8")
+    except UnicodeDecodeError: raise error("E877", "oauth_error", "OAuth client secret must be valid UTF-8 text.", position)
+    if not secret_text or any(ord(char) < 32 or ord(char) == 127 for char in secret_text):
+        raise error("E877", "oauth_error", "OAuth client secret must be non-empty text without control characters.", position)
+    encoded_id = quote_plus(client_id, safe="")
+    encoded_secret = quote_plus(secret_text, safe="")
+    token = base64.b64encode(f"{encoded_id}:{encoded_secret}".encode("ascii"))
+    return HttpAuthValue("basic", "Authorization", SecretValue(b"Basic " + token))
+
+
+def _oauth_payload(response, position):
+    if response.text is None:
+        raise error("E877", "oauth_error", f"OAuth token endpoint returned unusable status {response.status}.", position, actual=str(response.status))
+    try: payload = json.loads(response.text)
+    except json.JSONDecodeError:
+        if not 200 <= response.status < 300:
+            raise error("E877", "oauth_error", f"OAuth token endpoint rejected the request with status {response.status}.", position, actual=str(response.status))
+        raise error("E877", "oauth_error", "OAuth token response is not valid JSON.", position)
+    if type(payload) is not dict:
+        raise error("E877", "oauth_error", "OAuth token response must be a JSON object.", position)
+    if not 200 <= response.status < 300:
+        oauth_code = payload.get("error")
+        if type(oauth_code) is str and oauth_code and len(oauth_code) <= 128 and all(char.isascii() and (char.isalnum() or char in "_-.") for char in oauth_code):
+            raise error("E877", "oauth_error", f"OAuth token endpoint rejected the request: {oauth_code}.", position, actual=oauth_code)
+        raise error("E877", "oauth_error", f"OAuth token endpoint rejected the request with status {response.status}.", position, actual=str(response.status))
+    return payload
+
+
 def _oauth_client_credentials(arguments, named, position, runtime):
     token_url, client_id, client_secret = arguments; scope = named.get("scope")
-    if type(token_url) is not str or type(client_id) is not str: runtime.type_error(position, "string token URL and client ID", f"{runtime.type_name(token_url)}, {runtime.type_name(client_id)}", "OAuth token URL and client ID must be strings.")
-    if scope is not None and type(scope) is not str: runtime.type_error(position, "string or null scope", runtime.type_name(scope), "OAuth scope must be a string or null.")
+    token_url = _oauth_token_endpoint(token_url, position)
+    if scope is not None and not _oauth_scope_is_valid(scope):
+        raise error("E877", "oauth_error", "OAuth scope must contain one or more space-separated visible ASCII scope tokens.", position)
     form = [("grant_type", "client_credentials")]
     if scope is not None: form.append(("scope", scope))
     headers = ObjectValue.create({"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
     from .http_client import _request
-    response = _request([token_url], {"method": "POST", "headers": headers, "body": urlencode(form), "auth": _basic_auth([client_id, client_secret], {}, position, runtime)}, position, runtime)
-    if not 200 <= response.status < 300 or response.text is None: raise error("E877", "oauth_error", f"OAuth token endpoint returned unusable status {response.status}.", position, actual=str(response.status))
-    try: payload = json.loads(response.text)
-    except json.JSONDecodeError: raise error("E877", "oauth_error", "OAuth token response is not valid JSON.", position)
+    response = _request([token_url], {"method": "POST", "headers": headers, "body": urlencode(form), "auth": _oauth_client_auth(client_id, client_secret, position, runtime)}, position, runtime)
+    payload = _oauth_payload(response, position)
     token, token_type = payload.get("access_token"), payload.get("token_type")
     expires, returned_scope = payload.get("expires_in"), payload.get("scope")
-    if type(token) is not str or not token or type(token_type) is not str: raise error("E877", "oauth_error", "OAuth response requires string access_token and token_type.", position)
+    if type(token) is not str or not token or any(ord(char) < 33 or ord(char) > 126 for char in token):
+        raise error("E877", "oauth_error", "OAuth response requires a non-empty visible-ASCII access_token.", position)
+    if type(token_type) is not str or token_type.casefold() != "bearer":
+        raise error("E877", "oauth_error", "OAuth client credentials currently accepts only the Bearer token type.", position)
     if expires is not None and (type(expires) is not int or expires < 0): raise error("E877", "oauth_error", "OAuth expires_in must be a non-negative integer.", position)
-    if returned_scope is not None and type(returned_scope) is not str: raise error("E877", "oauth_error", "OAuth scope must be a string.", position)
-    return OAuthTokenValue(SecretValue(token.encode("utf-8")), token_type, expires, returned_scope)
+    if returned_scope is not None and not _oauth_scope_is_valid(returned_scope): raise error("E877", "oauth_error", "OAuth response scope is invalid.", position)
+    if "refresh_token" in payload: raise error("E877", "oauth_error", "OAuth client credentials response must not contain a refresh token.", position)
+    return OAuthTokenValue(SecretValue(token.encode("ascii")), "Bearer", expires, returned_scope)
 
 
 AUTH_BUILTINS = (

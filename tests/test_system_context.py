@@ -29,7 +29,7 @@ print system
 end_function:main
 '''
         output = execute(source, script_path=str(script), command_arguments=["server1", "--debug"])[1].splitlines()
-        self.assertEqual(output[:4], ["system", "0.2.0-alpha.9", "python-reference", "context.sep"])
+        self.assertEqual(output[:4], ["system", "0.2.0-alpha.10", "python-reference", "context.sep"])
         self.assertEqual(Path(output[4]), script.resolve())
         self.assertEqual(Path(output[5]), script.resolve().parent)
         self.assertEqual(output[6:], ["2", "[server1, --debug]", "python", "true", "true", "false", "system:[READONLY]"])

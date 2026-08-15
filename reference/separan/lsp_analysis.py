@@ -42,6 +42,11 @@ BUILTIN_SIGNATURES = {
     "read_text": "read_text(path: string) -> string",
     "write_text": "write_text(path: string, text: string) -> null",
     "http_get": "http_get(url: string, options...) -> string",
+    "secret_from_environment": "secret_from_environment(name: string) -> secret",
+    "basic_auth": "basic_auth(username: string, password: secret | string | bytes) -> http_auth",
+    "bearer_auth": "bearer_auth(token: secret | string | bytes) -> http_auth",
+    "api_key_auth": "api_key_auth(name: string, value: secret | string | bytes, location?: string) -> http_auth",
+    "oauth_client_credentials": "oauth_client_credentials(token_url: string, client_id: string, client_secret: secret | string | bytes, scope?: string) -> oauth_token",
     "ip_address": "ip_address(value: string) -> ip_address",
     "ip_address_version": "ip_address_version(value: ip_address) -> number",
     "ip_address_is_private": "ip_address_is_private(value: ip_address) -> boolean",
@@ -298,7 +303,9 @@ def _literal_type(expression):
         if name == "tcp_connect": return "tcp_connection"
         if name == "udp_open": return "udp_socket"
         if name in ("network_status", "ethernet_status", "wifi_status", "udp_receive"): return "object"
-        if name == "secret_get": return "secret"
+        if name in ("secret_get", "secret_from_environment"): return "secret"
+        if name == "oauth_client_credentials": return "oauth_token"
+        if name in ("basic_auth", "bearer_auth", "api_key_auth"): return "http_auth"
         if name in ("xml_document_parse", "xml_document_read"): return "xml_document"
         if name in ("xml_root", "xml_create_element", "xml_find", "xml_child"): return "xml_element"
         if name in ("xml_to_object", "xml_file_to_object"): return "object"

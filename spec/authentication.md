@@ -27,3 +27,23 @@ the earlier alpha scrypt format. Raw SHA-256 is deliberately not a password API.
 Diagnostics use `E870`–`E879`, with `secret_error` and `oauth_error` under
 `auth_error`. Browser login, authorization-code/device flows, and refresh-token
 management remain separate future designs.
+
+```separan
+client_secret = secret_from_environment("OAUTH_CLIENT_SECRET")
+
+token = oauth_client_credentials("https://auth.example.com/oauth/token", "monitor-client", client_secret, scope = "monitor.read alerts.write")
+
+response = http_request("https://api.example.com/status", auth = bearer_auth(token.access_token))
+```
+
+The token endpoint must be an absolute HTTPS URL without embedded credentials
+or a fragment. Client identifiers and secrets are form-encoded before HTTP
+Basic client authentication. Successful responses must contain a visible-ASCII
+Bearer access token, which remains a redacted `secret`. A refresh token in a
+Client Credentials response is rejected instead of being silently retained or
+discarded. Error diagnostics expose only a validated OAuth `error` code, never
+an arbitrary server-provided `error_description`.
+
+See [`examples/oauth_client_credentials.sep`](../examples/oauth_client_credentials.sep)
+for the complete template. Its token and API hosts must each be explicitly
+allowed with the CLI `--allow-network-host` capability.

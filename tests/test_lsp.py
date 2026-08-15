@@ -137,10 +137,20 @@ end_function:second
         self.assertIn("starts_with", labels)
         signature = signature_help('print substring("abc", ', 0, 23)
         self.assertIn("end?: number", signature["signatures"][0]["label"])
+        oauth_signature = signature_help('token = oauth_client_credentials("https://auth.test/token", ', 0, 61)
+        self.assertIn("client_secret: secret", oauth_signature["signatures"][0]["label"])
         user_signature = signature_help('function:add(a, b)\nend_function:add\nprint add(1, ', 2, 13)
         self.assertIn("add(a, b)", user_signature["signatures"][0]["label"])
         hints = inlay_hints('count = 10\nname = "Alice"\n', {"start": {"line": 0}, "end": {"line": 2}})
         self.assertEqual([hint["label"] for hint in hints], [": number", ": string"])
+
+    def test_oauth_static_types_remain_explicit(self):
+        source = '''client_secret = secret_from_environment("OAUTH_CLIENT_SECRET")
+token = oauth_client_credentials("https://auth.test/token", "client", client_secret)
+auth = bearer_auth(token.access_token)
+'''
+        inferred = {item.name: item.type for item in variables(source)}
+        self.assertEqual(inferred, {"client_secret": "secret", "token": "oauth_token", "auth": "http_auth"})
 
     def test_structural_end_and_tag_completion(self):
         source = 'function:main\n@notification\nif true :active\n:end\n'

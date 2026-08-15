@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.9
+## v0.2.0-alpha.10
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -347,6 +347,16 @@ cipher constructions. Host-provided secrets are a distinct automatically
 redacted type; HTTP auth, OAuth client credentials, HMAC, HS256 JWT, and
 Argon2id password hashing have experimental reference implementations.
 
+```separan
+client_secret = secret_from_environment("OAUTH_CLIENT_SECRET")
+token = oauth_client_credentials("https://auth.example.com/oauth/token", "monitor-client", client_secret, scope = "monitor.read")
+response = http_request(api_url, auth = bearer_auth(token.access_token))
+```
+
+OAuth token exchange is HTTPS-only, keeps access tokens redacted, and accepts
+only explicit Bearer responses. Interactive browser login remains a separate
+future subsystem.
+
 The [cryptography preview](spec/cryptography.md) adds SHA-2/SHA-3 digests,
 SHA-256/SHA-512 HMAC, explicit bytes-to-hex/Base64 conversion, constant-time
 comparison, Argon2id key derivation, and versioned AES-256-GCM authenticated
@@ -490,7 +500,7 @@ plus static validation and a Pico/Pico 2 C++ → Pico SDK → ELF/UF2/HEX firmwa
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.9**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.10**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

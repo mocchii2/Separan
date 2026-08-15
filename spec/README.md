@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.9
+# Separan Language Specification — v0.2.0-alpha.10
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
