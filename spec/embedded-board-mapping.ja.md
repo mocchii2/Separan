@@ -30,7 +30,7 @@ end_function:main
 build targetをsource外から指定することもできます。
 
 ```console
-separan build examples/embedded_blink.sep --board raspberry_pi_pico
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
 ```
 
 現在の`build`はprogram全体をparseし、実行されないfunction内も含む直接の`pin.NAME`
@@ -88,6 +88,8 @@ adapter向けに次を実装しています。
 - `i2c_open([index], sda=..., scl=...)`
 - `spi_open([index], mosi=..., miso=..., clock=..., chip_select=...)`
 - `uart_open([index], tx=..., rx=...)`
+- `delay_milliseconds(value)`、`i2c_probe(bus, address)`
+- `uart_write(bus, value)`、`uart_read_line(bus)`
 
 `analog_write`はcapability検証付きcontractとして存在しますが、現在のTier 1 profileに
 true DAC outputはありません。PWMは`pwm_write`へ明示します。analog／PWM output値は
@@ -102,6 +104,31 @@ hardware操作にはhostの`embedded_io` capabilityが必要で、`embedded_boar
 副作用のないvalidation adapterだけを同梱し、raw register accessやshell command fallbackは
 行いません。
 
+`delay_milliseconds`はdesktop上の隠れたsleepではなくadapter operationです。integer入力は
+1日までに制限します。`i2c_probe`は0から127までの明示的な7-bit addressを受け取り
+booleanを返します。text UART操作はstringを使い、将来のbinary UART操作では暗黙encodingを
+行わずbytesを使います。
+
+## 公式portableサンプル
+
+同じ[`01_blink.sep`](../examples/embedded/01_blink.sep) sourceを現在のPico／Nano Tier 1
+targetすべてに対して検証できます。portable形式は`pin.LED_BUILTIN`です。
+[`01_blink_d13.sep`](../examples/embedded/01_blink_d13.sep)は意図的にboard-specificな
+`pin.D13`を選ぶ例です。
+
+| Example | 検証するcontract |
+|---|---|
+| `01_blink.sep` | logical board LED、GPIO output、bounded delay |
+| `02_button.sep` | pull-up付きdigital inputとboard LED output |
+| `03_pwm_fade.sep` | profile共通pin上の正規化PWM duty cycle |
+| `04_analog_read.sep` | `pin.A0` analog capabilityと`number_range` |
+| `05_uart_echo.sep` | default UART mappingと明示的string I/O |
+| `06_i2c_scan.sep` | default I²C mappingと7-bit address probe |
+
+今後は`07_spi.sep`、`08_temperature_sensor.sep`、`09_wifi_http.sep`、
+`10_cloudwatch_sensor.sep`を予定します。対応するtyped adapter contractが存在する機能だけを
+sampleへ追加し、mapping検証だけでhardware実行できるような記述はしません。
+
 ## 診断
 
 | Code | 意味 |
@@ -111,7 +138,7 @@ hardware操作にはhostの`embedded_io` capabilityが必要で、`embedded_boar
 | `E962` | requested pin capabilityがない |
 | `E963` | bus signalとperipheral instanceの組み合わせが不正 |
 | `E964` | adapter未接続、失敗、または戻り型不正 |
-| `E965` | GPIO modeまたはanalog／PWM値が不正 |
+| `E965` | GPIO mode、delay、address、またはanalog／PWM値が不正 |
 
 ## Hardware data source
 

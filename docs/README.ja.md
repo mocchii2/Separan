@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.6
+## v0.2.0-alpha.7
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -181,6 +181,50 @@ HTTP client／server preview、認証、capability制御mail、YAML／XML構造�
 capability検証付きembedded board profileが
 実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
 厳密に診断します。
+
+## 1つのsourceで複数のEmbedded board
+
+Embedded previewはreview済みboard profileを通じてRaspberry Pi Pico／Pico W／
+Pico 2／Pico 2 WとArduino Nano／Nano Everyに対応します。portableなLチカでは
+物理pin番号を転記せず、board LEDを論理名で指定します。
+
+```separan
+function:main
+
+@embedded
+@gpio
+@sample
+
+gpio_set_mode(pin.LED_BUILTIN, "output")
+
+while true :blink_loop
+gpio_write(pin.LED_BUILTIN, true)
+delay_milliseconds(500)
+gpio_write(pin.LED_BUILTIN, false)
+delay_milliseconds(500)
+endwhile:blink_loop
+
+end_function:main
+```
+
+sourceは同じまま、build targetだけを変更します。
+
+```console
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_w
+separan build examples/embedded/01_blink.sep --board arduino_nano
+separan build examples/embedded/01_blink.sep --board arduino_nano_every
+```
+
+`pin.LED_BUILTIN`は選択したprofileを通じてPico GPIO25、Pico Wのwireless
+controller LED、またはNano系board LED定義へ解決されます。現在のcommandはsource全体の
+pin／capability mappingを検証します。firmware code生成は次のbackend実装です。
+
+公式[Embeddedサンプル集](../examples/embedded)にはportable Lチカ、button input、PWM fade、
+analog input、UART echo、I²C scanを収録しています。別の
+[`01_blink_d13.sep`](../examples/embedded/01_blink_d13.sep)は意図的なboard-specific例です。
+portable codeでは`pin.LED_BUILTIN`を使い、`pin.D13`はtarget profileがD13と必要な
+capabilityを持つ場合だけ使います。
 
 文字列加工には`trim`、`upper`、`lower`、`contains`、`starts_with`、
 `ends_with`、`split`、`join`、`replace`、Unicodeコードポイント単位の
@@ -208,7 +252,7 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
-現在のテストは1,600件を超えています。専用の異常系適合テストでは、構文・構造・型・
+現在のテストは1,700件を超えています。専用の異常系適合テストでは、構文・構造・型・
 実行時エラーに加え、登録済みの全組み込み関数について引数不足、引数過剰、未知の
 名前付き引数を検証します。
 
@@ -319,7 +363,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.6** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.7** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

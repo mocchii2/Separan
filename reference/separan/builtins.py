@@ -664,6 +664,7 @@ BUILTINS = {
         BuiltinFunction("exp", 1, 1, _numeric("exp", math.exp)),
         BuiltinFunction("pow", 2, 2, _pow),
         BuiltinFunction("range", 1, 3, _range),
+        BuiltinFunction("number_range", 1, 3, _range),
         BuiltinFunction("number", 1, 1, _number),
         BuiltinFunction("string", 1, 1, _string),
         BuiltinFunction("boolean", 1, 1, _boolean),

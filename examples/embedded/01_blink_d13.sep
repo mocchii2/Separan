@@ -1,5 +1,5 @@
 ########################################
-# Portable Blink
+# Board-specific D13 Blink
 ########################################
 
 function:main
@@ -8,16 +8,14 @@ function:main
 @gpio
 @sample
 
-gpio_set_mode(pin.LED_BUILTIN, "output")
+led = pin.D13
+gpio_set_mode(led, "output")
 
 while true :blink_loop
-
-gpio_write(pin.LED_BUILTIN, true)
+gpio_write(led, true)
 delay_milliseconds(500)
-
-gpio_write(pin.LED_BUILTIN, false)
+gpio_write(led, false)
 delay_milliseconds(500)
-
 endwhile:blink_loop
 
 end_function:main

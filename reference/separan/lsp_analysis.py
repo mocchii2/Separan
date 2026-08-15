@@ -111,6 +111,7 @@ BUILTIN_SIGNATURES = {
     "hexadecimal_to_number": "hexadecimal_to_number(text: string) -> number",
     "number_to_base": "number_to_base(value: number, base: number) -> string",
     "base_to_number": "base_to_number(text: string, base: number) -> number",
+    "number_range": "number_range(stop: number) | number_range(start: number, stop: number, step?: number) -> list<number>",
     "board_select": "board_select(board_id: string) -> board",
     "board_name": "board_name() -> string",
     "board_family": "board_family() -> string",
@@ -131,6 +132,10 @@ BUILTIN_SIGNATURES = {
     "i2c_open": "i2c_open(index?: number, sda?: pin, scl?: pin) -> embedded_bus",
     "spi_open": "spi_open(index?: number, mosi?: pin, miso?: pin, clock?: pin, chip_select?: pin) -> embedded_bus",
     "uart_open": "uart_open(index?: number, tx?: pin, rx?: pin) -> embedded_bus",
+    "delay_milliseconds": "delay_milliseconds(milliseconds: number) -> null",
+    "i2c_probe": "i2c_probe(bus: embedded_bus, address: number) -> boolean",
+    "uart_write": "uart_write(bus: embedded_bus, value: string) -> null",
+    "uart_read_line": "uart_read_line(bus: embedded_bus) -> string",
 }
 
 

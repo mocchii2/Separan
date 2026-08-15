@@ -1,0 +1,19 @@
+########################################
+# Portable Analog Read
+########################################
+
+function:main
+
+@embedded
+@adc
+@sample
+
+sensor = pin.A0
+
+for sample_index in number_range(0, 10) :read_samples
+value = analog_read(sensor)
+print value
+delay_milliseconds(100)
+endfor:read_samples
+
+end_function:main

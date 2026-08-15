@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.6
+# Separan Language Specification — v0.2.0-alpha.7
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -92,6 +92,7 @@ Built-in names are reserved and cannot be redefined by source programs.
 | `range(stop)` | integer-valued number | list from zero up to, excluding, `stop` |
 | `range(start, stop)` | integer-valued numbers | list from `start` up to, excluding, `stop` |
 | `range(start, stop, step)` | integer-valued numbers; non-zero `step` | stepped number list |
+| `number_range(...)` | same strict arguments as `range` | readable compatibility name for a number list |
 | `number(value)` | number or strict decimal string | number |
 | `string(value)` | number, string, boolean, or null | canonical string representation |
 | `boolean(value)` | boolean or exact string `"true"`/`"false"` | boolean |

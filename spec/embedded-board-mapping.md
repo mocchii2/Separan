@@ -32,7 +32,7 @@ end_function:main
 The build target can instead be supplied outside source:
 
 ```console
-separan build examples/embedded_blink.sep --board raspberry_pi_pico
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
 ```
 
 The current `build` command parses the complete program and validates every
@@ -95,6 +95,8 @@ Implemented adapter-facing functions are:
 - `i2c_open([index], sda=..., scl=...)`
 - `spi_open([index], mosi=..., miso=..., clock=..., chip_select=...)`
 - `uart_open([index], tx=..., rx=...)`
+- `delay_milliseconds(value)`, `i2c_probe(bus, address)`
+- `uart_write(bus, value)`, `uart_read_line(bus)`
 
 `analog_write` exists as a capability-checked contract; none of the current
 Tier 1 profiles advertises a true DAC output. `pwm_write` is the explicit PWM
@@ -109,6 +111,32 @@ restricted to an `embedded_boards` allowlist. They then call a supplied adapter.
 The Python reference interpreter ships only a side-effect-free validation
 adapter; direct register access and shell-command fallbacks are forbidden.
 
+`delay_milliseconds` is an adapter operation, not a hidden desktop sleep. Its
+integer input is bounded to one day. `i2c_probe` accepts an explicit 7-bit
+address from 0 through 127 and returns boolean. Text UART operations use string;
+future binary UART operations will use bytes rather than implicit encoding.
+
+## Official portable examples
+
+The same [`01_blink.sep`](../examples/embedded/01_blink.sep) source validates
+for each current Pico and Nano Tier 1 target. `pin.LED_BUILTIN` is the portable
+form. [`01_blink_d13.sep`](../examples/embedded/01_blink_d13.sep) demonstrates
+an intentionally board-specific `pin.D13` choice.
+
+| Example | Contract exercised |
+|---|---|
+| `01_blink.sep` | logical board LED, GPIO output, bounded delay |
+| `02_button.sep` | digital input with pull-up and board LED output |
+| `03_pwm_fade.sep` | normalized PWM duty cycle on a cross-profile pin |
+| `04_analog_read.sep` | `pin.A0` analog capability and `number_range` |
+| `05_uart_echo.sep` | default UART mapping and explicit string I/O |
+| `06_i2c_scan.sep` | default I²C mapping and 7-bit address probing |
+
+Planned follow-ups are `07_spi.sep`, `08_temperature_sensor.sep`,
+`09_wifi_http.sep`, and `10_cloudwatch_sensor.sep`. A sample is added only when
+the corresponding typed adapter contract exists; documentation must not imply
+hardware execution from mapping validation alone.
+
 ## Diagnostics
 
 | Code | Meaning |
@@ -118,7 +146,7 @@ adapter; direct register access and shell-command fallbacks are forbidden.
 | `E962` | requested pin capability is unavailable |
 | `E963` | bus signal and peripheral instance do not form a valid mapping |
 | `E964` | adapter missing, failed, or returned the wrong type |
-| `E965` | invalid GPIO mode or analog/PWM value |
+| `E965` | invalid GPIO mode, delay, address, or analog/PWM value |
 
 ## Hardware data sources
 

@@ -1,0 +1,27 @@
+########################################
+# Portable PWM Fade
+########################################
+
+function:main
+
+@embedded
+@pwm
+@sample
+
+led = pin.D3
+
+while true :fade_forever
+
+for duty in [0.0, 0.25, 0.5, 0.75, 1.0] :fade_up
+pwm_write(led, duty)
+delay_milliseconds(100)
+endfor:fade_up
+
+for duty in [1.0, 0.75, 0.5, 0.25, 0.0] :fade_down
+pwm_write(led, duty)
+delay_milliseconds(100)
+endfor:fade_down
+
+endwhile:fade_forever
+
+end_function:main

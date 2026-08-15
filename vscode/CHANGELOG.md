@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2] - 2026-08-15
+
+### Portable embedded examples
+
+- Documents one-source Blink builds across Raspberry Pi Pico and Arduino Nano targets.
+- Links the official GPIO, PWM, ADC, UART, and I²C portable example set.
+
 ## [0.9.1] - 2026-08-15
 
 ### Embedded board profile preview

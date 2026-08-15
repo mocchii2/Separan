@@ -1,0 +1,23 @@
+########################################
+# Portable Button Input
+########################################
+
+function:main
+
+@embedded
+@gpio
+@sample
+
+button = pin.D2
+led = pin.LED_BUILTIN
+
+gpio_set_mode(button, "input_pull_up")
+gpio_set_mode(led, "output")
+
+while true :read_button
+pressed = !gpio_read(button)
+gpio_write(led, pressed)
+delay_milliseconds(20)
+endwhile:read_button
+
+end_function:main

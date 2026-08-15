@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.2.0-alpha.6
+# Separan言語仕様 — v0.2.0-alpha.7
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -87,6 +87,7 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 | `range(stop)` | 整数値number | 0から`stop`未満までのlist |
 | `range(start, stop)` | 整数値number | `start`から`stop`未満までのlist |
 | `range(start, stop, step)` | 整数値number、stepは0以外 | step間隔のnumber list |
+| `number_range(...)` | `range`と同じ厳密な引数 | number listを明示する読みやすい別名 |
 | `number(value)` | numberまたは厳密な10進string | number |
 | `string(value)` | number、string、boolean、null | 正規化したstring表現 |
 | `boolean(value)` | booleanまたは完全一致する`"true"`／`"false"` | boolean |

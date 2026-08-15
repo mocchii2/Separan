@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.6
+## v0.2.0-alpha.7
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -205,6 +205,51 @@ client/server previews, authentication, capability-gated mail, YAML/XML structur
 parameter-bound SQLite, and capability-checked embedded board profiles.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
+
+## One source, multiple embedded boards
+
+The embedded preview supports Raspberry Pi Pico/Pico W/Pico 2/Pico 2 W and
+Arduino Nano/Nano Every through reviewed board profiles. The portable Blink
+example names the board LED instead of copying a physical pin number:
+
+```separan
+function:main
+
+@embedded
+@gpio
+@sample
+
+gpio_set_mode(pin.LED_BUILTIN, "output")
+
+while true :blink_loop
+gpio_write(pin.LED_BUILTIN, true)
+delay_milliseconds(500)
+gpio_write(pin.LED_BUILTIN, false)
+delay_milliseconds(500)
+endwhile:blink_loop
+
+end_function:main
+```
+
+The source stays identical; only the build target changes:
+
+```console
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_w
+separan build examples/embedded/01_blink.sep --board arduino_nano
+separan build examples/embedded/01_blink.sep --board arduino_nano_every
+```
+
+`pin.LED_BUILTIN` resolves through the selected profile to Pico GPIO25, the
+Pico W wireless-controller LED, or the Nano-family board LED definition. The
+current command validates the complete pin/capability mapping; firmware code
+generation remains the next backend step.
+
+The official [embedded examples](examples/embedded) now cover portable Blink,
+button input, PWM fade, analog input, UART echo, and I²C scanning. The separate
+[`01_blink_d13.sep`](examples/embedded/01_blink_d13.sep) example is intentionally
+board-specific: use `pin.LED_BUILTIN` for portable code and `pin.D13` only when
+the target profile defines D13 with the required capability.
 
 Higher-order collection processing uses explicit `function` values:
 `map`, `filter`, and initial-value-required `reduce` preserve strict callback
@@ -342,7 +387,7 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
-The suite currently contains more than 1,300 tests. Its dedicated negative
+The suite currently contains more than 1,700 tests. Its dedicated negative
 conformance corpus checks syntax, structure, type and runtime failures, plus
 too few, too many, and unknown named arguments across every registered built-in.
 
@@ -381,7 +426,7 @@ plus static `separan build --board` capability validation. Firmware generation i
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.6**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.7**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

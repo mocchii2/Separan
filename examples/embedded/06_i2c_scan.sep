@@ -1,0 +1,21 @@
+########################################
+# Portable I2C Scan
+########################################
+
+function:main
+
+@embedded
+@i2c
+@sample
+
+bus = i2c_open(0)
+
+for address in number_range(1, 127) :scan_addresses
+
+if i2c_probe(bus, address) :device_found
+print "Found I2C device: " + number_to_hexadecimal(address)
+endif:device_found
+
+endfor:scan_addresses
+
+end_function:main

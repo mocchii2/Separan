@@ -1,0 +1,18 @@
+########################################
+# Portable UART Echo
+########################################
+
+function:main
+
+@embedded
+@uart
+@sample
+
+serial = uart_open(0)
+
+while true :echo_lines
+line = uart_read_line(serial)
+uart_write(serial, line + "\n")
+endwhile:echo_lines
+
+end_function:main

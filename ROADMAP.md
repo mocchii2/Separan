@@ -11,12 +11,16 @@ The roadmap describes direction, not a compatibility promise.
 
 ## v0.2 — specification and diagnostics
 
-- implemented: versioned v0.2 alpha specification and more than 1,300 conformance tests, including an API-wide negative suite
+- implemented: versioned v0.2 alpha specification and more than 1,700 conformance tests, including an API-wide negative suite
 - implemented: readable mathematics, strict statistics, base conversion, and grouped binary/octal/hexadecimal literals
 - implemented: labeled data blocks, temporal values, modules, capabilities, JSON, and labeled errors
 - implemented: HTTP client/server previews, process execution, regex, glob, environment, and command-line helpers
 - implemented: `#`/`##` comment syntax, strict escapes, raw strings, and Function Tag metadata
 - implemented: exact semantic-tag inspection and edit-scope verification
+- implemented: reviewed Pico/Nano board profiles, logical pins, static capability validation,
+  and portable GPIO/PWM/ADC/UART/I²C examples
+- next: real Pico SDK and Arduino Core code-generation/upload adapters, followed by
+  SPI, sensor, Wi-Fi, and CloudWatch examples
 - next: stabilize preview APIs and strengthen parser recovery before beta
 
 ## v0.3 — language tooling
@@ -56,7 +60,8 @@ The roadmap describes direction, not a compatibility promise.
 
 - **v0.1-alpha:** 現在の処理系、ラベル検証、基本型、関数、制御構文
 - **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Function Tag、
-  semantic scope検証、290件超の適合testを実装済み。次はbeta向け安定化
+  semantic scope検証、review済みPico／Nano profile、論理pin、portable Embedded sample、
+  1,700件超の適合testを実装済み。次は実機SDK adapterとbeta向け安定化
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
   label jump／rename、completion、signature、hint、symbol、fold、formatter）は実装済み。
   次はproject全体推論、CodeLens、専用structure view

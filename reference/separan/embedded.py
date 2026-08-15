@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, fields, is_dataclass
 
-from .ast_nodes import CallExpr, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
+from .ast_nodes import Assignment, CallExpr, ConstDeclaration, FunctionDecl, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
 from .errors import error
 from .system_utilities import UtilityFunction
 
@@ -130,6 +130,8 @@ class ValidationEmbeddedAdapter:
         self.operations.append((operation, payload))
         if operation == "gpio_read": return False
         if operation == "analog_read": return 0
+        if operation == "i2c_probe": return False
+        if operation == "uart_read_line": return ""
         return None
 
 
@@ -358,6 +360,7 @@ BUS_ROLES = {
     "spi": ("mosi", "miso", "clock", "chip_select"),
     "uart": ("tx", "rx"),
 }
+MAX_DELAY_MILLISECONDS = 86_400_000
 
 
 def _bus_open(kind):
@@ -382,6 +385,50 @@ def _bus_open(kind):
     return implementation
 
 
+def _bus(runtime, value, kind, position):
+    if not isinstance(value, BusValue) or value.kind != kind:
+        runtime.type_error(position, f"{kind} embedded_bus", runtime.type_name(value), f"This operation requires an open {kind.upper()} bus.")
+    profile = _profile(runtime, position)
+    if value.board_id != profile.id:
+        raise error("E963", "Bus belongs to another board", "An embedded bus cannot cross board profiles.", position,
+                    expected=profile.id, actual=value.board_id)
+    return value
+
+
+def _delay_milliseconds(args, named, position, runtime):
+    milliseconds = args[0]
+    if type(milliseconds) is not int or not 0 <= milliseconds <= MAX_DELAY_MILLISECONDS:
+        raise error("E965", "Invalid embedded delay", f"delay_milliseconds() requires an integer from 0 through {MAX_DELAY_MILLISECONDS}.", position,
+                    expected=f"0..{MAX_DELAY_MILLISECONDS}", actual=repr(milliseconds))
+    return _context(runtime).perform("delay_milliseconds", {"milliseconds": milliseconds}, position, runtime)
+
+
+def _i2c_probe(args, named, position, runtime):
+    bus = _bus(runtime, args[0], "i2c", position); address = args[1]
+    if type(address) is not int or not 0 <= address <= 127:
+        raise error("E965", "Invalid I2C address", "i2c_probe() requires a 7-bit integer address from 0 through 127.", position,
+                    expected="0..127", actual=repr(address))
+    value = _context(runtime).perform("i2c_probe", {"bus": bus, "address": address}, position, runtime)
+    if type(value) is not bool:
+        raise error("E964", "Embedded backend error", "i2c_probe backend must return boolean.", position)
+    return value
+
+
+def _uart_write(args, named, position, runtime):
+    bus = _bus(runtime, args[0], "uart", position); value = args[1]
+    if type(value) is not str:
+        runtime.type_error(position, "string", runtime.type_name(value), "uart_write() data must be a string.")
+    return _context(runtime).perform("uart_write", {"bus": bus, "value": value}, position, runtime)
+
+
+def _uart_read_line(args, named, position, runtime):
+    bus = _bus(runtime, args[0], "uart", position)
+    value = _context(runtime).perform("uart_read_line", {"bus": bus}, position, runtime)
+    if type(value) is not str:
+        raise error("E964", "Embedded backend error", "uart_read_line backend must return string.", position)
+    return value
+
+
 EMBEDDED_BUILTINS = (
     UtilityFunction("board_select", 1, 1, _board_select),
     UtilityFunction("board_name", 0, 0, _board_field("id")),
@@ -403,6 +450,10 @@ EMBEDDED_BUILTINS = (
     UtilityFunction("i2c_open", 0, 1, _bus_open("i2c"), ("sda", "scl")),
     UtilityFunction("spi_open", 0, 1, _bus_open("spi"), ("mosi", "miso", "clock", "chip_select")),
     UtilityFunction("uart_open", 0, 1, _bus_open("uart"), ("tx", "rx")),
+    UtilityFunction("delay_milliseconds", 1, 1, _delay_milliseconds),
+    UtilityFunction("i2c_probe", 2, 2, _i2c_probe),
+    UtilityFunction("uart_write", 2, 2, _uart_write),
+    UtilityFunction("uart_read_line", 1, 1, _uart_read_line),
 )
 
 
@@ -413,9 +464,11 @@ def validate_embedded_program(program, board_id):
         raise error("E960", "Unknown board profile", f"Board profile '{board_id}' is not available.", program.position,
                     expected="one of: " + ", ".join(sorted(BOARD_PROFILES)), actual=board_id)
 
-    def direct_pin(expression):
+    def direct_pin(expression, bindings):
         if isinstance(expression, MemberExpr) and isinstance(expression.target, VariableExpr) and expression.target.name == "pin":
             return profile.resolve(expression.name, expression.position)
+        if isinstance(expression, VariableExpr):
+            return bindings.get(expression.name)
         return None
 
     unknown = object()
@@ -426,8 +479,19 @@ def validate_embedded_program(program, board_id):
             if type(value) in (int, float) and type(value) is not bool: return -value
         return unknown
 
-    def walk(value):
-        if isinstance(value, MemberExpr): direct_pin(value)
+    def walk(value, bindings):
+        if isinstance(value, FunctionDecl):
+            local = dict(bindings)
+            for parameter in value.parameters: local.pop(parameter, None)
+            for statement in value.body: walk(statement, local)
+            return
+        if isinstance(value, (Assignment, ConstDeclaration)):
+            walk(value.value, bindings)
+            pin = direct_pin(value.value, bindings)
+            if pin is None: bindings.pop(value.name, None)
+            else: bindings[value.name] = pin
+            return
+        if isinstance(value, MemberExpr): direct_pin(value, bindings)
         if isinstance(value, CallExpr):
             if value.callee == "board_select" and value.arguments and isinstance(value.arguments[0], LiteralExpr):
                 selected = value.arguments[0].value
@@ -437,7 +501,7 @@ def validate_embedded_program(program, board_id):
             requirements = {"gpio_set_mode": None, "gpio_write": "digital_output", "gpio_read": "digital_input",
                             "analog_read": "analog_input", "analog_write": "analog_output", "pwm_write": "pwm"}
             if value.callee in requirements and value.arguments:
-                pin = direct_pin(value.arguments[0])
+                pin = direct_pin(value.arguments[0], bindings)
                 required = requirements[value.callee]
                 if pin and value.callee == "gpio_set_mode" and len(value.arguments) > 1 and isinstance(value.arguments[1], LiteralExpr):
                     mode = value.arguments[1].value
@@ -464,17 +528,33 @@ def validate_embedded_program(program, board_id):
                                 expected="non-negative integer", actual=repr(index))
                 defaults = profile.default_buses.get((kind, index), {}) if type(index) is int else {}
                 for role, expression in value.named_arguments.items():
-                    pin = direct_pin(expression)
+                    pin = direct_pin(expression, bindings)
                     if pin and index is not unknown and (f"{kind}_{role}", index) not in pin.definition.routes:
                         raise error("E963", f"Invalid {kind.upper()} pin mapping", f"Pin '{pin.definition.name}' cannot be {role} on {kind.upper()} bus {index}.", expression.position)
                 if index is not unknown and not value.named_arguments and not defaults:
                     raise error("E963", "Missing bus pin mapping", f"{kind.upper()} bus {index} has no default mapping.", value.position)
+            if value.callee == "delay_milliseconds" and value.arguments:
+                milliseconds = literal_value(value.arguments[0])
+                if milliseconds is not unknown and (type(milliseconds) is not int or not 0 <= milliseconds <= MAX_DELAY_MILLISECONDS):
+                    raise error("E965", "Invalid embedded delay", f"delay_milliseconds() requires an integer from 0 through {MAX_DELAY_MILLISECONDS}.",
+                                value.arguments[0].position, expected=f"0..{MAX_DELAY_MILLISECONDS}", actual=repr(milliseconds))
+            if value.callee == "i2c_probe" and len(value.arguments) > 1:
+                address = literal_value(value.arguments[1])
+                if address is not unknown and (type(address) is not int or not 0 <= address <= 127):
+                    raise error("E965", "Invalid I2C address", "i2c_probe() requires a 7-bit integer address from 0 through 127.",
+                                value.arguments[1].position, expected="0..127", actual=repr(address))
         if is_dataclass(value):
             for item in fields(value):
-                if item.name != "position": walk(getattr(value, item.name))
+                if item.name != "position": walk(getattr(value, item.name), bindings)
         elif isinstance(value, (list, tuple)):
-            for item in value: walk(item)
+            for item in value: walk(item, bindings)
         elif isinstance(value, dict):
-            for item in value.values(): walk(item)
-    walk(program)
+            for item in value.values(): walk(item, bindings)
+    global_pins = {}
+    for statement in program.statements:
+        if isinstance(statement, (Assignment, ConstDeclaration)):
+            pin = direct_pin(statement.value, global_pins)
+            if pin is None: global_pins.pop(statement.name, None)
+            else: global_pins[statement.name] = pin
+    walk(program, dict(global_pins))
     return profile
