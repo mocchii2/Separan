@@ -17,13 +17,19 @@ from separan.errors import SeparanError
 class FakeNetworkAdapter:
     def __init__(self):
         self.connected = True
+        self.operations = []
+        self.ethernet = {
+            "address_mode": "static", "dhcp_status": "disabled",
+            "addresses": ["192.0.2.10"], "prefixes": [24],
+            "gateways": ["192.0.2.1"], "dns_servers": ["1.1.1.1"],
+            "dhcp_lease": None, "link_local_fallback": False,
+        }
 
     def interfaces(self):
         return [
             {
                 "name": "ethernet0", "index": 1, "description": "Test Ethernet", "kind": "ethernet",
-                "connected": False, "addresses": ["192.0.2.10"], "prefixes": [24],
-                "gateways": ["192.0.2.1"], "dns_servers": ["1.1.1.1"],
+                "connected": False, **self.ethernet,
                 "mac_address": "00-11-22-33-44-55",
             },
             {
@@ -33,8 +39,61 @@ class FakeNetworkAdapter:
                 "dns_servers": ["1.1.1.1", "2606:4700:4700::1111"],
                 "mac_address": "AA-BB-CC-DD-EE-FF", "ssid": "Office-WiFi",
                 "bssid": "11:22:33:44:55:66", "channel": 36, "signal_strength": 81,
+                "address_mode": "dhcp", "dhcp_status": "bound", "link_local_fallback": False,
+                "dhcp_lease": {
+                    "address": "198.51.100.20", "prefix": 24, "gateway": "198.51.100.1",
+                    "dns_servers": ["1.1.1.1", "2606:4700:4700::1111"],
+                    "server_address": "198.51.100.2", "lease_duration_ms": 3_600_000,
+                    "renew_after_ms": 1_800_000, "rebind_after_ms": 3_150_000,
+                    "expires_at_unix_ms": 1_800_000_000_000,
+                },
             },
         ]
+
+    def use_dhcp(self, interface_name):
+        self.operations.append(("use_dhcp", interface_name))
+        self.ethernet.update({
+            "address_mode": "dhcp", "dhcp_status": "bound",
+            "addresses": ["192.0.2.20"], "prefixes": [24],
+            "gateways": ["192.0.2.1"], "dns_servers": ["1.1.1.1"],
+            "dhcp_lease": {
+                "address": "192.0.2.20", "prefix": 24, "gateway": "192.0.2.1",
+                "dns_servers": ["1.1.1.1"], "server_address": "192.0.2.2",
+                "lease_duration_ms": 7_200_000, "renew_after_ms": 3_600_000,
+                "rebind_after_ms": 6_300_000, "expires_at_unix_ms": 1_800_000_000_000,
+            },
+        })
+
+    def set_static_address(self, interface_name, configuration):
+        self.operations.append(("set_static_address", interface_name, configuration))
+        self.ethernet.update({
+            "address_mode": "static", "dhcp_status": "disabled",
+            "addresses": [configuration["address"]], "prefixes": [configuration["prefix"]],
+            "gateways": [] if configuration["gateway"] is None else [configuration["gateway"]],
+            "dns_servers": configuration["dns_servers"], "dhcp_lease": None,
+        })
+
+    def use_link_local(self, interface_name):
+        self.operations.append(("use_link_local", interface_name))
+        self.ethernet.update({
+            "address_mode": "link_local", "dhcp_status": "disabled",
+            "addresses": ["169.254.10.20"], "prefixes": [16], "gateways": [],
+            "dns_servers": [], "dhcp_lease": None,
+        })
+
+    def refresh_address(self, interface_name):
+        self.operations.append(("refresh_address", interface_name))
+
+    def release_address(self, interface_name):
+        self.operations.append(("release_address", interface_name))
+        self.ethernet.update({
+            "dhcp_status": "disabled", "addresses": [], "prefixes": [],
+            "gateways": [], "dns_servers": [], "dhcp_lease": None,
+        })
+
+    def set_link_local_fallback(self, interface_name, enabled):
+        self.operations.append(("set_link_local_fallback", interface_name, enabled))
+        self.ethernet["link_local_fallback"] = enabled
 
     def wifi_scan(self, interface_name):
         if interface_name != "wifi0":
@@ -48,6 +107,7 @@ class FakeNetworkAdapter:
 class NetworkTests(unittest.TestCase):
     def setUp(self):
         self.inspect = replace(RuntimeCapabilities.local(ROOT), inspect_network=True)
+        self.configure = replace(self.inspect, configure_network=True)
         self.adapter = FakeNetworkAdapter()
 
     def assert_error(self, source, code, capabilities=None, adapter=None):
@@ -133,6 +193,105 @@ print wifi_wait_until_connected(wifi, duration("0s"))
             def wifi_scan(self, interface_name):
                 raise NotImplementedError("scan backend unavailable")
         self.assert_error('wifi = wifi_open()\nprint wifi_scan(wifi)\n', "E978", self.inspect, Adapter())
+
+    def test_address_mode_dhcp_status_and_typed_lease(self):
+        source = '''lan = ethernet_open()
+wifi = wifi_open()
+print network_address_mode(lan)
+print network_address_mode(wifi)
+print network_dhcp_status(wifi)
+lease = network_dhcp_lease(wifi)
+print lease.address
+print lease.prefix
+print lease.server_address
+print duration_milliseconds(lease.lease_duration)
+print datetime_timezone(lease.expires_at)
+'''
+        self.assertEqual(execute(source, capabilities=self.inspect, network_adapter=self.adapter)[1],
+                         "static\ndhcp\nbound\n198.51.100.20\n24\n198.51.100.2\n3600000\nUTC\n")
+
+    def test_dhcp_configuration_refresh_release_and_wait(self):
+        source = '''function:main
+lan = ethernet_open()
+network_use_dhcp(lan)
+print network_address_mode(lan)
+print network_dhcp_status(lan)
+print network_wait_until_addressed(lan, duration("0s"))
+lease = network_dhcp_lease(lan)
+print lease.address
+network_refresh_address(lan)
+network_release_address(lan)
+print network_dhcp_status(lan)
+print network_ip_address(lan)
+end_function:main
+'''
+        self.assertEqual(execute(source, capabilities=self.configure, network_adapter=self.adapter)[1],
+                         "dhcp\nbound\ntrue\n192.0.2.20\ndisabled\nnull\n")
+        self.assertEqual([operation[0] for operation in self.adapter.operations],
+                         ["use_dhcp", "refresh_address", "release_address"])
+
+    def test_static_and_link_local_modes_are_explicit(self):
+        source = '''function:main
+lan = ethernet_open()
+network_set_static_address(lan, ip_address("10.0.0.10"), 24, ip_address("10.0.0.1"), [ip_address("1.1.1.1")])
+print network_address_mode(lan)
+print network_ip_address(lan)
+network_enable_link_local_fallback(lan)
+print network_status(lan).link_local_fallback
+network_disable_link_local_fallback(lan)
+network_use_link_local(lan)
+print network_address_mode(lan)
+print network_ip_address(lan)
+end_function:main
+'''
+        self.assertEqual(execute(source, capabilities=self.configure, network_adapter=self.adapter)[1],
+                         "static\n10.0.0.10\ntrue\nlink_local\n169.254.10.20\n")
+        configuration = self.adapter.operations[0][2]
+        self.assertEqual(configuration, {"address": "10.0.0.10", "prefix": 24, "gateway": "10.0.0.1", "dns_servers": ["1.1.1.1"]})
+
+    def test_address_configuration_has_separate_capability_and_validation(self):
+        source = 'function:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nend_function:main\n'
+        self.assert_error(source, "E720", self.inspect, self.adapter)
+        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 33, "10.0.0.1", [])\nend_function:main\n', "E980", self.configure, self.adapter)
+        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 24, "2001:db8::1", [])\nend_function:main\n', "E980", self.configure, self.adapter)
+        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "169.254.1.2", 16, null, [])\nend_function:main\n', "E980", self.configure, self.adapter)
+
+    def test_adapter_unavailable_and_failed_wait_are_explicit(self):
+        class UnavailableAdapter(FakeNetworkAdapter):
+            def use_dhcp(self, interface_name):
+                raise NotImplementedError("no DHCP backend")
+        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nend_function:main\n', "E978", self.configure, UnavailableAdapter())
+
+        class FailedAdapter(FakeNetworkAdapter):
+            def interfaces(self):
+                values = super().interfaces()
+                values[0].update({"address_mode": "dhcp", "dhcp_status": "failed", "addresses": [], "prefixes": [], "dhcp_lease": None})
+                return values
+        output = execute('lan = ethernet_open()\nprint network_wait_until_addressed(lan, duration("10s"))\n', capabilities=self.inspect, network_adapter=FailedAdapter())[1]
+        self.assertEqual(output, "false\n")
+
+    def test_invalid_adapter_lease_is_network_address_error(self):
+        self.adapter.ethernet.update({"address_mode": "dhcp", "dhcp_status": "bound", "dhcp_lease": {"address": "192.0.2.20", "prefix": 24, "renew_after_ms": 5000, "rebind_after_ms": 4000}})
+        caught = self.assert_error('lan = ethernet_open()\nprint network_dhcp_lease(lan)\n', "E980", self.inspect, self.adapter)
+        source = '''function:main
+try :lease
+lan = ethernet_open()
+print network_dhcp_lease(lan)
+catch network_error :lease
+print "invalid lease"
+endtry:lease
+end_function:main
+'''
+        self.assertIn("DHCP", str(caught))
+        self.assertEqual(execute(source, capabilities=self.inspect, network_adapter=self.adapter)[1], "invalid lease\n")
+
+    def test_invalid_adapter_address_state_is_not_silently_normalized(self):
+        class InvalidStateAdapter(FakeNetworkAdapter):
+            def interfaces(self):
+                values = super().interfaces()
+                values[0]["dhcp_status"] = "magic"
+                return values
+        self.assert_error('lan = ethernet_open()\nprint network_dhcp_status(lan)\n', "E980", self.inspect, InvalidStateAdapter())
 
     def test_dns_returns_all_addresses_deterministically(self):
         capability = replace(RuntimeCapabilities.local(ROOT), network=True,

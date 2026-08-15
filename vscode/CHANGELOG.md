@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.5] - 2026-08-16
+
+### Network address configuration
+
+- Highlights DHCP, static-address, link-local, lease inspection, and address-wait APIs.
+- Adds precise LSP signatures and inferred result types for the common Ethernet/Wi-Fi IP layer.
+
 ## [0.9.4] - 2026-08-16
 
 ### Pico firmware workflow

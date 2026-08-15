@@ -152,6 +152,18 @@ auth = bearer_auth(token.access_token)
         inferred = {item.name: item.type for item in variables(source)}
         self.assertEqual(inferred, {"client_secret": "secret", "token": "oauth_token", "auth": "http_auth"})
 
+    def test_network_addressing_signatures_and_types(self):
+        call = 'network_set_static_address(lan, '
+        signature = signature_help(call, 0, len(call))
+        self.assertIn("gateway: ip_address", signature["signatures"][0]["label"])
+        source = '''mode = network_address_mode(lan)
+state = network_dhcp_status(lan)
+lease = network_dhcp_lease(lan)
+ready = network_wait_until_addressed(lan, duration("10s"))
+'''
+        inferred = {item.name: item.type for item in variables(source)}
+        self.assertEqual(inferred, {"mode": "string", "state": "string", "lease": "object", "ready": "boolean"})
+
     def test_structural_end_and_tag_completion(self):
         source = 'function:main\n@notification\nif true :active\n:end\n'
         items = completions(source, 3, 4)["items"]

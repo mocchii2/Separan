@@ -1,6 +1,6 @@
 # Separan Native Network Specification v0.1
 
-Status: experimental implementation in Separan `0.2.0-alpha.8`.
+Status: experimental implementation in Separan `0.2.0-alpha.11`.
 
 ## Purpose and boundary
 
@@ -12,6 +12,7 @@ generation, access-point hosting, or hardware safety validation.
 Separan separates three authorities:
 
 - `inspect_network`: read host interface state;
+- `configure_network`: request IP configuration changes through an explicit adapter;
 - `network`: resolve or contact explicitly allowed destination hosts and ports;
 - `bind_network`: bind a UDP socket to an explicitly allowed local address and port.
 
@@ -100,10 +101,90 @@ not return a fabricated empty scan.
 identity against fresh host state and returns boolean. Zero duration performs a
 single check.
 
-Joining/leaving Wi-Fi, changing DHCP/static addressing, setting the machine
-hostname, and starting an access point are intentionally not exposed by the
-native preview. They mutate machine-wide configuration, frequently require
-administrator authority, and have incompatible platform credential models.
+Joining/leaving Wi-Fi, setting the machine hostname, and starting an access
+point remain outside this native preview. They have separate credential and
+machine-wide policy requirements.
+
+## Common IP address configuration
+
+Address configuration is independent of link type. The same API accepts an
+Ethernet or Wi-Fi `network_interface`:
+
+```separan
+function:main
+
+lan = ethernet_open()
+network_use_dhcp(lan)
+
+if network_wait_until_addressed(lan, duration("10s")) :address_ready
+print network_ip_address(lan)
+else:address_ready
+print "DHCP failed"
+endif:address_ready
+
+end_function:main
+```
+
+The public configuration operations are:
+
+- `network_use_dhcp(interface)`;
+- `network_set_static_address(interface, address, prefix, gateway, dns)`;
+- `network_use_link_local(interface)`;
+- `network_refresh_address(interface)` and `network_release_address(interface)`;
+- `network_enable_link_local_fallback(interface)` and
+  `network_disable_link_local_fallback(interface)`.
+
+Static addresses and gateways must use the same IP version. Prefix length is
+validated against that version. The gateway may be null and DNS is an explicit,
+duplicate-free list. A static link-local address is rejected because
+`network_use_link_local` names that policy directly.
+
+`network_address_mode(interface)` returns exactly `disabled`, `dhcp`, `static`,
+`link_local`, or `unknown`. `unknown` means that a read-only host inspector
+cannot prove how the observed address was configured; Separan does not guess.
+
+`network_dhcp_status(interface)` returns one of `disabled`, `discovering`,
+`requesting`, `bound`, `renewing`, `rebinding`, or `failed`.
+`network_dhcp_lease(interface)` returns null when no lease is available, or an
+immutable object containing:
+
+- `address`, `prefix`, `gateway`, and `dns_servers`;
+- `server_address`;
+- nullable `lease_duration`, `renew_after`, and `rebind_after` durations;
+- nullable UTC `expires_at` datetime.
+
+Adapter data is type-, range-, and ordering-validated. An invalid lease is
+`E980 network_address_error`, never a partially trusted object.
+
+Link-local fallback is disabled by default. Separan never changes a failed DHCP
+request into a 169.254/16 address unless the program explicitly enables the
+fallback. Explicit link-local mode and fallback both delegate duplicate-address
+detection to the adapter's network stack.
+
+Configuration requires the separate `configure_network` capability. The CLI
+flag is `--allow-network-configuration`; it also permits the interface inspection
+needed to select a target, but does not grant outbound network access. The
+default desktop `NativeNetworkAdapter` remains read-only and returns
+`network_operation_unavailable` for configuration. A host or embedded runtime
+implements this adapter contract:
+
+```text
+use_dhcp(interface_name)
+set_static_address(interface_name, configuration)
+use_link_local(interface_name)
+refresh_address(interface_name)
+release_address(interface_name)
+set_link_local_fallback(interface_name, enabled)
+```
+
+The adapter calls NetworkManager/OS-native configuration, lwIP, Pico SDK,
+ESP-IDF, or an Arduino network stack. Separan owns intent, state names, typed
+results, timeout, capability checks, and diagnostics; it does not implement a
+second DHCP client. This model follows the DHCP client state and lease model in
+[RFC 2131](https://www.rfc-editor.org/rfc/rfc2131) and keeps IPv4 link-local
+behavior explicit as described by [RFC 3927](https://www.rfc-editor.org/rfc/rfc3927).
+The complete source template is
+[`examples/network_addressing.sep`](../examples/network_addressing.sep).
 
 ## DNS
 
@@ -177,6 +258,7 @@ All specialized failures are catchable as `network_error`:
 - `network_closed_error`
 - `network_protocol_error`
 - `network_operation_unavailable`
+- `network_address_error`
 
 Capability rejection is `permission_error`, not `network_error`. This keeps
 host policy distinguishable from a failed network operation.

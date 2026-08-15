@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.10
+## v0.2.0-alpha.11
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -202,14 +202,14 @@ The standard library now covers explicit type conversion, Unicode string and
 homogeneous-list processing, immutable bytes, datetime and duration values,
 reproducible and secure randomness, filesystem and process utilities, HTTP
 client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies,
-parameter-bound SQLite, native interface/DNS/TCP/UDP networking, capability-checked embedded board profiles,
+parameter-bound SQLite, native interface/DHCP/DNS/TCP/UDP networking, capability-checked embedded board profiles,
 and Pico/Pico 2 C++ firmware generation with Pico SDK ELF/UF2/HEX builds.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
 
 ## Native LAN, Wi-Fi, DNS, TCP, and UDP
 
-The `0.2.0-alpha.8` reference runtime adds a capability-gated native network
+The `0.2.0-alpha.11` reference runtime provides a capability-gated native network
 layer for desktop and server scripts. It uses dedicated `ip_address`,
 `network_interface`, `tcp_connection`, and `udp_socket` values rather than
 passing ambiguous strings through every operation.
@@ -256,10 +256,29 @@ print string_from_bytes(reply)
 tcp_close(connection)
 ```
 
-Network inspection, outbound destinations, private-address access, and UDP
-binding are separate host capabilities. The native preview does not silently
-change system Wi-Fi profiles, DHCP, static addresses, access-point mode, or the
-machine hostname. See the [native network specification](spec/network.md).
+DHCP, static addressing, and IPv4 link-local are one common IP layer shared by
+Ethernet and Wi-Fi adapters:
+
+```separan
+function:main
+
+lan = ethernet_open()
+network_use_dhcp(lan)
+
+if network_wait_until_addressed(lan, duration("10s")) :address_ready
+print network_ip_address(lan)
+else:address_ready
+print "DHCP failed"
+endif:address_ready
+
+end_function:main
+```
+
+Network inspection, address configuration, outbound destinations,
+private-address access, and UDP binding are separate host capabilities.
+Configuration requires `--allow-network-configuration` and an explicit adapter;
+the default native inspector never escalates privileges or invokes a hidden
+system configurator. See the [native network specification](spec/network.md).
 
 ## One source, multiple embedded boards
 
@@ -500,7 +519,7 @@ plus static validation and a Pico/Pico 2 C++ → Pico SDK → ELF/UF2/HEX firmwa
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.10**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.11**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

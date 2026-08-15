@@ -1,6 +1,6 @@
 # Separan Native Network仕様 v0.1
 
-状態: Separan `0.2.0-alpha.8`で実験実装済み。
+状態: Separan `0.2.0-alpha.11`で実験実装済み。
 
 ## 目的と境界
 
@@ -8,9 +8,10 @@ native network APIはPC／server上のscript向けです。HTTP、および
 Embedded／Micro Separanのdriver層とは分離します。この仕様にはboard固有Wi-Fi driver、
 GPIO接続Ethernet controller、firmware生成、AP hosting、hardware safety検証を含めません。
 
-権限は次の3つへ分離します。
+権限は次の4つへ分離します。
 
 - `inspect_network`: hostのinterface状態を読む
+- `configure_network`: 明示adapterを通じてIP設定変更を要求する
 - `network`: 明示許可された宛先host／portを名前解決・通信する
 - `bind_network`: 明示許可されたlocal address／portへUDP socketをbindする
 
@@ -94,9 +95,85 @@ NetworkManager `nmcli`を利用します。安全なnative scannerがないplatf
 `wifi_wait_until_connected(wifi, timeout)`は同じinterface identityの最新host状態を
 確認してbooleanを返します。duration 0なら1回だけ確認します。
 
-Wi-Fi接続／切断、DHCP／固定address変更、machine hostname変更、AP開始はnative previewに
-入れません。machine全体を書き換え、管理者権限やplatform固有credential modelを必要と
-するためです。
+Wi-Fi接続／切断、machine hostname変更、AP開始はnative previewに入れません。それぞれ
+credentialとmachine全体のpolicyが別途必要だからです。
+
+## 共通IP address設定
+
+address設定はlink typeから独立しています。同じAPIへEthernetまたはWi-Fiの
+`network_interface`を渡します。
+
+```separan
+function:main
+
+lan = ethernet_open()
+network_use_dhcp(lan)
+
+if network_wait_until_addressed(lan, duration("10s")) :address_ready
+print network_ip_address(lan)
+else:address_ready
+print "DHCP failed"
+endif:address_ready
+
+end_function:main
+```
+
+公開する設定操作は次です。
+
+- `network_use_dhcp(interface)`
+- `network_set_static_address(interface, address, prefix, gateway, dns)`
+- `network_use_link_local(interface)`
+- `network_refresh_address(interface)`／`network_release_address(interface)`
+- `network_enable_link_local_fallback(interface)`／
+  `network_disable_link_local_fallback(interface)`
+
+固定addressとgatewayは同じIP versionでなければならず、prefix範囲もversionに合わせて
+検証します。gatewayはnull、DNSは重複のない明示listにできます。固定link-local addressは
+拒否し、意図が名前に出る`network_use_link_local`を使用します。
+
+`network_address_mode(interface)`は`disabled`、`dhcp`、`static`、`link_local`、`unknown`
+のいずれかです。`unknown`はread-only host inspectorが設定方式を証明できない状態であり、
+Separanが推測で補うことはありません。
+
+`network_dhcp_status(interface)`は`disabled`、`discovering`、`requesting`、`bound`、
+`renewing`、`rebinding`、`failed`のいずれかです。
+`network_dhcp_lease(interface)`はlease不在ならnull、存在すれば次の不変objectを返します。
+
+- `address`、`prefix`、`gateway`、`dns_servers`
+- `server_address`
+- null許容durationの`lease_duration`、`renew_after`、`rebind_after`
+- null許容UTC datetimeの`expires_at`
+
+adapter由来dataも型、範囲、時間順序を検証します。不正leaseを部分的に信用せず、
+`E980 network_address_error`で停止します。
+
+link-local fallbackはdefault無効です。DHCP失敗時にprogramが明示許可しない限り、
+Separanが169.254/16へ切り替えることはありません。明示link-local modeとfallbackの
+duplicate-address検査はadapter側network stackへ委譲します。
+
+設定には独立した`configure_network` capabilityが必要です。CLIでは
+`--allow-network-configuration`を指定します。このflagは対象選択に必要なinterface照会も
+許可しますが、外向きnetwork権限は付与しません。desktopのdefault
+`NativeNetworkAdapter`はread-onlyのままで、設定要求には
+`network_operation_unavailable`を返します。host／embedded runtimeが実装するcontractは
+次です。
+
+```text
+use_dhcp(interface_name)
+set_static_address(interface_name, configuration)
+use_link_local(interface_name)
+refresh_address(interface_name)
+release_address(interface_name)
+set_link_local_fallback(interface_name, enabled)
+```
+
+adapterはNetworkManager／OS native設定、lwIP、Pico SDK、ESP-IDF、Arduino network stackを
+呼びます。Separanは意図、状態名、型付き結果、timeout、capability、診断を担当し、DHCP
+clientを二重実装しません。このmodelは[RFC 2131](https://www.rfc-editor.org/rfc/rfc2131)の
+DHCP client状態／lease modelに沿い、IPv4 link-localは
+[RFC 3927](https://www.rfc-editor.org/rfc/rfc3927)どおり明示機能にします。
+完全なsourceひな形は
+[`examples/network_addressing.sep`](../examples/network_addressing.sep)にあります。
 
 ## DNS
 
@@ -167,6 +244,7 @@ bindには別の`bind_network` capabilityとlocal address／port allowlistが必
 - `network_closed_error`
 - `network_protocol_error`
 - `network_operation_unavailable`
+- `network_address_error`
 
 capability拒否は`network_error`ではなく`permission_error`です。host policy違反と
 通信失敗を区別できます。

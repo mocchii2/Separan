@@ -1,4 +1,4 @@
-"""Capability-gated native network inspection, DNS, TCP, and UDP APIs."""
+"""Capability-gated network addressing, inspection, DNS, TCP, and UDP APIs."""
 
 from dataclasses import dataclass
 import ctypes
@@ -16,11 +16,13 @@ from .errors import error
 from .objects import ObjectValue
 from .randomness import BytesValue
 from .system_utilities import UtilityFunction
-from .temporal import DurationValue
+from .temporal import DurationValue, TimezoneValue, UTC, from_unix_milliseconds
 
 
 DEFAULT_TIMEOUT = DurationValue(30_000)
 DEFAULT_RECEIVE_BYTES = 65_536
+ADDRESS_MODES = frozenset({"disabled", "dhcp", "static", "link_local", "unknown"})
+DHCP_STATES = frozenset({"disabled", "discovering", "requesting", "bound", "renewing", "rebinding", "failed"})
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,24 @@ class NativeNetworkAdapter:
         else:
             found = []
         return found or self._fallback_interfaces()
+
+    def use_dhcp(self, interface_name):
+        raise NotImplementedError("Native DHCP configuration requires an explicit host or embedded network adapter.")
+
+    def set_static_address(self, interface_name, configuration):
+        raise NotImplementedError("Native static-address configuration requires an explicit host or embedded network adapter.")
+
+    def use_link_local(self, interface_name):
+        raise NotImplementedError("Native link-local configuration requires an explicit host or embedded network adapter.")
+
+    def refresh_address(self, interface_name):
+        raise NotImplementedError("Native DHCP renewal requires an explicit host or embedded network adapter.")
+
+    def release_address(self, interface_name):
+        raise NotImplementedError("Native DHCP release requires an explicit host or embedded network adapter.")
+
+    def set_link_local_fallback(self, interface_name, enabled):
+        raise NotImplementedError("Native link-local fallback requires an explicit host or embedded network adapter.")
 
     @staticmethod
     def _fallback_interfaces():
@@ -404,6 +424,8 @@ def _interface_value(item):
     mac = item.get("mac_address")
     if mac:
         mac = str(mac).replace("-", ":").casefold()
+    address_mode = item.get("address_mode", "unknown")
+    dhcp_status = item.get("dhcp_status", "disabled")
     return NetworkInterfaceValue.create({
         "name": str(item.get("name") or ""), "index": int(item.get("index") or 0),
         "description": str(item.get("description") or item.get("name") or ""),
@@ -414,6 +436,9 @@ def _interface_value(item):
         "dns_servers": dns, "mac_address": mac,
         "ssid": item.get("ssid"), "bssid": item.get("bssid"),
         "channel": item.get("channel"), "signal_strength": item.get("signal_strength"),
+        "address_mode": address_mode, "dhcp_status": dhcp_status,
+        "dhcp_lease": item.get("dhcp_lease"),
+        "link_local_fallback": item.get("link_local_fallback", False),
     })
 
 
@@ -464,18 +489,33 @@ def _interface_field(field, function_name):
     return implementation
 
 
+def _validate_address_metadata(value, position):
+    mode = value.fields["address_mode"]
+    status = value.fields["dhcp_status"]
+    fallback = value.fields["link_local_fallback"]
+    if type(mode) is not str or mode not in ADDRESS_MODES:
+        raise error("E980", "network_address_error", "Network adapter returned an invalid address mode.", position, actual=repr(mode))
+    if type(status) is not str or status not in DHCP_STATES:
+        raise error("E980", "network_address_error", "Network adapter returned an invalid DHCP status.", position, actual=repr(status))
+    if type(fallback) is not bool:
+        raise error("E980", "network_address_error", "Network adapter returned a non-boolean link-local fallback state.", position, actual=repr(fallback))
+    return value
+
+
 def _network_status(args, named, position, runtime):
-    value = _require_interface(args[0], "network_status", position, runtime)
+    value = _validate_address_metadata(_require_interface(args[0], "network_status", position, runtime), position)
     return ObjectValue.create({key: value.fields[key] for key in (
-        "name", "kind", "connected", "ip_address", "gateway", "subnet_mask", "dns_servers", "mac_address"
+        "name", "kind", "connected", "ip_address", "gateway", "subnet_mask", "dns_servers", "mac_address",
+        "address_mode", "dhcp_status", "link_local_fallback"
     )})
 
 
 def _kind_status(kind, function_name):
     def implementation(args, named, position, runtime):
-        value = _require_interface(args[0], function_name, position, runtime, kind)
+        value = _validate_address_metadata(_require_interface(args[0], function_name, position, runtime, kind), position)
         return ObjectValue.create({key: value.fields[key] for key in (
-            "name", "kind", "connected", "ip_address", "gateway", "subnet_mask", "dns_servers", "mac_address"
+            "name", "kind", "connected", "ip_address", "gateway", "subnet_mask", "dns_servers", "mac_address",
+            "address_mode", "dhcp_status", "link_local_fallback"
         )})
     return implementation
 
@@ -552,6 +592,179 @@ def _network_preferred(args, named, position, runtime):
     by_name = {value.fields["name"]: value for value in values}
     order = runtime.network_preferred_interfaces or [value.fields["name"] for value in values]
     return next((by_name[name] for name in order if name in by_name and by_name[name].fields["connected"]), None)
+
+
+def _configuration_interface(value, function_name, position, runtime):
+    runtime.capabilities.require(runtime.capabilities.configure_network, "configure network addresses", position)
+    interface = _validate_address_metadata(_require_interface(value, function_name, position, runtime), position)
+    if interface.fields["kind"] == "loopback":
+        raise error("E980", "network_address_error", "Loopback interface addressing cannot be changed.", position, actual=interface.fields["name"])
+    return interface
+
+
+def _adapter_configuration(runtime, method_name, interface, position, *arguments):
+    implementation = getattr(runtime.network_adapter, method_name, None)
+    if implementation is None:
+        raise error("E978", "network_operation_unavailable", "The selected network adapter does not implement this address operation.", position, actual=method_name)
+    try:
+        implementation(interface.fields["name"], *arguments)
+    except NotImplementedError as exc:
+        raise error("E978", "network_operation_unavailable", str(exc), position, actual=method_name)
+    except TimeoutError:
+        raise error("E974", "network_timeout_error", "Network address operation timed out.", position, actual=method_name)
+    except Exception as exc:
+        raise error("E980", "network_address_error", str(exc), position, actual=method_name)
+    return None
+
+
+def _network_use_dhcp(args, named, position, runtime):
+    interface = _configuration_interface(args[0], "network_use_dhcp", position, runtime)
+    return _adapter_configuration(runtime, "use_dhcp", interface, position)
+
+
+def _prefix(value, version, position):
+    maximum = 32 if version == 4 else 128
+    if type(value) is not int or not 0 <= value <= maximum:
+        raise error("E980", "network_address_error", f"Network prefix must be an integer from 0 through {maximum} for IPv{version}.", position, actual=repr(value))
+    return value
+
+
+def _unicast_address(value, name, position, runtime, optional=False):
+    if value is None and optional:
+        return None
+    address = _ip(value, name, position, runtime)
+    if address.value.is_unspecified or address.value.is_multicast:
+        raise error("E980", "network_address_error", f"{name} requires a unicast address.", position, actual=str(address.value))
+    return address
+
+
+def _dns_addresses(value, position, runtime):
+    if type(value) is not list:
+        runtime.type_error(position, "list<ip_address|string>", runtime.type_name(value), "Static DNS servers must be a list.")
+    result = []
+    for item in value:
+        address = _unicast_address(item, "network_set_static_address() DNS server", position, runtime)
+        if address.value.is_loopback:
+            raise error("E980", "network_address_error", "Static DNS server cannot be a loopback address.", position, actual=str(address.value))
+        result.append(str(address.value))
+    if len(result) != len(set(result)):
+        raise error("E980", "network_address_error", "Static DNS server addresses must be unique.", position)
+    return result
+
+
+def _network_set_static(args, named, position, runtime):
+    interface = _configuration_interface(args[0], "network_set_static_address", position, runtime)
+    address = _unicast_address(args[1], "network_set_static_address() address", position, runtime)
+    if address.value.is_loopback or address.value.is_link_local:
+        raise error("E980", "network_address_error", "Static address must not be loopback or link-local; use the explicit link-local mode instead.", position, actual=str(address.value))
+    prefix = _prefix(args[2], address.value.version, position)
+    gateway = _unicast_address(args[3], "network_set_static_address() gateway", position, runtime, optional=True)
+    if gateway is not None and gateway.value.version != address.value.version:
+        raise error("E980", "network_address_error", "Static address and gateway must use the same IP version.", position,
+                    expected=f"IPv{address.value.version}", actual=f"IPv{gateway.value.version}")
+    configuration = {
+        "address": str(address.value), "prefix": prefix,
+        "gateway": None if gateway is None else str(gateway.value),
+        "dns_servers": _dns_addresses(args[4], position, runtime),
+    }
+    return _adapter_configuration(runtime, "set_static_address", interface, position, configuration)
+
+
+def _network_use_link_local(args, named, position, runtime):
+    interface = _configuration_interface(args[0], "network_use_link_local", position, runtime)
+    return _adapter_configuration(runtime, "use_link_local", interface, position)
+
+
+def _dhcp_interface(value, function_name, position, runtime):
+    interface = _configuration_interface(value, function_name, position, runtime)
+    if interface.fields["address_mode"] != "dhcp":
+        raise error("E980", "network_address_error", f"{function_name}() requires an interface in DHCP mode.", position,
+                    expected="dhcp", actual=interface.fields["address_mode"])
+    return interface
+
+
+def _network_refresh_address(args, named, position, runtime):
+    interface = _dhcp_interface(args[0], "network_refresh_address", position, runtime)
+    return _adapter_configuration(runtime, "refresh_address", interface, position)
+
+
+def _network_release_address(args, named, position, runtime):
+    interface = _dhcp_interface(args[0], "network_release_address", position, runtime)
+    return _adapter_configuration(runtime, "release_address", interface, position)
+
+
+def _link_local_fallback(enabled):
+    function_name = "network_enable_link_local_fallback" if enabled else "network_disable_link_local_fallback"
+    def implementation(args, named, position, runtime):
+        interface = _configuration_interface(args[0], function_name, position, runtime)
+        return _adapter_configuration(runtime, "set_link_local_fallback", interface, position, enabled)
+    return implementation
+
+
+def _network_address_mode(args, named, position, runtime):
+    return _validate_address_metadata(_require_interface(args[0], "network_address_mode", position, runtime), position).fields["address_mode"]
+
+
+def _network_dhcp_status(args, named, position, runtime):
+    return _validate_address_metadata(_require_interface(args[0], "network_dhcp_status", position, runtime), position).fields["dhcp_status"]
+
+
+def _lease_duration(raw, key, position):
+    value = raw.get(key)
+    if value is None:
+        return None
+    if type(value) is not int or value < 0:
+        raise error("E980", "network_address_error", f"DHCP lease {key} must be non-negative integer milliseconds or null.", position)
+    return DurationValue(value)
+
+
+def _network_dhcp_lease(args, named, position, runtime):
+    interface = _validate_address_metadata(_require_interface(args[0], "network_dhcp_lease", position, runtime), position)
+    raw = interface.fields["dhcp_lease"]
+    if raw is None:
+        return None
+    if type(raw) is not dict:
+        raise error("E980", "network_address_error", "DHCP adapter lease must be an object-shaped record.", position)
+    address = _unicast_address(raw.get("address"), "DHCP lease address", position, runtime)
+    prefix = _prefix(raw.get("prefix"), address.value.version, position)
+    gateway = _unicast_address(raw.get("gateway"), "DHCP lease gateway", position, runtime, optional=True)
+    server = _unicast_address(raw.get("server_address"), "DHCP server address", position, runtime, optional=True)
+    for candidate, label in ((gateway, "gateway"), (server, "server address")):
+        if candidate is not None and candidate.value.version != address.value.version:
+            raise error("E980", "network_address_error", f"DHCP lease {label} must use the leased address IP version.", position)
+    dns = _dns_addresses(raw.get("dns_servers", []), position, runtime)
+    lease_duration = _lease_duration(raw, "lease_duration_ms", position)
+    renew_after = _lease_duration(raw, "renew_after_ms", position)
+    rebind_after = _lease_duration(raw, "rebind_after_ms", position)
+    ordered = [value.milliseconds for value in (renew_after, rebind_after, lease_duration) if value is not None]
+    if ordered != sorted(ordered):
+        raise error("E980", "network_address_error", "DHCP renew, rebind, and lease durations must be ordered.", position)
+    expires = raw.get("expires_at_unix_ms")
+    if expires is not None:
+        if type(expires) is not int:
+            raise error("E980", "network_address_error", "DHCP lease expiration must be integer Unix milliseconds or null.", position)
+        expires = from_unix_milliseconds(expires, TimezoneValue("UTC", UTC), position)
+    return ObjectValue.create({
+        "address": address, "prefix": prefix, "gateway": gateway,
+        "dns_servers": [IpAddressValue(ipaddress.ip_address(value)) for value in dns],
+        "server_address": server, "lease_duration": lease_duration,
+        "renew_after": renew_after, "rebind_after": rebind_after, "expires_at": expires,
+    })
+
+
+def _network_wait_addressed(args, named, position, runtime):
+    interface = _require_interface(args[0], "network_wait_until_addressed", position, runtime, refresh=False)
+    timeout = args[1]
+    if not isinstance(timeout, DurationValue) or timeout.milliseconds < 0 or timeout.milliseconds > runtime.capabilities.max_socket_timeout_ms:
+        raise error("E974", "network_timeout_error", "Address wait timeout must be a non-negative duration within the host limit.", position)
+    deadline = time.monotonic() + timeout.milliseconds / 1000
+    while True:
+        current = _validate_address_metadata(_require_interface(interface, "network_wait_until_addressed", position, runtime), position)
+        if current.fields["ip_address"] is not None:
+            return True
+        if current.fields["dhcp_status"] == "failed" or time.monotonic() >= deadline:
+            return False
+        time.sleep(min(0.1, max(0, deadline - time.monotonic())))
 
 
 def _ip_address(args, named, position, runtime):
@@ -826,6 +1039,17 @@ NETWORK_BUILTINS = (
     UtilityFunction("network_hostname", 0, 0, lambda args, named, position, runtime: socket.gethostname()),
     UtilityFunction("network_set_preferred_interfaces", 1, 1, _network_set_preferred),
     UtilityFunction("network_preferred_interface", 0, 0, _network_preferred),
+    UtilityFunction("network_use_dhcp", 1, 1, _network_use_dhcp),
+    UtilityFunction("network_set_static_address", 5, 5, _network_set_static),
+    UtilityFunction("network_use_link_local", 1, 1, _network_use_link_local),
+    UtilityFunction("network_refresh_address", 1, 1, _network_refresh_address),
+    UtilityFunction("network_release_address", 1, 1, _network_release_address),
+    UtilityFunction("network_enable_link_local_fallback", 1, 1, _link_local_fallback(True)),
+    UtilityFunction("network_disable_link_local_fallback", 1, 1, _link_local_fallback(False)),
+    UtilityFunction("network_address_mode", 1, 1, _network_address_mode),
+    UtilityFunction("network_dhcp_status", 1, 1, _network_dhcp_status),
+    UtilityFunction("network_dhcp_lease", 1, 1, _network_dhcp_lease),
+    UtilityFunction("network_wait_until_addressed", 2, 2, _network_wait_addressed),
     UtilityFunction("ethernet_open", 0, 1, _open_kind("ethernet", "ethernet_open")),
     UtilityFunction("ethernet_status", 1, 1, _kind_status("ethernet", "ethernet_status")),
     UtilityFunction("wifi_open", 0, 1, _open_kind("wifi", "wifi_open")),

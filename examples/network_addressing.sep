@@ -1,0 +1,31 @@
+########################################
+# Common Ethernet / Wi-Fi IP addressing
+########################################
+
+function:main
+
+@network
+@dhcp
+@sample
+
+lan = ethernet_open()
+
+network_use_dhcp(lan)
+
+if network_wait_until_addressed(lan, duration("10s")) :address_ready
+
+print "Address mode: " + network_address_mode(lan)
+print network_ip_address(lan)
+
+lease = network_dhcp_lease(lan)
+
+if lease != null :lease_available
+print lease.gateway
+print lease.dns_servers
+endif:lease_available
+
+else:address_ready
+print "DHCP failed"
+endif:address_ready
+
+end_function:main

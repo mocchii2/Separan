@@ -65,6 +65,17 @@ BUILTIN_SIGNATURES = {
     "network_hostname": "network_hostname() -> string",
     "network_set_preferred_interfaces": "network_set_preferred_interfaces(names: list<string>) -> null",
     "network_preferred_interface": "network_preferred_interface() -> network_interface | null",
+    "network_use_dhcp": "network_use_dhcp(interface: network_interface) -> null",
+    "network_set_static_address": "network_set_static_address(interface: network_interface, address: ip_address | string, prefix: number, gateway: ip_address | string | null, dns: list) -> null",
+    "network_use_link_local": "network_use_link_local(interface: network_interface) -> null",
+    "network_refresh_address": "network_refresh_address(interface: network_interface) -> null",
+    "network_release_address": "network_release_address(interface: network_interface) -> null",
+    "network_enable_link_local_fallback": "network_enable_link_local_fallback(interface: network_interface) -> null",
+    "network_disable_link_local_fallback": "network_disable_link_local_fallback(interface: network_interface) -> null",
+    "network_address_mode": "network_address_mode(interface: network_interface) -> string",
+    "network_dhcp_status": "network_dhcp_status(interface: network_interface) -> string",
+    "network_dhcp_lease": "network_dhcp_lease(interface: network_interface) -> object | null",
+    "network_wait_until_addressed": "network_wait_until_addressed(interface: network_interface, timeout: duration) -> boolean",
     "ethernet_open": "ethernet_open(name?: string) -> network_interface",
     "ethernet_status": "ethernet_status(interface: network_interface) -> object",
     "wifi_open": "wifi_open(name?: string) -> network_interface",
@@ -291,8 +302,8 @@ def _literal_type(expression):
     if call:
         name = call.group(1)
         if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow", "absolute", "minimum", "maximum", "truncate", "clamp", "sign", "square_root", "cube_root", "power", "hypotenuse", "exponential", "exponential_base2", "natural_log", "log_base2", "log_base10", "log_one_plus", "arc_sin", "arc_cos", "arc_tan", "arc_tan2", "sinh", "cosh", "tanh", "arc_sinh", "arc_cosh", "arc_tanh", "to_radians", "to_degrees", "greatest_common_divisor", "least_common_multiple", "factorial", "median", "variance", "sample_variance", "standard_deviation", "sample_standard_deviation", "percentile", "binary_to_number", "octal_to_number", "hexadecimal_to_number", "base_to_number", "ip_address_version", "tcp_send", "udp_send"): return "number"
-        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape", "network_hostname"): return "string"
-        if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search", "yaml_validate", "yaml_validate_file", "network_is_connected", "wifi_is_connected", "wifi_wait_until_connected", "ip_address_is_private", "ip_address_is_loopback", "ip_address_is_global"): return "boolean"
+        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape", "network_hostname", "network_address_mode", "network_dhcp_status"): return "string"
+        if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search", "yaml_validate", "yaml_validate_file", "network_is_connected", "wifi_is_connected", "wifi_wait_until_connected", "network_wait_until_addressed", "ip_address_is_private", "ip_address_is_loopback", "ip_address_is_global"): return "boolean"
         if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average", "yaml_to_objects", "yaml_file_to_objects", "xml_children", "xml_find_all", "network_interfaces", "network_ip_addresses", "network_dns_servers", "wifi_scan", "dns_resolve"): return "list"
         if name in ("datetime", "datetime_now", "datetime_parse"): return "datetime"
         if name == "duration": return "duration"
@@ -302,7 +313,7 @@ def _literal_type(expression):
         if name in ("network_interface", "network_preferred_interface", "ethernet_open", "wifi_open"): return "network_interface"
         if name == "tcp_connect": return "tcp_connection"
         if name == "udp_open": return "udp_socket"
-        if name in ("network_status", "ethernet_status", "wifi_status", "udp_receive"): return "object"
+        if name in ("network_status", "ethernet_status", "wifi_status", "udp_receive", "network_dhcp_lease"): return "object"
         if name in ("secret_get", "secret_from_environment"): return "secret"
         if name == "oauth_client_credentials": return "oauth_token"
         if name in ("basic_auth", "bearer_auth", "api_key_auth"): return "http_auth"

@@ -282,7 +282,7 @@ class Interpreter:
         if 930 <= prefix <= 939: return value.category if value.category.endswith("_error") else "mail_error"
         if 940 <= prefix <= 949: return value.category if value.category.endswith("_error") else "yaml_error"
         if 950 <= prefix <= 959: return value.category if value.category.endswith("_error") else "xml_error"
-        if 970 <= prefix <= 978: return value.category if value.category.endswith("_error") else "network_error"
+        if 970 <= prefix <= 978 or prefix == 980: return value.category if value.category.endswith("_error") else "network_error"
         if prefix == 979: return "permission_error"
         return "runtime_error"
 
@@ -305,6 +305,7 @@ class Interpreter:
             "network_connection_error": "network_error", "network_timeout_error": "network_error",
             "network_limit_error": "network_error", "network_closed_error": "network_error",
             "network_protocol_error": "network_error", "network_operation_unavailable": "network_error",
+            "network_address_error": "network_error",
         }
         current = actual
         while current in parents:

@@ -49,6 +49,7 @@ def main(argv=None):
     parser.add_argument("--allow-mail-recipient", action="append", default=[], help="allow this mail recipient address")
     parser.add_argument("--allow-private-mail-network", action="store_true", help="allow mail delivery to private network addresses")
     parser.add_argument("--allow-network-inspection", action="store_true", help="allow reading host network interface state")
+    parser.add_argument("--allow-network-configuration", action="store_true", help="allow an explicit adapter to change interface IP configuration")
     parser.add_argument("--allow-network-host", action="append", default=[], help="allow DNS/TCP/UDP/HTTP access to this host")
     parser.add_argument("--allow-network-port", action="append", type=int, default=[], help="limit DNS/TCP/UDP/HTTP access to this destination port")
     parser.add_argument("--allow-private-network", action="store_true", help="allow access to loopback and private destination addresses")
@@ -77,7 +78,8 @@ def main(argv=None):
                 RuntimeCapabilities.local(resolved.parent),
                 database_drivers=frozenset({"sqlite", *args.allow_database_driver}),
                 network=network_enabled,
-                inspect_network=args.allow_network_inspection,
+                inspect_network=args.allow_network_inspection or args.allow_network_configuration,
+                configure_network=args.allow_network_configuration,
                 bind_network=bind_enabled,
                 network_hosts=network_hosts if network_enabled else None,
                 network_ports=network_ports if network_ports else None,

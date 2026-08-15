@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.10
+## v0.2.0-alpha.11
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -178,14 +178,14 @@ v0.4 tooling層では、v0.1言語意味論を変えずに
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
 HTTP client／server preview、認証、capability制御mail、YAML／XML構造化データ、Cookie、parameter bindingを使うSQLite、
-native interface／DNS／TCP／UDP network、capability検証付きembedded board profile、
+native interface／DHCP／DNS／TCP／UDP network、capability検証付きembedded board profile、
 Pico／Pico 2向けC++ firmware生成とPico SDK ELF／UF2／HEX buildが
 実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
 厳密に診断します。
 
 ## Native LAN／Wi-Fi／DNS／TCP／UDP
 
-`0.2.0-alpha.8`のreference runtimeには、PC／server向けのcapability制御native network層を
+`0.2.0-alpha.11`のreference runtimeには、PC／server向けのcapability制御native network層を
 追加しました。曖昧なstringをすべての操作へ流さず、`ip_address`、
 `network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
 
@@ -231,9 +231,26 @@ print string_from_bytes(reply)
 tcp_close(connection)
 ```
 
-interface照会、外向き宛先、private addressアクセス、UDP bindは別capabilityです。
-native previewがsystem Wi-Fi profile、DHCP／固定address、AP mode、machine hostnameを
-黙って変更することはありません。詳細は[Native Network仕様](../spec/network.ja.md)を
+DHCP、固定address、IPv4 link-localはEthernet／Wi-Fi共通のIP layerです。
+
+```separan
+function:main
+
+lan = ethernet_open()
+network_use_dhcp(lan)
+
+if network_wait_until_addressed(lan, duration("10s")) :address_ready
+print network_ip_address(lan)
+else:address_ready
+print "DHCP failed"
+endif:address_ready
+
+end_function:main
+```
+
+interface照会、address設定、外向き宛先、private addressアクセス、UDP bindは別capabilityです。
+設定には`--allow-network-configuration`と明示adapterが必要で、default native inspectorが
+管理者権限を取得したり、隠れたsystem設定commandを実行したりしません。詳細は[Native Network仕様](../spec/network.ja.md)を
 参照してください。
 
 ## 1つのsourceで複数のEmbedded board
@@ -436,7 +453,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.10** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.11** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

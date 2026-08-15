@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.2.0-alpha.10
+# Separan言語仕様 — v0.2.0-alpha.11
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -189,7 +189,7 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
 - [HTTP client](http.ja.md): text中心取得、詳細response、正直なprofile、network
   capabilityを実装しています。browser automationとの境界も仕様として固定しています。
 - [Native network](network.ja.md): IP／interface／socket専用値型、権限分離したhost照会、
-  決定的DNS、上限制御付きTCP／UDPを実装しています。
+  adapter型DHCP／固定／link-local設定、決定的DNS、上限制御付きTCP／UDPを実装しています。
 - [外部process実行](process-execution.ja.md): argv直接実行、checked実行、明示的shell
   risk、出力上限、host capabilityを実装しています。
 - [regex・glob・environment・command line](system-utilities.ja.md): 検索不在、決定的な

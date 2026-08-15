@@ -15,7 +15,7 @@ Language support for the label-structured Separan programming language.
 - **Syntax highlighting** for keywords, values, functions, types, and labels
 - **Label-aware structure** with diagnostics, navigation, Outline, folding, and rename
 - **Semantic function tags** for related code that is separated across structures
-- **Native network API awareness** for IP, interface, DNS, TCP, UDP, Ethernet, and Wi-Fi values
+- **Native network API awareness** for shared DHCP/static/link-local addressing, IP, interface, DNS, TCP, UDP, Ethernet, and Wi-Fi values
 - **Pico firmware commands** for explicit Pico/Pico 2 C++ project generation and SDK builds
 - **`:end` structural completion** that opens automatically and orders valid closers from the innermost open block
 - **`.sep` file support** in Visual Studio Code

@@ -26,6 +26,7 @@ class RuntimeCapabilities:
     max_process_output_bytes: int = 1_048_576
     network: bool = False
     inspect_network: bool = False
+    configure_network: bool = False
     bind_network: bool = False
     network_schemes: frozenset = frozenset({"https"})
     network_hosts: frozenset | None = None
@@ -60,7 +61,7 @@ class RuntimeCapabilities:
         return cls(Path(root).resolve(), read_files=False, write_files=False, discover_paths=False,
                    read_environment=False, write_environment=False, import_modules=False,
                    run_processes=False, run_shell=False, network=False, send_mail=False, database=False,
-                   inspect_network=False, bind_network=False, embedded_io=False)
+                   inspect_network=False, configure_network=False, bind_network=False, embedded_io=False)
 
     def require(self, allowed, action, position):
         if not allowed: raise error("E720", "Permission error", f"Host capability does not allow {action}.", position, actual=action)
