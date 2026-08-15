@@ -90,6 +90,7 @@ structural problem.
 - **🌍 Unicode Labels** - Full support for Japanese and other Unicode labels
 - **💡 Type Hints** - Inline type inference
 - **🎨 Rich Syntax Highlighting** - Semantic tokens for precision highlighting
+- **🔌 Logical Pin Assistance** - Complete and inspect board-profile-aware `pin.*` names
 
 ## 🚀 Quick Start
 

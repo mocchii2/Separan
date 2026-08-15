@@ -1,0 +1,6 @@
+function:main
+
+gpio_set_mode(pin.LED_BUILTIN, "output")
+gpio_write(pin.LED_BUILTIN, true)
+
+end_function:main

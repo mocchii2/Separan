@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.5
+# Separan Language Specification — v0.2.0-alpha.6
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -235,3 +235,5 @@ implemented experimentally but are not yet stable.
   adapter contract with no fake HTTP-client fallback.
 - [Structure Explorer](structure-explorer.md): human-readable block hierarchy,
   direct reads/writes/calls, navigation, and Git structural state.
+- [Embedded board mapping](embedded-board-mapping.md): logical pins, reviewed
+  Tier 1 board profiles, capability-aware bus validation, and a host-adapter boundary.

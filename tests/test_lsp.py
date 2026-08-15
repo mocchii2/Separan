@@ -162,6 +162,16 @@ end_function:second
         labels = [item["label"] for item in completions("print square_", 0, 13)["items"]]
         self.assertIn("square_root", labels)
 
+    def test_embedded_pin_completion_hover_and_signatures(self):
+        source = 'board = board_select("raspberry_pi_pico")\nprint pin.A\n'
+        items = completions(source, 1, 11)["items"]
+        self.assertEqual([item["label"] for item in items], ["A0", "A1", "A2"])
+        hover_value = hover(source.replace("pin.A", "pin.A0"), 1, 10)["contents"]["value"]
+        self.assertIn("GPIO26", hover_value)
+        self.assertIn("analog_input", hover_value)
+        signature = signature_help("print i2c_open(0, ", 0, 19)
+        self.assertIn("sda?: pin", signature["signatures"][0]["label"])
+
     def test_semantic_tokens_include_typed_variables_parameters_and_labels(self):
         source = '''function:main(value)
 const count = 10

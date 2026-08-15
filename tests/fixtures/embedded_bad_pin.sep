@@ -1,0 +1,3 @@
+function:unused
+analog_read(pin.D8)
+end_function:unused

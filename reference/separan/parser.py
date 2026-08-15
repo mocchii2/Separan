@@ -245,8 +245,8 @@ class Parser:
 
     @staticmethod
     def _binding(token):
-        if token.lexeme == "system":
-            raise error("E215", "Reserved system name", "Name 'system' is reserved for the read-only execution context.", token.position, actual=token.lexeme)
+        if token.lexeme in ("system", "pin"):
+            raise error("E215", "Reserved context name", f"Name '{token.lexeme}' is reserved for a read-only runtime context.", token.position, actual=token.lexeme)
         return token
 
     def _push(self, kind, label):

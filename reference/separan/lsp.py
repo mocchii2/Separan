@@ -12,6 +12,7 @@ from .errors import SeparanError
 from .builtins import BUILTINS
 from .lexer import Lexer
 from .parser import Parser
+from .embedded import BOARD_PROFILES
 from .structural import ScopeResolutionError, inspect_source, structural_diff, verify_scopes, verify_tag_scope
 from .structure_insights import document_structure
 from .lsp_analysis import (
@@ -175,6 +176,14 @@ def hover(source, line, character):
         parent = f"\nParent: `{block.parent.label}` ({block.parent.kind})" if block.parent else ""
         count = block.end_line - block.line + 1 if block.end_line is not None else "?"
         return {"contents": {"kind": "markdown", "value": f"**Label:** `{block.label}`\n\nBlock: `{block.kind}`  \nOpened: line {block.line + 1}  \nClosed: line {closed}  \nLines: {count}{parent}"}}
+    pin = _pin_at(source, line, character)
+    if pin is not None:
+        profile, value = pin
+        capabilities = ", ".join(value.definition.capabilities)
+        return {"contents": {"kind": "markdown", "value":
+            f"**pin.{value.definition.name}** on `{profile.id}`\n\n"
+            f"Backend: `{value.definition.backend_pin}`  \nPhysical pin: `{value.definition.physical_pin}`  \n"
+            f"Voltage: `{value.definition.voltage} V`  \nCapabilities: {capabilities}"}}
     variable = variable_at(source, line, character)
     if variable:
         mutable = "no (readonly)" if variable.constant else "yes"; members = ""
@@ -188,6 +197,23 @@ def hover(source, line, character):
         if function:
             params = function.group(1) or ""
             return {"contents": {"kind": "markdown", "value": f"```separan\n{word[0]}({params}) -> inferred\n```"}}
+    return None
+
+
+def _source_board_profile(source):
+    found = re.search(r'\bboard_select\(\s*"([a-z0-9_]+)"\s*\)', source)
+    return BOARD_PROFILES.get(found.group(1)) if found else None
+
+
+def _pin_at(source, line, character):
+    lines = source.splitlines()
+    if line >= len(lines): return None
+    for found in re.finditer(r"\bpin\.([A-Za-z0-9_]+)", lines[line]):
+        if found.start(1) <= character <= found.end(1):
+            profile = _source_board_profile(source)
+            if profile is None: return None
+            try: return profile, profile.resolve(found.group(1), None)
+            except SeparanError: return None
     return None
 
 
@@ -233,6 +259,21 @@ def completions(source, line, character):
         items.append(item)
     if structural_trigger:
         return {"isIncomplete": False, "items": items}
+    pin_prefix = re.search(r"\bpin\.([A-Za-z0-9_]*)$", prefix)
+    if pin_prefix:
+        selected = _source_board_profile(source)
+        if selected is None:
+            names = set.intersection(*(set(profile.aliases) for profile in BOARD_PROFILES.values()))
+            detail = "Logical pin available on every bundled Tier 1 board"
+        else:
+            names = set(selected.aliases)
+            detail = f"Logical pin for {selected.id}"
+        typed = pin_prefix.group(1); start = character - len(typed)
+        return {"isIncomplete": False, "items": [
+            {"label": name, "kind": 5, "sortText": "0" + name,
+             "textEdit": {"range": _range(line, start, character), "newText": name}, "detail": detail}
+            for name in sorted(names) if name.startswith(typed)
+        ]}
     tag_prefix = re.match(r"^\s*@([^\s#]*)$", prefix)
     if tag_prefix:
         typed = tag_prefix.group(1)

@@ -1,0 +1,3 @@
+function:main
+gpio_write(pin.LED_BUILTIN, true)
+end_function:main

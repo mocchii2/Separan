@@ -26,7 +26,7 @@
     { "name": "support.function.builtin.separan", "match": "\\b(?:file_exists|file_size|copy_file|move_file|delete_file|read_lines|directory_exists|create_directory|delete_directory|list_directory|file_name|file_extension|parent_directory|absolute_path)(?=\\s*\\()" },
     { "name": "support.function.builtin.separan", "match": "\\b(?:db_connect|db_close|db_query|db_query_one|db_scalar|db_execute|db_begin|db_commit|db_rollback|db_tables|db_columns|db_indexes|db_primary_key|db_server_info|db_version)(?=\\s*\\()" },
     { "name": "keyword.control.separan", "match": "\\b(?:transaction|end_transaction)\\b" },
-    { "name": "variable.language.system.separan", "match": "\\bsystem\\b" },
+    { "name": "variable.language.system.separan", "match": "\\b(?:system|pin)\\b" },
     { "name": "support.variable.property.system.separan", "match": "(?<=\\bsystem\\.)(?:version|engine|script_path|script_name|script_dir|working_dir|args|arg_count|os|arch|hostname|pid|runtime|cpu_count)\\b" },
     { "name": "entity.name.namespace.separan", "match": "(?<=\\bas\\s)[A-Za-z_][A-Za-z0-9_]*\\b" },
     { "name": "meta.function.parameters.separan", "begin": "\\b(function):([A-Za-z_][A-Za-z0-9_]*)(\\()", "beginCaptures": { "1": { "name": "keyword.control.separan" }, "2": { "name": "entity.name.function.separan" } }, "end": "\\)", "patterns": [{ "name": "variable.parameter.separan", "match": "[A-Za-z_][A-Za-z0-9_]*" }] },

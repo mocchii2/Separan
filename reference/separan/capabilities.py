@@ -44,6 +44,8 @@ class RuntimeCapabilities:
     http_bind_ports: frozenset | None = None
     database: bool = True
     database_drivers: frozenset = frozenset({"sqlite"})
+    embedded_io: bool = False
+    embedded_boards: frozenset | None = None
 
     @classmethod
     def local(cls, root): return cls(Path(root).resolve())
@@ -51,7 +53,8 @@ class RuntimeCapabilities:
     def none(cls, root):
         return cls(Path(root).resolve(), read_files=False, write_files=False, discover_paths=False,
                    read_environment=False, write_environment=False, import_modules=False,
-                   run_processes=False, run_shell=False, network=False, send_mail=False, database=False)
+                   run_processes=False, run_shell=False, network=False, send_mail=False, database=False,
+                   embedded_io=False)
 
     def require(self, allowed, action, position):
         if not allowed: raise error("E720", "Permission error", f"Host capability does not allow {action}.", position, actual=action)

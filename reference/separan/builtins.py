@@ -46,6 +46,7 @@ from .collection_ops import average, count as count_values, filter_list, flatten
 from .math_ops import MATH_BUILTINS
 from .mail import MAIL_BUILTINS
 from .structured_data import STRUCTURED_DATA_BUILTINS
+from .embedded import EMBEDDED_BUILTINS
 
 
 MAX_TEXT_LENGTH = 1_048_576
@@ -794,6 +795,7 @@ BUILTINS = {
             , "xml_error", "xml_parse_error", "xml_model_error", "xml_security_error", "xml_limit_error", "xml_path_error", "xml_escape_error"
             , "cookie_error"
             , "db_connection_error", "db_auth_error", "db_query_error", "db_constraint_error", "db_timeout_error", "db_transaction_error", "db_driver_error"
+            , "board_error", "pin_error", "peripheral_mapping_error", "embedded_backend_error"
         )),
-    ) + MATH_BUILTINS + (UtilityFunction("datetime", 1, 6, _datetime_construct, ("timezone",)),) + UTILITY_BUILTINS + PROCESS_BUILTINS + HTTP_BUILTINS + BYTES_BUILTINS + AUTH_BUILTINS + CRYPTO_BUILTINS + MAIL_BUILTINS + STRUCTURED_DATA_BUILTINS + COOKIE_BUILTINS + COOKIE_STORE_BUILTINS + SERVER_BUILTINS + DB_BUILTINS
+    ) + MATH_BUILTINS + (UtilityFunction("datetime", 1, 6, _datetime_construct, ("timezone",)),) + UTILITY_BUILTINS + PROCESS_BUILTINS + HTTP_BUILTINS + BYTES_BUILTINS + AUTH_BUILTINS + CRYPTO_BUILTINS + MAIL_BUILTINS + STRUCTURED_DATA_BUILTINS + COOKIE_BUILTINS + COOKIE_STORE_BUILTINS + SERVER_BUILTINS + DB_BUILTINS + EMBEDDED_BUILTINS
 }

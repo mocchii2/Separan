@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.5
+## v0.2.0-alpha.6
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -177,7 +177,8 @@ v0.4 tooling層では、v0.1言語意味論を変えずに
 
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
-HTTP client／server preview、認証、capability制御mail、YAML／XML構造化データ、Cookie、parameter bindingを使うSQLiteが
+HTTP client／server preview、認証、capability制御mail、YAML／XML構造化データ、Cookie、parameter bindingを使うSQLite、
+capability検証付きembedded board profileが
 実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
 厳密に診断します。
 
@@ -303,6 +304,10 @@ added／modified／removed状態を表示します。block選択で開始位置�
 最も内側のscopeをtree上で追跡します。解析時にprogramは実行しません。詳細は
 [Structure Explorer仕様](../spec/structure-explorer.ja.md)を参照してください。
 
+実験的な[Embedded board mapping仕様](../spec/embedded-board-mapping.ja.md)は、
+Raspberry Pi Pico／Pico 2とArduino Nano／Nano Every向けのreview済み論理pin profile、
+静的`separan build --board`検証、host adapter境界を提供します。firmware生成は今後の実装です。
+
 Language Server previewは`separan-lsp`として利用できます。parser／単純固定型診断、
 mismatch Quick Fix、型付きSemantic Token、Hover、definition、scope安全なlabel rename、
 matching highlight、completion、signature help、Inlay Hint、label付きsymbol／folding、
@@ -314,7 +319,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.5** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.6** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

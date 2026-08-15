@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.1] - 2026-08-15
+
+### Embedded board profile preview
+
+- Highlights the reserved `pin` namespace and embedded hardware APIs.
+- Completes reviewed logical pin names for a source-selected Tier 1 board and
+  shows backend identity, physical position, voltage, and capabilities on hover.
+
 ## [0.9.0] - 2026-08-15
 
 ### YAML and XML structured data

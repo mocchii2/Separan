@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.5
+## v0.2.0-alpha.6
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -201,8 +201,8 @@ diffs, and enforced AI edit scopes without changing v0.1 language semantics.
 The standard library now covers explicit type conversion, Unicode string and
 homogeneous-list processing, immutable bytes, datetime and duration values,
 reproducible and secure randomness, filesystem and process utilities, HTTP
-client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies, and
-parameter-bound SQLite.
+client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies,
+parameter-bound SQLite, and capability-checked embedded board profiles.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
 
@@ -375,10 +375,13 @@ The experimental [database standard](https://github.com/mocchii2/Separan/blob/ma
 and official SQLite, PostgreSQL, MySQL, Oracle, and SQL Server adapters.
 The [reserved system context](https://github.com/mocchii2/Separan/blob/main/spec/system-context.md) defines normalized,
 read-only execution metadata and its namespace boundary.
+The experimental [embedded board mapping](https://github.com/mocchii2/Separan/blob/main/spec/embedded-board-mapping.md)
+adds reviewed logical-pin profiles for Raspberry Pi Pico/Pico 2 and Arduino Nano/Nano Every,
+plus static `separan build --board` capability validation. Firmware generation is not yet included.
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.5**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.6**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License
