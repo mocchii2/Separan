@@ -8,9 +8,30 @@ sourceを、同梱するTier 1 board 6機種すべてに対して検証できま
 
 ```console
 separan build 01_blink.sep --board raspberry_pi_pico
-separan build 01_blink.sep --board raspberry_pi_pico_w
-separan build 01_blink.sep --board arduino_nano
-separan build 01_blink.sep --board arduino_nano_every
+separan build 01_blink.sep --board raspberry_pi_pico_2
+```
+
+この2コマンドはC++生成、公式Pico SDK configure／compile、ELF／UF2／HEX確認まで
+実行します。Pico WとNano profileはmapping検証に引き続き利用できます。
+
+```console
+separan build 01_blink.sep --board raspberry_pi_pico_w --validate-only
+separan build 01_blink.sep --board arduino_nano --validate-only
+```
+
+SDKなしで生成projectだけ確認する場合は`--emit-only`を使います。公式Raspberry Pi Pico
+拡張を導入していない環境ではtool pathを明示できます。
+
+```console
+separan build 01_blink.sep --board raspberry_pi_pico_2 \
+  --sdk-path /path/to/pico-sdk --cmake cmake --ninja ninja
+```
+
+書き込み時はBOOTSELを押して接続し、mountされたdevice rootを明示します。UF2 markerが
+ないdirectoryへのcopyは拒否します。
+
+```console
+separan flash build/01_blink-raspberry_pi_pico/build/separan_app_01_blink.uf2 --device E:\
 ```
 
 `01_blink.sep`は`pin.LED_BUILTIN`を使うportable版です。
@@ -27,8 +48,10 @@ separan build 01_blink.sep --board arduino_nano_every
 | `05_uart_echo.sep` | default UART text I/O |
 | `06_i2c_scan.sep` | default I²C bus probe |
 
-現在のbuild commandはParser連動のboard mapping／capability検証を行います。firmwareの
-生成とuploadはまだ行いません。実機用SDK adapterが次の実装層です。
+firmware previewの対象はnon-wireless Raspberry Pi Pico／Pico 2です。GPIO、ADC、PWM、
+I²C probe、text UART、delay、strict expression、function、基本control flowを生成します。
+Pico WのCYW43制御、SPI firmware call、networking、Arduino Core生成は今後の明示的な
+実装対象です。
 
 今後は`07_spi.sep`、`08_temperature_sensor.sep`、`09_wifi_http.sep`、
 `10_cloudwatch_sensor.sep`を予定しています。

@@ -11,6 +11,7 @@ from .lexer import Lexer
 from .parser import Parser
 from .temporal import timezone_database_version
 from .embedded import BOARD_PROFILES, validate_embedded_program
+from .embedded_firmware import build_pico_project, flash_uf2, generate_pico_project
 
 
 def execute(source, filename="<source>", output=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None, mail_transport=None, board_id=None, embedded_adapter=None, network_adapter=None):
@@ -34,6 +35,8 @@ def main(argv=None):
     command_line = list(sys.argv[1:] if argv is None else argv)
     if command_line and command_line[0] == "build":
         return _build(command_line[1:])
+    if command_line and command_line[0] == "flash":
+        return _flash(command_line[1:])
     parser = argparse.ArgumentParser(prog="separan", description="Separan v0.2 alpha interpreter")
     parser.add_argument("source", type=Path, nargs="?")
     parser.add_argument("--ast", action="store_true", help="print the parsed AST instead of executing")
@@ -95,16 +98,64 @@ def main(argv=None):
 
 
 def _build(argv):
-    parser = argparse.ArgumentParser(prog="separan build", description="Validate Separan source against an embedded board profile")
+    parser = argparse.ArgumentParser(prog="separan build", description="Generate and compile Pico SDK firmware from Separan source")
     parser.add_argument("source", type=Path)
     parser.add_argument("--board", required=True, choices=tuple(sorted(BOARD_PROFILES)))
+    parser.add_argument("--output-dir", type=Path, help="generated Pico SDK project directory")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--validate-only", action="store_true", help="run board and pin validation without generating firmware")
+    mode.add_argument("--emit-only", action="store_true", help="generate C++ and CMake files without invoking the SDK")
+    parser.add_argument("--sdk-path", type=Path, help="path to an official Raspberry Pi Pico SDK checkout")
+    parser.add_argument("--toolchain-path", type=Path, help="Pico GCC toolchain root passed to CMake")
+    parser.add_argument("--cmake", help="cmake executable path or command name")
+    parser.add_argument("--ninja", help="ninja executable path or command name")
+    parser.add_argument("--build-type", choices=("Release", "Debug", "RelWithDebInfo", "MinSizeRel"), default="Release")
+    parser.add_argument("--flash-to", type=Path, help="explicit mounted Pico BOOTSEL device root")
     args = parser.parse_args(argv)
+    if (args.validate_only or args.emit_only) and args.flash_to is not None:
+        parser.error("--flash-to requires a complete firmware build")
     try:
         source = args.source.read_text(encoding="utf-8")
         program = Parser(Lexer(source, str(args.source)).scan_tokens()).parse()
         profile = validate_embedded_program(program, args.board)
         print(f"Validated {args.source} for {profile.id} ({profile.mcu}).")
-        print("Board mapping validation only; firmware code generation is not implemented yet.")
+        if args.validate_only:
+            print("Board mapping validation complete; firmware generation was skipped.")
+            return 0
+        output_directory = args.output_dir or (Path.cwd() / "build" / f"{args.source.stem}-{args.board}")
+        project = generate_pico_project(program, source, args.source, args.board, output_directory)
+        print(f"Generated Pico SDK project: {project.directory}")
+        print(f"Pico SDK board: {project.sdk_board}")
+        if args.emit_only:
+            print("Firmware source generation complete; SDK compilation was skipped.")
+            return 0
+        artifacts = build_pico_project(
+            project,
+            sdk_path=args.sdk_path,
+            toolchain_path=args.toolchain_path,
+            cmake=args.cmake,
+            ninja=args.ninja,
+            build_type=args.build_type,
+        )
+        print(f"ELF: {artifacts.elf}")
+        print(f"UF2: {artifacts.uf2}")
+        print(f"HEX: {artifacts.hex}")
+        if args.flash_to is not None:
+            destination = flash_uf2(artifacts.uf2, args.flash_to, project.position)
+            print(f"UF2 copied to BOOTSEL device: {destination}")
         return 0
     except (SeparanError, UnicodeDecodeError, OSError) as exc:
+        print(exc, file=sys.stderr); return 1
+
+
+def _flash(argv):
+    parser = argparse.ArgumentParser(prog="separan flash", description="Copy a UF2 image to one explicitly selected Pico BOOTSEL device")
+    parser.add_argument("uf2", type=Path)
+    parser.add_argument("--device", required=True, type=Path, help="mounted BOOTSEL device root containing INFO_UF2.TXT")
+    args = parser.parse_args(argv)
+    try:
+        destination = flash_uf2(args.uf2, args.device)
+        print(f"UF2 copied to BOOTSEL device: {destination}")
+        return 0
+    except (SeparanError, OSError) as exc:
         print(exc, file=sys.stderr); return 1

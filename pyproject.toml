@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "separan"
-version = "0.2.0a8"
+version = "0.2.0a9"
 description = "Python reference interpreter for the label-structured Separan language"
 readme = "README.md"
 license = "Apache-2.0"

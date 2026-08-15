@@ -119,6 +119,22 @@ async function runTests() {
   terminal.sendText(`${quoted(vscode.workspace.getConfiguration("separan").get("pythonPath", "python"))} -m unittest discover -s tests -v`);
 }
 
+async function buildPicoFirmware(emitOnly = false) {
+  const editor = currentEditor();
+  if (!editor) return vscode.window.showInformationMessage("Open a Separan file before building Pico firmware.");
+  const selected = await vscode.window.showQuickPick([
+    { label: "Raspberry Pi Pico", description: "RP2040 · Pico SDK board pico", board: "raspberry_pi_pico" },
+    { label: "Raspberry Pi Pico 2", description: "RP2350 · Pico SDK board pico2", board: "raspberry_pi_pico_2" },
+  ], { placeHolder: emitOnly ? "Select a firmware project target" : "Select a Pico firmware build target" });
+  if (!selected) return;
+  await editor.document.save();
+  const python = vscode.workspace.getConfiguration("separan").get("pythonPath", "python");
+  const terminal = vscode.window.createTerminal(emitOnly ? "Separan Pico Generate" : "Separan Pico Build");
+  terminal.show();
+  const option = emitOnly ? " --emit-only" : "";
+  terminal.sendText(`${quoted(python)} -m separan build ${quoted(editor.document.uri.fsPath)} --board ${selected.board}${option}`);
+}
+
 async function copyAiScope() {
   const editor = currentEditor(); if (!editor) return;
   const scope = await scopeAt(editor);
@@ -374,6 +390,8 @@ function activate(context) {
     vscode.commands.registerCommand("separan.runFile", () => runFile(false)),
     vscode.commands.registerCommand("separan.showAst", () => runFile(true)),
     vscode.commands.registerCommand("separan.runTests", runTests),
+    vscode.commands.registerCommand("separan.buildPicoFirmware", () => buildPicoFirmware(false)),
+    vscode.commands.registerCommand("separan.generatePicoFirmware", () => buildPicoFirmware(true)),
     vscode.commands.registerCommand("separan.goToMatchingLabel", goToMatchingLabel),
     vscode.commands.registerCommand("separan.goToLabel", goToLabel),
     vscode.commands.registerCommand("separan.copyAiEditScope", copyAiScope),

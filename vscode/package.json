@@ -2,7 +2,7 @@
   "name": "separan-language",
   "publisher": "separan",
   "displayName": "Separan Language",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Make AI-written code easier for humans to understand and verify with explicit labels, structural diffs, and scope checks.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",
@@ -27,7 +27,7 @@
   },
   "engines": { "vscode": "^1.75.0" },
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:separan", "onView:separan.structureExplorer", "onCommand:separan.runFile", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
+  "activationEvents": ["onLanguage:separan", "onView:separan.structureExplorer", "onCommand:separan.runFile", "onCommand:separan.buildPicoFirmware", "onCommand:separan.generatePicoFirmware", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
   "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
@@ -36,6 +36,8 @@
       { "command": "separan.runFile", "title": "Separan: Run File", "icon": "$(play)" },
       { "command": "separan.runTests", "title": "Separan: Run Tests" },
       { "command": "separan.showAst", "title": "Separan: Show AST" },
+      { "command": "separan.buildPicoFirmware", "title": "Separan: Build Pico Firmware" },
+      { "command": "separan.generatePicoFirmware", "title": "Separan: Generate Pico Firmware Project" },
       { "command": "separan.goToMatchingLabel", "title": "Separan: Go to Matching Label" },
       { "command": "separan.goToLabel", "title": "Separan: Go to Label" },
       { "command": "separan.copyAiEditScope", "title": "Separan: Copy AI Edit Scope" },
@@ -60,6 +62,7 @@
       "editor/context": [
         { "command": "separan.goToMatchingLabel", "when": "editorLangId == separan", "group": "navigation" },
         { "command": "separan.copyAiEditScope", "when": "editorLangId == separan", "group": "navigation" },
+        { "command": "separan.buildPicoFirmware", "when": "editorLangId == separan", "group": "navigation@8" },
         { "command": "separan.showStructuralDiff", "when": "editorLangId == separan", "group": "navigation@10" },
         { "command": "separan.verifyAiEditScope", "when": "editorLangId == separan", "group": "navigation@11" }
       ]

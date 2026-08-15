@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.8
+## v0.2.0-alpha.9
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -202,7 +202,8 @@ The standard library now covers explicit type conversion, Unicode string and
 homogeneous-list processing, immutable bytes, datetime and duration values,
 reproducible and secure randomness, filesystem and process utilities, HTTP
 client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies,
-parameter-bound SQLite, native interface/DNS/TCP/UDP networking, and capability-checked embedded board profiles.
+parameter-bound SQLite, native interface/DNS/TCP/UDP networking, capability-checked embedded board profiles,
+and Pico/Pico 2 C++ firmware generation with Pico SDK ELF/UF2/HEX builds.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
 
@@ -285,19 +286,29 @@ endwhile:blink_loop
 end_function:main
 ```
 
-The source stays identical; only the build target changes:
+The source stays identical; only the build target changes. Pico and Pico 2 now
+run the complete C++ generation and official Pico SDK compile pipeline:
 
 ```console
 separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
-separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_w
-separan build examples/embedded/01_blink.sep --board arduino_nano
-separan build examples/embedded/01_blink.sep --board arduino_nano_every
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_2
 ```
 
-`pin.LED_BUILTIN` resolves through the selected profile to Pico GPIO25, the
-Pico W wireless-controller LED, or the Nano-family board LED definition. The
-current command validates the complete pin/capability mapping; firmware code
-generation remains the next backend step.
+Each build emits a reviewable C++/CMake project and requires ELF, UF2, and HEX
+outputs. Install the official Raspberry Pi Pico VS Code extension or pass the
+SDK/tool paths explicitly. `--emit-only` generates without compiling, and
+`--validate-only` keeps Pico W and Nano profiles available without pretending
+that they already have firmware backends.
+
+BOOTSEL deployment is explicit and refuses an unrecognized directory:
+
+```console
+separan flash build/01_blink-raspberry_pi_pico/build/separan_app_01_blink.uf2 --device E:\
+```
+
+`pin.LED_BUILTIN` resolves to GPIO25 for both non-wireless firmware targets.
+Pico W CYW43 control and Arduino Core generation remain pending rather than
+silently using an incorrect GPIO or backend.
 
 The official [embedded examples](examples/embedded) now cover portable Blink,
 button input, PWM fade, analog input, UART echo, and I²C scanning. The separate
@@ -475,11 +486,11 @@ The [reserved system context](https://github.com/mocchii2/Separan/blob/main/spec
 read-only execution metadata and its namespace boundary.
 The experimental [embedded board mapping](https://github.com/mocchii2/Separan/blob/main/spec/embedded-board-mapping.md)
 adds reviewed logical-pin profiles for Raspberry Pi Pico/Pico 2 and Arduino Nano/Nano Every,
-plus static `separan build --board` capability validation. Firmware generation is not yet included.
+plus static validation and a Pico/Pico 2 C++ → Pico SDK → ELF/UF2/HEX firmware pipeline.
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.8**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.9**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

@@ -20,8 +20,10 @@ The roadmap describes direction, not a compatibility promise.
 - implemented: exact semantic-tag inspection and edit-scope verification
 - implemented: reviewed Pico/Nano board profiles, logical pins, static capability validation,
   and portable GPIO/PWM/ADC/UART/I²C examples
-- next: real Pico SDK and Arduino Core code-generation/upload adapters, followed by
-  SPI, sensor, Wi-Fi, and CloudWatch examples
+- implemented: Pico/Pico 2 C++ generation, official Pico SDK CMake/Ninja compile,
+  ELF/UF2/HEX verification, and explicit marker-checked BOOTSEL deployment
+- next: Pico W CYW43 and Arduino Core firmware backends, followed by SPI, sensor,
+  Wi-Fi, and CloudWatch examples
 - next: stabilize preview APIs and strengthen parser recovery before beta
 
 ## v0.3 — language tooling
@@ -62,8 +64,8 @@ The roadmap describes direction, not a compatibility promise.
 - **v0.1-alpha:** 現在の処理系、ラベル検証、基本型、関数、制御構文
 - **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Function Tag、
   semantic scope検証、review済みPico／Nano profile、論理pin、portable Embedded sample、
-  native interface／IP／DNS／TCP／UDP、1,800件超の適合testを実装済み。
-  次は実機SDK adapterとbeta向け安定化
+  Pico／Pico 2のC++／SDK compile／UF2書き込み、native interface／IP／DNS／TCP／UDP、
+  1,800件超の適合testを実装済み。次はPico W／Arduino firmware backendとbeta向け安定化
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
   label jump／rename、completion、signature、hint、symbol、fold、formatter）は実装済み。
   次はproject全体推論、CodeLens、専用structure view

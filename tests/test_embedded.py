@@ -2,16 +2,33 @@ import contextlib
 from dataclasses import replace
 from io import StringIO
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import unittest
+from unittest import mock
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "reference"))
+TEST_TEMP_ROOT = ROOT / "build" / "test-temp"
+TEST_TEMP_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+@contextlib.contextmanager
+def temporary_directory():
+    path = TEST_TEMP_ROOT / f"case-{uuid.uuid4().hex}"
+    path.mkdir()
+    try:
+        yield str(path)
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
 
 from separan.capabilities import RuntimeCapabilities
 from separan.cli import execute, main
 from separan.embedded import BOARD_PROFILES, ValidationEmbeddedAdapter
 from separan.embedded import validate_embedded_program
+from separan.embedded_firmware import build_pico_project, flash_uf2, generate_pico_project
 from separan.errors import SeparanError
 from separan.lexer import Lexer
 from separan.parser import Parser
@@ -119,9 +136,110 @@ end_function:main
         path = ROOT / "tests" / "fixtures" / "embedded_blink.sep"
         stdout, stderr = StringIO(), StringIO()
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
-            result = main(["build", str(path), "--board", "raspberry_pi_pico_w"])
+            result = main(["build", str(path), "--board", "raspberry_pi_pico_w", "--validate-only"])
         self.assertEqual(result, 0)
-        self.assertIn("mapping validation only", stdout.getvalue())
+        self.assertIn("validation complete", stdout.getvalue())
+
+    def test_pico_and_pico2_emit_official_sdk_projects(self):
+        path = ROOT / "examples" / "embedded" / "01_blink.sep"
+        source = path.read_text(encoding="utf-8")
+        program = Parser(Lexer(source, str(path)).scan_tokens()).parse()
+        with temporary_directory() as temporary:
+            root = Path(temporary)
+            pico = generate_pico_project(program, source, path, "raspberry_pi_pico", root / "pico")
+            pico2 = generate_pico_project(program, source, path, "raspberry_pi_pico_2", root / "pico2")
+            self.assertEqual((pico.sdk_board, pico2.sdk_board), ("pico", "pico2"))
+            self.assertIn("set(PICO_BOARD pico ", pico.cmake_file.read_text(encoding="utf-8"))
+            self.assertIn("set(PICO_BOARD pico2 ", pico2.cmake_file.read_text(encoding="utf-8"))
+            generated = pico.source_file.read_text(encoding="utf-8")
+            self.assertIn("sep_gpio_set_mode(25, SEP_GPIO_OUTPUT);", generated)
+            self.assertIn("sep_delay_milliseconds(500);", generated)
+            manifest = pico.manifest_file.read_text(encoding="utf-8")
+            self.assertIn('"pico_sdk_board": "pico"', manifest)
+
+    def test_all_portable_samples_generate_for_pico_and_pico2(self):
+        paths = sorted((ROOT / "examples" / "embedded").glob("*.sep"))
+        with temporary_directory() as temporary:
+            for board_id in ("raspberry_pi_pico", "raspberry_pi_pico_2"):
+                for path in paths:
+                    with self.subTest(board=board_id, example=path.name):
+                        source = path.read_text(encoding="utf-8")
+                        program = Parser(Lexer(source, str(path)).scan_tokens()).parse()
+                        project = generate_pico_project(program, source, path, board_id,
+                                                        Path(temporary) / board_id / path.stem)
+                        self.assertTrue(project.source_file.is_file())
+
+    def test_firmware_matrix_generates_every_supported_pico_api(self):
+        path = ROOT / "tests" / "fixtures" / "pico_firmware_matrix.sep"
+        source = path.read_text(encoding="utf-8")
+        program = Parser(Lexer(source, str(path)).scan_tokens()).parse()
+        with temporary_directory() as temporary:
+            project = generate_pico_project(program, source, path, "raspberry_pi_pico_2", Path(temporary))
+            generated = project.source_file.read_text(encoding="utf-8")
+        for symbol in ("sep_gpio_set_mode", "sep_gpio_write", "sep_gpio_read", "sep_pwm_write",
+                       "sep_analog_read", "sep_i2c_open", "sep_i2c_probe", "sep_uart_open",
+                       "sep_uart_write", "sep_uart_read_line", "sep_delay_milliseconds"):
+            with self.subTest(symbol=symbol):
+                self.assertIn(symbol, generated)
+        self.assertIn("sep_fn_blink_once();", generated)
+
+    def test_other_board_profiles_do_not_claim_a_firmware_backend(self):
+        source = "function:main\nend_function:main\n"
+        program = Parser(Lexer(source).scan_tokens()).parse()
+        with temporary_directory() as temporary:
+            with self.assertRaisesRegex(SeparanError, "E966"):
+                generate_pico_project(program, source, Path("main.sep"), "arduino_nano", Path(temporary))
+
+    def test_sdk_builder_uses_direct_process_arguments_and_requires_artifacts(self):
+        source = "function:main\nend_function:main\n"
+        program = Parser(Lexer(source).scan_tokens()).parse()
+        with temporary_directory() as temporary:
+            root = Path(temporary)
+            project = generate_pico_project(program, source, Path("main.sep"), "raspberry_pi_pico_2", root / "project")
+            sdk = root / "sdk"
+            (sdk / "external").mkdir(parents=True)
+            (sdk / "pico_sdk_init.cmake").write_text("", encoding="utf-8")
+            (sdk / "external" / "pico_sdk_import.cmake").write_text("", encoding="utf-8")
+            cmake = root / "cmake.exe"
+            ninja = root / "ninja.exe"
+            cmake.write_bytes(b"")
+            ninja.write_bytes(b"")
+            build = project.directory / "build"
+            build.mkdir()
+            for suffix in ("elf", "uf2", "hex", "bin"):
+                (build / f"{project.target_name}.{suffix}").write_bytes(suffix.encode("ascii"))
+            completed = subprocess.CompletedProcess([], 0, "", "")
+            with mock.patch("separan.embedded_firmware.subprocess.run", return_value=completed) as run:
+                artifacts = build_pico_project(project, sdk_path=sdk, cmake=cmake, ninja=ninja)
+            self.assertEqual(artifacts.uf2.read_bytes(), b"uf2")
+            self.assertEqual(run.call_count, 2)
+            configure = run.call_args_list[0].args[0]
+            self.assertIn("-DPICO_BOARD=pico2", configure)
+            self.assertNotIsInstance(configure, str)
+
+    def test_flash_requires_explicit_uf2_device_marker(self):
+        with temporary_directory() as temporary:
+            root = Path(temporary)
+            image = root / "blink.uf2"
+            image.write_bytes(b"firmware")
+            device = root / "device"
+            device.mkdir()
+            with self.assertRaisesRegex(SeparanError, "E969"):
+                flash_uf2(image, device)
+            (device / "INFO_UF2.TXT").write_text("UF2 Bootloader v3.0\nBoard-ID: RPI-RP2\n", encoding="utf-8")
+            destination = flash_uf2(image, device)
+            self.assertEqual(destination.read_bytes(), b"firmware")
+
+    def test_cli_emit_only_writes_project_without_sdk(self):
+        path = ROOT / "tests" / "fixtures" / "embedded_blink.sep"
+        with temporary_directory() as temporary:
+            stdout, stderr = StringIO(), StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                result = main(["build", str(path), "--board", "raspberry_pi_pico_2",
+                               "--emit-only", "--output-dir", temporary])
+            self.assertEqual(result, 0, stderr.getvalue())
+            self.assertTrue((Path(temporary) / "separan_firmware.cpp").is_file())
+            self.assertIn("Pico SDK board: pico2", stdout.getvalue())
 
     def test_build_target_cannot_be_overridden_by_source(self):
         with self.assertRaisesRegex(SeparanError, "E960"):

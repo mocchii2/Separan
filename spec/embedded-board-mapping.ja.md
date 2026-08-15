@@ -1,8 +1,9 @@
 # Separan Embedded Board Mapping仕様 — preview v0.1
 
 状態: **Pythonリファレンス処理系へ実験実装済み**。論理board profile、capability検証、
-`build --board`の静的検証、host adapter境界まで実装しています。firmware生成と
-Arduino Core／Pico SDK adapterはまだ同梱していません。
+`build --board`の静的検証、host adapter境界を実装しています。Raspberry Pi Picoと
+Pico 2ではPico SDK向けC++生成、SDK compile、UF2／HEX生成、明示BOOTSEL書き込みまで
+実装済みです。wireless PicoとArduinoのfirmware backendは未実装です。
 
 ## 原則
 
@@ -33,20 +34,37 @@ build targetをsource外から指定することもできます。
 separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
 ```
 
-現在の`build`はprogram全体をparseし、実行されないfunction内も含む直接の`pin.NAME`
-参照を静的検証します。「mapping validation only」であることを明示し、firmwareを生成した
-とは表示しません。
+`build`はprogram全体をparseし、実行されないfunction内も含む直接の`pin.NAME`参照を
+静的検証します。Pico／Pico 2では続けてC++とPico SDK CMake projectを生成し、shellを
+介さずCMake／Ninjaを実行してELF、UF2、HEXが揃ったことまで検証します。
+
+```console
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_2
+```
+
+公式Raspberry Pi Pico VS Code拡張を導入するか、`--sdk-path`、`--toolchain-path`、
+`--cmake`、`--ninja`を明示します。default生成先は`build/<source>-<board>`です。
+`--emit-only`はsource生成で停止し、`--validate-only`は全Tier 1 boardで従来のprofile検証だけを
+行います。
+
+UF2書き込み先は自動推測しません。boardをBOOTSEL modeにしてmount rootを明示し、
+`INFO_UF2.TXT`にUF2 bootloader metadataが存在する場合だけcopyします。
+
+```console
+separan flash build/01_blink-raspberry_pi_pico/build/separan_app_01_blink.uf2 --device E:\
+```
 
 ## 実装済みTier 1 profile
 
-| Profile ID | Family | MCU | Logic | Wireless |
-|---|---|---|---:|---|
-| `raspberry_pi_pico` | Raspberry Pi Pico | RP2040 | 3.3 V | なし |
-| `raspberry_pi_pico_w` | Raspberry Pi Pico | RP2040 | 3.3 V | Wi-Fi、Bluetooth |
-| `raspberry_pi_pico_2` | Raspberry Pi Pico | RP2350 | 3.3 V | なし |
-| `raspberry_pi_pico_2_w` | Raspberry Pi Pico | RP2350 | 3.3 V | Wi-Fi、Bluetooth |
-| `arduino_nano` | Arduino Nano | ATmega328P | 5 V | なし |
-| `arduino_nano_every` | Arduino Nano | ATmega4809 | 5 V | なし |
+| Profile ID | MCU | Logic | Wireless | Firmware backend |
+|---|---|---:|---|---|
+| `raspberry_pi_pico` | RP2040 | 3.3 V | なし | Pico SDK (`pico`) |
+| `raspberry_pi_pico_w` | RP2040 | 3.3 V | Wi-Fi、Bluetooth | validation only |
+| `raspberry_pi_pico_2` | RP2350 | 3.3 V | なし | Pico SDK (`pico2`) |
+| `raspberry_pi_pico_2_w` | RP2350 | 3.3 V | Wi-Fi、Bluetooth | validation only |
+| `arduino_nano` | ATmega328P | 5 V | なし | validation only |
+| `arduino_nano_every` | ATmega4809 | 5 V | なし | validation only |
 
 Pico profileが公開するraw GPIOはheaderへ出ている`GP0`から`GP22`、`GP26`から`GP28`
 だけです。portable aliasとして`D0`、`A0`、`SDA`、`SCL`、`TX`、`RX`、`MOSI`、
@@ -99,10 +117,16 @@ bus indexとsignal roleは同じperipheral instanceに属する必要があり�
 I²C0 SDAとして黙って受け付けません。pin省略時はprofileのdeterministic default mappingを
 使います。
 
-hardware操作にはhostの`embedded_io` capabilityが必要で、`embedded_boards` allowlistでも
-制限できます。その後、明示的に注入されたadapterだけを呼びます。Python referenceには
-副作用のないvalidation adapterだけを同梱し、raw register accessやshell command fallbackは
-行いません。
+desktop interpreter上のhardware操作にはhostの`embedded_io` capabilityが必要で、
+`embedded_boards` allowlistでも制限できます。Python interpreterのvalidation adapterは
+副作用なしのままです。別のPico firmware generatorはreview済みoperationをtyped Pico SDK
+callへ変換し、shell command fallbackやraw source置換を行いません。
+
+初期generatorはfunction、assignment／const、strict expression、`if`／`while`、
+`number_range`とliteral listの`for`、print、GPIO、ADC、PWM、I2C probe、text UART、delayを
+扱います。未対応のdynamic／desktop専用構文は部分的C++を黙って出さず`E966`で停止します。
+SPI firmware call、Pico WのCYW43 LED、networking、heap-shaped object、Arduino Core生成は
+まだ対応を主張しません。
 
 `delay_milliseconds`はdesktop上の隠れたsleepではなくadapter operationです。integer入力は
 1日までに制限します。`i2c_probe`は0から127までの明示的な7-bit addressを受け取り
@@ -112,7 +136,8 @@ booleanを返します。text UART操作はstringを使い、将来のbinary UAR
 ## 公式portableサンプル
 
 同じ[`01_blink.sep`](../examples/embedded/01_blink.sep) sourceを現在のPico／Nano Tier 1
-targetすべてに対して検証できます。portable形式は`pin.LED_BUILTIN`です。
+targetすべてに対して検証でき、Pico／Pico 2ではfirmwareまで生成できます。
+portable形式は`pin.LED_BUILTIN`です。
 [`01_blink_d13.sep`](../examples/embedded/01_blink_d13.sep)は意図的にboard-specificな
 `pin.D13`を選ぶ例です。
 
@@ -139,6 +164,10 @@ sampleへ追加し、mapping検証だけでhardware実行できるような記�
 | `E963` | bus signalとperipheral instanceの組み合わせが不正 |
 | `E964` | adapter未接続、失敗、または戻り型不正 |
 | `E965` | GPIO mode、delay、address、またはanalog／PWM値が不正 |
+| `E966` | firmware backendまたはsource構文が未対応 |
+| `E967` | Pico SDK、CMake、Ninja、toolchainが利用不可 |
+| `E968` | SDK configure／compile失敗、または成果物不足 |
+| `E969` | UF2 image、BOOTSEL target、device writeが不正 |
 
 ## Hardware data source
 

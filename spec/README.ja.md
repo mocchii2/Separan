@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.2.0-alpha.8
+# Separan言語仕様 — v0.2.0-alpha.9
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -201,4 +201,5 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
 - [Structure Explorer](structure-explorer.ja.md): 人間向けblock階層、直接の
   reads／writes／calls、移動、Git構造状態を実装しています。
 - [Embedded board mapping](embedded-board-mapping.ja.md): 論理pin、review済みTier 1
-  board profile、capability-aware bus検証、host adapter境界を実装しています。
+  board profile、capability-aware bus検証、host adapter境界、Pico／Pico 2のSDK firmware
+  生成とdeployを実装しています。

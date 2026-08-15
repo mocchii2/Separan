@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.8
+## v0.2.0-alpha.9
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -178,7 +178,8 @@ v0.4 tooling層では、v0.1言語意味論を変えずに
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
 HTTP client／server preview、認証、capability制御mail、YAML／XML構造化データ、Cookie、parameter bindingを使うSQLite、
-native interface／DNS／TCP／UDP network、capability検証付きembedded board profileが
+native interface／DNS／TCP／UDP network、capability検証付きembedded board profile、
+Pico／Pico 2向けC++ firmware生成とPico SDK ELF／UF2／HEX buildが
 実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
 厳密に診断します。
 
@@ -260,18 +261,27 @@ endwhile:blink_loop
 end_function:main
 ```
 
-sourceは同じまま、build targetだけを変更します。
+sourceは同じまま、build targetだけを変更します。Pico／Pico 2ではC++生成から公式
+Pico SDK compileまでのpipelineを実行します。
 
 ```console
 separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
-separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_w
-separan build examples/embedded/01_blink.sep --board arduino_nano
-separan build examples/embedded/01_blink.sep --board arduino_nano_every
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_2
 ```
 
-`pin.LED_BUILTIN`は選択したprofileを通じてPico GPIO25、Pico Wのwireless
-controller LED、またはNano系board LED定義へ解決されます。現在のcommandはsource全体の
-pin／capability mappingを検証します。firmware code生成は次のbackend実装です。
+各buildはreview可能なC++／CMake projectを生成し、ELF、UF2、HEXが揃ったことを確認します。
+公式Raspberry Pi Pico VS Code拡張を導入するか、SDK／tool pathを明示します。
+`--emit-only`はcompileせず生成し、`--validate-only`はPico W／Nano profileをfirmware対応と
+偽らず静的検証だけ行います。
+
+BOOTSEL書き込みはdevice rootを明示し、未認識directoryを拒否します。
+
+```console
+separan flash build/01_blink-raspberry_pi_pico/build/separan_app_01_blink.uf2 --device E:\
+```
+
+non-wirelessの2 targetでは`pin.LED_BUILTIN`がGPIO25へ解決されます。Pico WのCYW43制御と
+Arduino Core生成は誤ったGPIO／backendへ暗黙fallbackせず、未実装として扱います。
 
 公式[Embeddedサンプル集](../examples/embedded)にはportable Lチカ、button input、PWM fade、
 analog input、UART echo、I²C scanを収録しています。別の
@@ -403,7 +413,8 @@ added／modified／removed状態を表示します。block選択で開始位置�
 
 実験的な[Embedded board mapping仕様](../spec/embedded-board-mapping.ja.md)は、
 Raspberry Pi Pico／Pico 2とArduino Nano／Nano Every向けのreview済み論理pin profile、
-静的`separan build --board`検証、host adapter境界を提供します。firmware生成は今後の実装です。
+静的検証、host adapter境界、Pico／Pico 2向けC++ → Pico SDK → ELF／UF2／HEX firmware
+pipelineを提供します。
 
 Language Server previewは`separan-lsp`として利用できます。parser／単純固定型診断、
 mismatch Quick Fix、型付きSemantic Token、Hover、definition、scope安全なlabel rename、
@@ -416,7 +427,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.8** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.9** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

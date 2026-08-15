@@ -1,0 +1,76 @@
+name: Pico firmware
+
+on:
+  push:
+    paths:
+      - "reference/separan/embedded.py"
+      - "reference/separan/embedded_firmware.py"
+      - "reference/separan/cli.py"
+      - "examples/embedded/**"
+      - "tests/test_embedded.py"
+      - ".github/workflows/pico-firmware.yml"
+  pull_request:
+    paths:
+      - "reference/separan/embedded.py"
+      - "reference/separan/embedded_firmware.py"
+      - "reference/separan/cli.py"
+      - "examples/embedded/**"
+      - "tests/test_embedded.py"
+      - ".github/workflows/pico-firmware.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - raspberry_pi_pico
+          - raspberry_pi_pico_2
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install Arm firmware tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi
+
+      - name: Fetch official Pico SDK 2.2.0
+        run: |
+          git clone --branch 2.2.0 --depth 1 --recurse-submodules --shallow-submodules https://github.com/raspberrypi/pico-sdk.git "$RUNNER_TEMP/pico-sdk"
+
+      - name: Install Separan
+        run: python -m pip install --editable .
+
+      - name: Compile firmware API matrix to ELF UF2 and HEX
+        run: |
+          separan build tests/fixtures/pico_firmware_matrix.sep \
+            --board "${{ matrix.board }}" \
+            --sdk-path "$RUNNER_TEMP/pico-sdk" \
+            --cmake cmake \
+            --ninja ninja \
+            --output-dir "build/${{ matrix.board }}"
+
+      - name: Verify firmware artifacts
+        run: |
+          test -s "build/${{ matrix.board }}/build/separan_pico_firmware_matrix.elf"
+          test -s "build/${{ matrix.board }}/build/separan_pico_firmware_matrix.uf2"
+          test -s "build/${{ matrix.board }}/build/separan_pico_firmware_matrix.hex"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: firmware-matrix-${{ matrix.board }}
+          path: |
+            build/${{ matrix.board }}/build/separan_pico_firmware_matrix.elf
+            build/${{ matrix.board }}/build/separan_pico_firmware_matrix.uf2
+            build/${{ matrix.board }}/build/separan_pico_firmware_matrix.hex
+          if-no-files-found: error

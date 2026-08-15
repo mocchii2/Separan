@@ -1,0 +1,45 @@
+########################################
+# Pico firmware backend conformance
+########################################
+
+function:blink_once
+gpio_set_mode(pin.LED_BUILTIN, "output")
+gpio_write(pin.LED_BUILTIN, true)
+delay_milliseconds(1)
+gpio_write(pin.LED_BUILTIN, false)
+end_function:blink_once
+
+function:read_button
+gpio_set_mode(pin.D2, "input_pull_up")
+return !gpio_read(pin.D2)
+end_function:read_button
+
+function:exercise_pwm
+pwm_write(pin.D3, 0.5)
+end_function:exercise_pwm
+
+function:exercise_adc
+value = analog_read(pin.A0)
+print value
+end_function:exercise_adc
+
+function:exercise_i2c
+bus = i2c_open(0)
+print i2c_probe(bus, 42)
+end_function:exercise_i2c
+
+function:exercise_uart
+serial = uart_open(0)
+uart_write(serial, "Separan\n")
+line = uart_read_line(serial)
+print line
+end_function:exercise_uart
+
+function:main
+blink_once()
+print read_button()
+exercise_pwm()
+exercise_adc()
+exercise_i2c()
+exercise_uart()
+end_function:main

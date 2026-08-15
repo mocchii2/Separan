@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4] - 2026-08-16
+
+### Pico firmware workflow
+
+- Adds explicit Pico/Pico 2 build and project-generation commands for the active `.sep` file.
+- Uses the same Separan CLI pipeline as terminal builds; board selection remains visible and explicit.
+
 ## [0.9.3] - 2026-08-15
 
 ### Native network API preview

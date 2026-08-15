@@ -1,9 +1,10 @@
 # Separan Embedded Board Mapping Specification — preview v0.1
 
 Status: **experimental reference implementation**. Logical board profiles,
-capability validation, static `build --board` validation, and a host-adapter
-boundary are implemented. Firmware generation and Arduino Core/Pico SDK
-adapters are not yet included.
+capability validation, static `build --board` validation, and the host-adapter
+boundary are implemented. Raspberry Pi Pico and Pico 2 additionally have a
+Pico SDK C++ generator, SDK compiler driver, UF2/HEX output, and explicit
+BOOTSEL flashing. Wireless Pico and Arduino firmware backends remain pending.
 
 ## Principle
 
@@ -35,21 +36,40 @@ The build target can instead be supplied outside source:
 separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
 ```
 
-The current `build` command parses the complete program and validates every
-direct `pin.NAME` reference, including references in functions that are not
-executed. It deliberately reports that it performs mapping validation only.
-It does not claim to emit firmware.
+The `build` command parses the complete program and validates every direct
+`pin.NAME` reference, including references in functions that are not executed.
+For Pico and Pico 2 it then emits C++ and a Pico SDK CMake project, invokes
+CMake/Ninja without a shell, and requires ELF, UF2, and HEX artifacts:
+
+```console
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
+separan build examples/embedded/01_blink.sep --board raspberry_pi_pico_2
+```
+
+Install the official Raspberry Pi Pico VS Code extension, or pass
+`--sdk-path`, `--toolchain-path`, `--cmake`, and `--ninja` explicitly. The
+default project directory is `build/<source>-<board>`. `--emit-only` stops
+after deterministic source generation and `--validate-only` preserves the
+profile-validation workflow for every Tier 1 board.
+
+UF2 deployment never guesses a drive. Put the board into BOOTSEL mode and name
+the mounted root explicitly; Separan requires valid UF2 bootloader metadata in
+its `INFO_UF2.TXT` before copying:
+
+```console
+separan flash build/01_blink-raspberry_pi_pico/build/separan_app_01_blink.uf2 --device E:\
+```
 
 ## Implemented Tier 1 profiles
 
-| Profile ID | Family | MCU | Logic | Wireless |
-|---|---|---|---:|---|
-| `raspberry_pi_pico` | Raspberry Pi Pico | RP2040 | 3.3 V | no |
-| `raspberry_pi_pico_w` | Raspberry Pi Pico | RP2040 | 3.3 V | Wi-Fi, Bluetooth |
-| `raspberry_pi_pico_2` | Raspberry Pi Pico | RP2350 | 3.3 V | no |
-| `raspberry_pi_pico_2_w` | Raspberry Pi Pico | RP2350 | 3.3 V | Wi-Fi, Bluetooth |
-| `arduino_nano` | Arduino Nano | ATmega328P | 5 V | no |
-| `arduino_nano_every` | Arduino Nano | ATmega4809 | 5 V | no |
+| Profile ID | MCU | Logic | Wireless | Firmware backend |
+|---|---|---:|---|---|
+| `raspberry_pi_pico` | RP2040 | 3.3 V | no | Pico SDK (`pico`) |
+| `raspberry_pi_pico_w` | RP2040 | 3.3 V | Wi-Fi, Bluetooth | validation only |
+| `raspberry_pi_pico_2` | RP2350 | 3.3 V | no | Pico SDK (`pico2`) |
+| `raspberry_pi_pico_2_w` | RP2350 | 3.3 V | Wi-Fi, Bluetooth | validation only |
+| `arduino_nano` | ATmega328P | 5 V | no | validation only |
+| `arduino_nano_every` | ATmega4809 | 5 V | no | validation only |
 
 Pico profiles expose only GPIOs available on the board headers: `GP0` through
 `GP22`, plus `GP26` through `GP28`. They also provide portable aliases such as
@@ -106,10 +126,19 @@ Bus index and signal role must match the selected peripheral instance. A pin
 that can act as I²C1 SDA is not silently accepted as I²C0 SDA. Omitting pin
 arguments uses the profile's deterministic default bus mapping.
 
-Hardware operations require the host's `embedded_io` capability and may be
-restricted to an `embedded_boards` allowlist. They then call a supplied adapter.
-The Python reference interpreter ships only a side-effect-free validation
-adapter; direct register access and shell-command fallbacks are forbidden.
+Hardware operations executed by the desktop interpreter require the host's
+`embedded_io` capability and may be restricted to an `embedded_boards`
+allowlist. The Python interpreter keeps its side-effect-free validation adapter.
+The separate Pico firmware generator lowers reviewed operations directly to
+typed Pico SDK calls; it never falls back to a shell command or raw source
+substitution.
+
+The first generator covers functions, assignments and constants, strict
+expressions, `if`/`while`, `number_range` and literal-list `for` loops, print,
+GPIO, ADC, PWM, I2C probing, text UART, and bounded delays. Unsupported dynamic
+or desktop-only constructs fail with `E966` instead of producing partial C++.
+SPI firmware calls, Pico W CYW43 LED control, networking, heap-shaped Separan
+objects, and Arduino Core generation are deliberately not claimed yet.
 
 `delay_milliseconds` is an adapter operation, not a hidden desktop sleep. Its
 integer input is bounded to one day. `i2c_probe` accepts an explicit 7-bit
@@ -119,9 +148,10 @@ future binary UART operations will use bytes rather than implicit encoding.
 ## Official portable examples
 
 The same [`01_blink.sep`](../examples/embedded/01_blink.sep) source validates
-for each current Pico and Nano Tier 1 target. `pin.LED_BUILTIN` is the portable
-form. [`01_blink_d13.sep`](../examples/embedded/01_blink_d13.sep) demonstrates
-an intentionally board-specific `pin.D13` choice.
+for every current Pico and Nano Tier 1 target and generates firmware for Pico
+and Pico 2. `pin.LED_BUILTIN` is the portable form.
+[`01_blink_d13.sep`](../examples/embedded/01_blink_d13.sep) demonstrates an
+intentionally board-specific `pin.D13` choice.
 
 | Example | Contract exercised |
 |---|---|
@@ -147,6 +177,10 @@ hardware execution from mapping validation alone.
 | `E963` | bus signal and peripheral instance do not form a valid mapping |
 | `E964` | adapter missing, failed, or returned the wrong type |
 | `E965` | invalid GPIO mode, delay, address, or analog/PWM value |
+| `E966` | unsupported board backend or source construct for firmware generation |
+| `E967` | Pico SDK, CMake, Ninja, or toolchain is unavailable |
+| `E968` | SDK configuration/compilation failed or required artifacts are missing |
+| `E969` | invalid UF2 image, BOOTSEL target, or device write |
 
 ## Hardware data sources
 
