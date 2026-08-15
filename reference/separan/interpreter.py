@@ -23,6 +23,7 @@ from .http_server import HttpReturned, ServerRequest, ServerResponse, compile_pa
 from .database import DbConnectionValue, begin as db_begin, commit as db_commit, rollback as db_rollback
 from .system_context import SystemContextValue, build_system_context
 from .mail import MailAddressValue, MailMessageValue, MailSendResultValue, MailSenderValue, send_transport as mail_send_transport
+from .structured_data import XmlDocumentValue, XmlElementValue
 from .token import SourcePosition
 
 
@@ -57,6 +58,8 @@ def type_name(value):
     if isinstance(value, MailMessageValue): return "mail_message"
     if isinstance(value, MailSenderValue): return "mail_sender"
     if isinstance(value, MailSendResultValue): return "mail_send_result"
+    if isinstance(value, XmlDocumentValue): return "xml_document"
+    if isinstance(value, XmlElementValue): return "xml_element"
     if isinstance(value, DbConnectionValue): return "db_connection"
     temporal = public_type(value)
     if temporal != "unknown": return temporal
@@ -262,6 +265,8 @@ class Interpreter:
         if 900 <= prefix <= 919: return value.category
         if 920 <= prefix <= 929: return value.category if value.category.endswith("_error") else "crypto_error"
         if 930 <= prefix <= 939: return value.category if value.category.endswith("_error") else "mail_error"
+        if 940 <= prefix <= 949: return value.category if value.category.endswith("_error") else "yaml_error"
+        if 950 <= prefix <= 959: return value.category if value.category.endswith("_error") else "xml_error"
         return "runtime_error"
 
     @staticmethod
@@ -276,6 +281,9 @@ class Interpreter:
             "crypto_authentication_error": "crypto_error",
             "mail_address_error": "mail_error", "mail_attachment_error": "mail_error", "mail_provider_error": "mail_error",
             "mail_connection_error": "mail_error", "mail_authentication_error": "mail_error", "mail_send_error": "mail_error",
+            "yaml_parse_error": "yaml_error", "yaml_encode_error": "yaml_error", "yaml_type_error": "yaml_error", "yaml_limit_error": "yaml_error",
+            "xml_parse_error": "xml_error", "xml_model_error": "xml_error", "xml_security_error": "xml_error",
+            "xml_limit_error": "xml_error", "xml_path_error": "xml_error", "xml_escape_error": "xml_error",
         }
         current = actual
         while current in parents:
@@ -572,6 +580,8 @@ class Interpreter:
         if isinstance(value, MailMessageValue): return f"mail_message(recipients={len(value.to) + len(value.cc) + len(value.bcc)}, attachments={len(value.attachments)})"
         if isinstance(value, MailSenderValue): return f"mail_sender(provider={value.provider}, credentials=[REDACTED])"
         if isinstance(value, MailSendResultValue): return f"mail_send_result(provider={value.provider}, accepted={value.accepted_recipients})"
+        if isinstance(value, XmlDocumentValue): return f"xml_document(root={value.root.tag})"
+        if isinstance(value, XmlElementValue): return f"xml_element(name={value.element.tag})"
         if isinstance(value, DbConnectionValue): return f"db_connection(driver={value.driver}, database=[REDACTED])"
         if isinstance(value, BytesValue): return "0x" + value.value.hex()
         if isinstance(value, DatetimeValue): return format_datetime(value)

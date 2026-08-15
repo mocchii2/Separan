@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.4
+## v0.2.0-alpha.5
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -201,7 +201,7 @@ diffs, and enforced AI edit scopes without changing v0.1 language semantics.
 The standard library now covers explicit type conversion, Unicode string and
 homogeneous-list processing, immutable bytes, datetime and duration values,
 reproducible and secure randomness, filesystem and process utilities, HTTP
-client/server previews, authentication, capability-gated mail, cookies, and
+client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies, and
 parameter-bound SQLite.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
@@ -248,6 +248,12 @@ with To/Cc/Bcc, text/HTML bodies, file or bytes attachments, and inline content.
 An explicit sender selects verified STARTTLS/implicit-TLS SMTP or optional
 Amazon SES; credentials stay `secret`, Bcc never enters MIME headers, and a
 separate host capability controls mail delivery and address allowlists.
+
+The [structured-data preview](spec/structured-data.md) adds strict YAML 1.2-style
+data conversion and a separate XML document model. YAML preserves object order,
+rejects duplicate keys and heterogeneous sequences, and supports multi-document
+streams. XML keeps elements, attributes, namespaces, and text explicit while
+rejecting DTD and entity declarations by default.
 
 HTTP supports one-shot cookies and explicit stateful Cookie Jars. Cookie values,
 jar display, and received response cookies are redacted; domain, path, expiry,
@@ -372,7 +378,7 @@ read-only execution metadata and its namespace boundary.
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.4**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.5**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

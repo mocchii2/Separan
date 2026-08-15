@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.4
+# Separan Language Specification — v0.2.0-alpha.5
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -217,6 +217,7 @@ implemented experimentally but are not yet stable.
 - [Authentication](authentication.md): redacted secrets and purpose-specific HTTP, HMAC, JWT, OAuth, and password APIs.
 - [Cryptography](cryptography.md): readable SHA-2/SHA-3, HMAC and encoding boundaries plus Argon2id and versioned AES-256-GCM safe paths.
 - [Mail](mail.md): provider-independent UTF-8 message composition with capability-gated SMTP and optional Amazon SES transports.
+- [YAML and XML](structured-data.md): strict ordered YAML data conversion and a safe, explicit XML document model.
 - [Cookies](cookies.md): one-shot cookies and redacted, stateful Cookie Jars.
 - [Modules, data, I/O, and errors](modules-data-errors.md): labeled objects/lists,
   imports, capability-based I/O, JSON, constants, and labeled error handling.

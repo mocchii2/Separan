@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from .objects import ObjectValue
 
 
-VERSION = "0.2.0-alpha.4"
+VERSION = "0.2.0-alpha.5"
 ENGINE = "python-reference"
 
 

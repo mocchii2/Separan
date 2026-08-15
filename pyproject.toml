@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "separan"
-version = "0.2.0a4"
+version = "0.2.0a5"
 description = "Python reference interpreter for the label-structured Separan language"
 readme = "README.md"
 license = "Apache-2.0"
@@ -30,7 +30,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Interpreters",
 ]
-dependencies = ["tzdata>=2025.2", "cryptography>=45,<51", "argon2-cffi>=23,<26"]
+dependencies = ["tzdata>=2025.2", "cryptography>=45,<51", "argon2-cffi>=23,<26", "PyYAML>=6,<7"]
 
 [project.urls]
 Homepage = "https://github.com/mocchii2/Separan"

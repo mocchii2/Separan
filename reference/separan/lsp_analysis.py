@@ -43,6 +43,22 @@ BUILTIN_SIGNATURES = {
     "write_text": "write_text(path: string, text: string) -> null",
     "http_get": "http_get(url: string, options...) -> string",
     "db_query": "db_query(connection: db_connection, sql: string, parameters: list) -> list<object>",
+    "yaml_to_object": "yaml_to_object(text: string) -> value",
+    "object_to_yaml": "object_to_yaml(value: value, indent?: number, sort_keys?: boolean) -> string",
+    "yaml_file_to_object": "yaml_file_to_object(path: string) -> value",
+    "object_to_yaml_file": "object_to_yaml_file(path: string, value: value, indent?: number, sort_keys?: boolean) -> null",
+    "yaml_to_objects": "yaml_to_objects(text: string) -> list",
+    "yaml_validate": "yaml_validate(text: string) -> boolean",
+    "xml_document_parse": "xml_document_parse(text: string) -> xml_document",
+    "xml_document_read": "xml_document_read(path: string) -> xml_document",
+    "xml_document_to_text": "xml_document_to_text(document: xml_document, indent?: number, declaration?: boolean) -> string",
+    "xml_root": "xml_root(document: xml_document) -> xml_element",
+    "xml_find": "xml_find(document_or_element: value, path: string) -> xml_element | null",
+    "xml_find_all": "xml_find_all(document_or_element: value, path: string) -> list<xml_element>",
+    "xml_element_name": "xml_element_name(element: xml_element) -> string",
+    "xml_element_text": "xml_element_text(element: xml_element) -> string",
+    "xml_get_attribute": "xml_get_attribute(element: xml_element, name: string, namespace_uri?: string) -> string | null",
+    "xml_set_attribute": "xml_set_attribute(element: xml_element, name: string, value: string, namespace_uri?: string) -> null",
     "absolute": "absolute(value: number) -> number",
     "minimum": "minimum(values: list<number>) -> number",
     "maximum": "maximum(values: list<number>) -> number",
@@ -206,13 +222,16 @@ def _literal_type(expression):
     if call:
         name = call.group(1)
         if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow", "absolute", "minimum", "maximum", "truncate", "clamp", "sign", "square_root", "cube_root", "power", "hypotenuse", "exponential", "exponential_base2", "natural_log", "log_base2", "log_base10", "log_one_plus", "arc_sin", "arc_cos", "arc_tan", "arc_tan2", "sinh", "cosh", "tanh", "arc_sinh", "arc_cosh", "arc_tanh", "to_radians", "to_degrees", "greatest_common_divisor", "least_common_multiple", "factorial", "median", "variance", "sample_variance", "standard_deviation", "sample_standard_deviation", "percentile", "binary_to_number", "octal_to_number", "hexadecimal_to_number", "base_to_number"): return "number"
-        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base"): return "string"
-        if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search"): return "boolean"
-        if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average"): return "list"
+        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape"): return "string"
+        if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search", "yaml_validate", "yaml_validate_file"): return "boolean"
+        if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average", "yaml_to_objects", "yaml_file_to_objects", "xml_children", "xml_find_all"): return "list"
         if name in ("datetime", "datetime_now", "datetime_parse"): return "datetime"
         if name == "duration": return "duration"
         if name in ("read_bytes", "bytes_from_string", "bytes_from_hex", "hex_decode", "base64_decode"): return "bytes"
         if name == "secret_get": return "secret"
+        if name in ("xml_document_parse", "xml_document_read"): return "xml_document"
+        if name in ("xml_root", "xml_create_element", "xml_find", "xml_child"): return "xml_element"
+        if name in ("xml_to_object", "xml_file_to_object"): return "object"
     return "unknown"
 
 

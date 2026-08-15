@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0] - 2026-08-15
+
+### YAML and XML structured data
+
+- Highlights strict YAML conversion, validation, multi-document, and file APIs.
+- Highlights the safe XML document model, explicit element/attribute/namespace
+  operations, simple path search, escaping, and typed YAML/XML errors.
+
 ## [0.8.0] - 2026-08-15
 
 ### Provider-independent mail APIs

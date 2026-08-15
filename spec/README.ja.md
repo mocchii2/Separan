@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.2.0-alpha.4
+# Separan言語仕様 — v0.2.0-alpha.5
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -181,6 +181,7 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
 - [認証とsecret](authentication.ja.md): 自動redactされるsecretと用途固定のHTTP、HMAC、JWT、OAuth、password APIを実装しています。
 - [暗号](cryptography.ja.md): 読みやすいSHA-2／SHA-3、HMAC、encoding境界と、Argon2id、version付きAES-256-GCMの安全な一本道です。
 - [mail](mail.ja.md): provider非依存UTF-8 message作成と、capabilityで制限するSMTP／optional Amazon SES transportです。
+- [YAML／XML](structured-data.ja.md): 順序を保持する厳密YAML data変換と、安全で明示的なXML document modelです。
 - [Cookie](cookies.ja.md): 単発Cookieとredactされるstateful Cookie Jarを実装しています。
 - [module・data・I/O・error](modules-data-errors.ja.md): label付きobject／list、import、capability型I/O、
   JSON、const、label付きerror処理を実装しています。
