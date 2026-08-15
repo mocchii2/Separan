@@ -25,6 +25,7 @@ from .system_context import SystemContextValue, build_system_context
 from .mail import MailAddressValue, MailMessageValue, MailSendResultValue, MailSenderValue, send_transport as mail_send_transport
 from .structured_data import XmlDocumentValue, XmlElementValue
 from .embedded import BoardValue, BusValue, EmbeddedContext, PinNamespaceValue, PinValue, fixed_member, pin_member
+from .network import IpAddressValue, NativeNetworkAdapter, NetworkInterfaceValue, TcpConnectionValue, UdpSocketValue
 from .token import SourcePosition
 
 
@@ -46,6 +47,10 @@ def type_name(value):
     if isinstance(value, PinNamespaceValue): return "pin_namespace"
     if isinstance(value, PinValue): return "pin"
     if isinstance(value, BusValue): return "embedded_bus"
+    if isinstance(value, IpAddressValue): return "ip_address"
+    if isinstance(value, NetworkInterfaceValue): return "network_interface"
+    if isinstance(value, TcpConnectionValue): return "tcp_connection"
+    if isinstance(value, UdpSocketValue): return "udp_socket"
     if isinstance(value, BytesValue): return "bytes"
     if isinstance(value, RegexMatchValue): return "regex_match_result"
     if isinstance(value, ObjectValue): return "object"
@@ -125,7 +130,7 @@ class Returned(Exception):
 
 
 class Interpreter:
-    def __init__(self, output=None, clock=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, module_cache=None, import_stack=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None, mail_transport=None, embedded_context=None, board_id=None, embedded_adapter=None):
+    def __init__(self, output=None, clock=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, module_cache=None, import_stack=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None, mail_transport=None, embedded_context=None, board_id=None, embedded_adapter=None, network_adapter=None):
         self.output = output or StringIO()
         self.input_stream = input_stream or StringIO()
         self.error_output = error_output or StringIO()
@@ -155,6 +160,9 @@ class Interpreter:
         self.secret_provider = secret_provider
         self.cookie_key_provider = cookie_key_provider
         self.mail_transport = mail_transport or mail_send_transport
+        self.network_adapter = network_adapter or NativeNetworkAdapter()
+        self.network_preferred_interfaces = []
+        self.network_resources = []
         self.http_request_context = None
         self.database_connections = []
 
@@ -274,6 +282,8 @@ class Interpreter:
         if 930 <= prefix <= 939: return value.category if value.category.endswith("_error") else "mail_error"
         if 940 <= prefix <= 949: return value.category if value.category.endswith("_error") else "yaml_error"
         if 950 <= prefix <= 959: return value.category if value.category.endswith("_error") else "xml_error"
+        if 970 <= prefix <= 978: return value.category if value.category.endswith("_error") else "network_error"
+        if prefix == 979: return "permission_error"
         return "runtime_error"
 
     @staticmethod
@@ -291,6 +301,10 @@ class Interpreter:
             "yaml_parse_error": "yaml_error", "yaml_encode_error": "yaml_error", "yaml_type_error": "yaml_error", "yaml_limit_error": "yaml_error",
             "xml_parse_error": "xml_error", "xml_model_error": "xml_error", "xml_security_error": "xml_error",
             "xml_limit_error": "xml_error", "xml_path_error": "xml_error", "xml_escape_error": "xml_error",
+            "network_dns_error": "network_error", "network_interface_error": "network_error",
+            "network_connection_error": "network_error", "network_timeout_error": "network_error",
+            "network_limit_error": "network_error", "network_closed_error": "network_error",
+            "network_protocol_error": "network_error", "network_operation_unavailable": "network_error",
         }
         current = actual
         while current in parents:
@@ -329,7 +343,7 @@ class Interpreter:
             module = Interpreter(self.output, self.clock, self.command_arguments, key, root,
                                  self.environment_variables, self.module_cache, self.import_stack, self.capabilities,
                                  self.input_stream, self.error_output, self.http_transport, self.secret_provider, self.cookie_key_provider, self.mail_transport,
-                                 self.embedded_context)
+                                 self.embedded_context, network_adapter=self.network_adapter)
             try: module.run(program, invoke_main=False)
             finally: self.import_stack.pop()
             exports = frozenset([item.name for item in program.statements if isinstance(item, (FunctionDecl, ConstDeclaration, ErrorDecl))])
@@ -579,6 +593,10 @@ class Interpreter:
         if isinstance(value, PinNamespaceValue): return "pin:[READONLY]"
         if isinstance(value, PinValue): return f"pin:{value.definition.name}"
         if isinstance(value, BusValue): return f"{value.kind}_bus:{value.index}"
+        if isinstance(value, IpAddressValue): return str(value.value)
+        if isinstance(value, NetworkInterfaceValue): return f"network_interface:{value.fields['name']}"
+        if isinstance(value, TcpConnectionValue): return f"tcp_connection:{value.host}:{value.port}{' [CLOSED]' if value.closed else ''}"
+        if isinstance(value, UdpSocketValue): return f"udp_socket:{value.local_address or 'unbound'}:{value.local_port or 0}{' [CLOSED]' if value.closed else ''}"
         if isinstance(value, RegexMatchValue): return value.text
         if isinstance(value, ObjectValue): return "object:" + ", ".join(f"{key}={Interpreter._display(field)}" for key, field in value.fields.items())
         if isinstance(value, NamespaceValue): return "namespace"
@@ -609,6 +627,11 @@ class Interpreter:
         return str(value)
 
     def close_resources(self):
+        for resource in reversed(self.network_resources):
+            if not resource.closed:
+                try: resource.native.close()
+                except Exception: pass
+                resource.closed = True
         for connection in reversed(self.database_connections):
             if not connection.closed:
                 try: connection.native.close()

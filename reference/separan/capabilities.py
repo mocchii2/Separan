@@ -25,12 +25,18 @@ class RuntimeCapabilities:
     max_process_timeout_ms: int = 300_000
     max_process_output_bytes: int = 1_048_576
     network: bool = False
+    inspect_network: bool = False
+    bind_network: bool = False
     network_schemes: frozenset = frozenset({"https"})
     network_hosts: frozenset | None = None
     network_ports: frozenset | None = None
+    network_bind_hosts: frozenset | None = frozenset({"127.0.0.1", "::1"})
+    network_bind_ports: frozenset | None = frozenset({0})
     allow_private_network: bool = False
     max_http_timeout_ms: int = 300_000
     max_http_response_bytes: int = 67_108_864
+    max_socket_timeout_ms: int = 300_000
+    max_socket_receive_bytes: int = 67_108_864
     send_mail: bool = False
     allowed_mail_senders: frozenset | None = None
     allowed_mail_recipients: frozenset | None = None
@@ -54,7 +60,7 @@ class RuntimeCapabilities:
         return cls(Path(root).resolve(), read_files=False, write_files=False, discover_paths=False,
                    read_environment=False, write_environment=False, import_modules=False,
                    run_processes=False, run_shell=False, network=False, send_mail=False, database=False,
-                   embedded_io=False)
+                   inspect_network=False, bind_network=False, embedded_io=False)
 
     def require(self, allowed, action, position):
         if not allowed: raise error("E720", "Permission error", f"Host capability does not allow {action}.", position, actual=action)
