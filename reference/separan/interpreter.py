@@ -26,6 +26,7 @@ from .mail import MailAddressValue, MailMessageValue, MailSendResultValue, MailS
 from .structured_data import XmlDocumentValue, XmlElementValue
 from .embedded import BoardValue, BusValue, EmbeddedContext, PinNamespaceValue, PinValue, fixed_member, pin_member
 from .network import IpAddressValue, NativeNetworkAdapter, NetworkInterfaceValue, TcpConnectionValue, UdpSocketValue
+from .network_services import DhcpServerValue, DnsServerValue
 from .token import SourcePosition
 
 
@@ -51,6 +52,8 @@ def type_name(value):
     if isinstance(value, NetworkInterfaceValue): return "network_interface"
     if isinstance(value, TcpConnectionValue): return "tcp_connection"
     if isinstance(value, UdpSocketValue): return "udp_socket"
+    if isinstance(value, DhcpServerValue): return "dhcp_server"
+    if isinstance(value, DnsServerValue): return "dns_server"
     if isinstance(value, BytesValue): return "bytes"
     if isinstance(value, RegexMatchValue): return "regex_match_result"
     if isinstance(value, ObjectValue): return "object"
@@ -282,7 +285,7 @@ class Interpreter:
         if 930 <= prefix <= 939: return value.category if value.category.endswith("_error") else "mail_error"
         if 940 <= prefix <= 949: return value.category if value.category.endswith("_error") else "yaml_error"
         if 950 <= prefix <= 959: return value.category if value.category.endswith("_error") else "xml_error"
-        if 970 <= prefix <= 978 or prefix == 980: return value.category if value.category.endswith("_error") else "network_error"
+        if 970 <= prefix <= 978 or 980 <= prefix <= 984: return value.category if value.category.endswith("_error") else "network_error"
         if prefix == 979: return "permission_error"
         return "runtime_error"
 
@@ -306,6 +309,8 @@ class Interpreter:
             "network_limit_error": "network_error", "network_closed_error": "network_error",
             "network_protocol_error": "network_error", "network_operation_unavailable": "network_error",
             "network_address_error": "network_error",
+            "network_service_error": "network_error", "dhcp_server_error": "network_service_error",
+            "dns_server_error": "network_service_error", "wifi_access_point_error": "network_service_error",
         }
         current = actual
         while current in parents:
@@ -617,6 +622,8 @@ class Interpreter:
         if isinstance(value, XmlDocumentValue): return f"xml_document(root={value.root.tag})"
         if isinstance(value, XmlElementValue): return f"xml_element(name={value.element.tag})"
         if isinstance(value, DbConnectionValue): return f"db_connection(driver={value.driver}, database=[REDACTED])"
+        if isinstance(value, DhcpServerValue): return f"dhcp_server(interface={value.interface_name}, state={'stopped' if value.closed else 'running'})"
+        if isinstance(value, DnsServerValue): return f"dns_server(interface={value.interface_name}, state={'stopped' if value.closed else 'running'})"
         if isinstance(value, BytesValue): return "0x" + value.value.hex()
         if isinstance(value, DatetimeValue): return format_datetime(value)
         if isinstance(value, LocalDatetimeValue): return format_local(value)
@@ -630,7 +637,10 @@ class Interpreter:
     def close_resources(self):
         for resource in reversed(self.network_resources):
             if not resource.closed:
-                try: resource.native.close()
+                try:
+                    closer = getattr(resource, "close", None)
+                    if closer is not None: closer()
+                    else: resource.native.close()
                 except Exception: pass
                 resource.closed = True
         for connection in reversed(self.database_connections):

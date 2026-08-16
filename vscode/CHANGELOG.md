@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.6] - 2026-08-16
+
+### Local network service preview
+
+- Highlights Wi-Fi AP, IPv4 DHCP-server, and simple DNS-server APIs.
+- Adds LSP signatures and inferred types for AP status and DHCP/DNS service handles.
+
 ## [0.9.5] - 2026-08-16
 
 ### Network address configuration

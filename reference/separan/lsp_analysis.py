@@ -76,6 +76,16 @@ BUILTIN_SIGNATURES = {
     "network_dhcp_status": "network_dhcp_status(interface: network_interface) -> string",
     "network_dhcp_lease": "network_dhcp_lease(interface: network_interface) -> object | null",
     "network_wait_until_addressed": "network_wait_until_addressed(interface: network_interface, timeout: duration) -> boolean",
+    "wifi_start_access_point": "wifi_start_access_point(interface: network_interface, ssid: string, password: secret, channel?: number) -> null",
+    "wifi_stop_access_point": "wifi_stop_access_point(interface: network_interface) -> null",
+    "wifi_access_point_status": "wifi_access_point_status(interface: network_interface) -> object",
+    "dhcp_server_start": "dhcp_server_start(interface: network_interface, server_address: ip_address | string, prefix: number, pool_start: ip_address | string, pool_end: ip_address | string, lease_time: duration, gateway?: ip_address | string, dns_servers?: list, reservations?: object) -> dhcp_server",
+    "dhcp_server_stop": "dhcp_server_stop(server: dhcp_server) -> null",
+    "dhcp_server_status": "dhcp_server_status(server: dhcp_server) -> string",
+    "dhcp_server_leases": "dhcp_server_leases(server: dhcp_server) -> list<object>",
+    "dns_server_start": "dns_server_start(interface: network_interface, server_address: ip_address | string, records: object, catch_all?: boolean) -> dns_server",
+    "dns_server_stop": "dns_server_stop(server: dns_server) -> null",
+    "dns_server_status": "dns_server_status(server: dns_server) -> string",
     "ethernet_open": "ethernet_open(name?: string) -> network_interface",
     "ethernet_status": "ethernet_status(interface: network_interface) -> object",
     "wifi_open": "wifi_open(name?: string) -> network_interface",
@@ -320,6 +330,10 @@ def _literal_type(expression):
         if name in ("xml_document_parse", "xml_document_read"): return "xml_document"
         if name in ("xml_root", "xml_create_element", "xml_find", "xml_child"): return "xml_element"
         if name in ("xml_to_object", "xml_file_to_object"): return "object"
+        signature = BUILTIN_SIGNATURES.get(name)
+        if signature and " -> " in signature:
+            returned = signature.rsplit(" -> ", 1)[1].split(" | ", 1)[0]
+            return returned.split("<", 1)[0]
     return "unknown"
 
 

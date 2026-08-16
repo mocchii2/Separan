@@ -164,6 +164,18 @@ ready = network_wait_until_addressed(lan, duration("10s"))
         inferred = {item.name: item.type for item in variables(source)}
         self.assertEqual(inferred, {"mode": "string", "state": "string", "lease": "object", "ready": "boolean"})
 
+    def test_network_service_signatures_and_types(self):
+        signature = signature_help('dhcp_server_start(wifi, server_address = "192.168.4.1", ', 0, 63)
+        self.assertIn("pool_start: ip_address", signature["signatures"][0]["label"])
+        source = '''dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", lease_time = duration("1h"))
+dns = dns_server_start(wifi, server_address = "192.168.4.1", records = records)
+state = dhcp_server_status(dhcp)
+leases = dhcp_server_leases(dhcp)
+ap = wifi_access_point_status(wifi)
+'''
+        inferred = {item.name: item.type for item in variables(source)}
+        self.assertEqual(inferred, {"dhcp": "dhcp_server", "dns": "dns_server", "state": "string", "leases": "list", "ap": "object"})
+
     def test_structural_end_and_tag_completion(self):
         source = 'function:main\n@notification\nif true :active\n:end\n'
         items = completions(source, 3, 4)["items"]

@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.11
+## v0.2.0-alpha.12
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -185,7 +185,7 @@ Pico／Pico 2向けC++ firmware生成とPico SDK ELF／UF2／HEX buildが
 
 ## Native LAN／Wi-Fi／DNS／TCP／UDP
 
-`0.2.0-alpha.11`のreference runtimeには、PC／server向けのcapability制御native network層を
+`0.2.0-alpha.12`のreference runtimeには、PC／server向けのcapability制御native network層を
 追加しました。曖昧なstringをすべての操作へ流さず、`ip_address`、
 `network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
 
@@ -247,6 +247,23 @@ endif:address_ready
 
 end_function:main
 ```
+
+embedded adapter向けに、Wi-Fi AP、IPv4 DHCP server、簡易local DNS serverのAPIも
+追加しました。DHCP client APIとは明確に分離し、AP passwordはredactされる`secret`型必須、
+DHCP poolは起動前にsubnet・上限・衝突を検証、captive portal向けDNS全件応答は明示指定です。
+
+```separan
+wifi = wifi_open()
+setup_password = secret_from_environment("SEPARAN_SETUP_PASSWORD")
+wifi_start_access_point(wifi, ssid = "Separan-Device", password = setup_password, channel = 6)
+
+dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", gateway = "192.168.4.1", dns_servers = ["192.168.4.1"], lease_time = duration("1h"))
+```
+
+runtime APIとadapter検証は実装済みです。Pico W／ESP32 adapterから
+lwIP／Pico SDK／ESP-IDFへ接続するbackendは今後の実装です。
+[AP／DHCP／DNSサンプル](../examples/network_access_point.sep)と
+[network仕様](../spec/network.ja.md)を参照してください。
 
 interface照会、address設定、外向き宛先、private addressアクセス、UDP bindは別capabilityです。
 設定には`--allow-network-configuration`と明示adapterが必要で、default native inspectorが
@@ -453,7 +470,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.11** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.12** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

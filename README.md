@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.11
+## v0.2.0-alpha.12
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -209,7 +209,7 @@ functions; implicit coercion remains forbidden.
 
 ## Native LAN, Wi-Fi, DNS, TCP, and UDP
 
-The `0.2.0-alpha.11` reference runtime provides a capability-gated native network
+The `0.2.0-alpha.12` reference runtime provides a capability-gated native network
 layer for desktop and server scripts. It uses dedicated `ip_address`,
 `network_interface`, `tcp_connection`, and `udp_socket` values rather than
 passing ambiguous strings through every operation.
@@ -273,6 +273,24 @@ endif:address_ready
 
 end_function:main
 ```
+
+Embedded adapters can now expose Wi-Fi AP, IPv4 DHCP-server, and simple local
+DNS-server services without confusing them with the DHCP client API. AP
+passwords require the redacted `secret` type, DHCP pools are bounded and
+validated before startup, and captive-portal DNS behavior is explicit:
+
+```separan
+wifi = wifi_open()
+setup_password = secret_from_environment("SEPARAN_SETUP_PASSWORD")
+wifi_start_access_point(wifi, ssid = "Separan-Device", password = setup_password, channel = 6)
+
+dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", gateway = "192.168.4.1", dns_servers = ["192.168.4.1"], lease_time = duration("1h"))
+```
+
+The runtime API and adapter validation are implemented; Pico W/ESP32 adapters
+still need to connect the contract to lwIP/Pico SDK/ESP-IDF. See the
+[AP/DHCP/DNS sample](examples/network_access_point.sep) and
+[network specification](spec/network.md).
 
 Network inspection, address configuration, outbound destinations,
 private-address access, and UDP binding are separate host capabilities.
@@ -519,7 +537,7 @@ plus static validation and a Pico/Pico 2 C++ → Pico SDK → ELF/UF2/HEX firmwa
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.11**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.12**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

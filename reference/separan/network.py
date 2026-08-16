@@ -116,6 +116,36 @@ class NativeNetworkAdapter:
     def set_link_local_fallback(self, interface_name, enabled):
         raise NotImplementedError("Native link-local fallback requires an explicit host or embedded network adapter.")
 
+    def wifi_start_access_point(self, interface_name, configuration):
+        raise NotImplementedError("Wi-Fi access-point mode requires an explicit embedded network adapter.")
+
+    def wifi_stop_access_point(self, interface_name):
+        raise NotImplementedError("Wi-Fi access-point mode requires an explicit embedded network adapter.")
+
+    def wifi_access_point_status(self, interface_name):
+        raise NotImplementedError("Wi-Fi access-point mode requires an explicit embedded network adapter.")
+
+    def dhcp_server_start(self, interface_name, configuration):
+        raise NotImplementedError("A DHCP server requires an explicit embedded network adapter.")
+
+    def dhcp_server_stop(self, native):
+        raise NotImplementedError("A DHCP server requires an explicit embedded network adapter.")
+
+    def dhcp_server_status(self, native):
+        raise NotImplementedError("A DHCP server requires an explicit embedded network adapter.")
+
+    def dhcp_server_leases(self, native):
+        raise NotImplementedError("A DHCP server requires an explicit embedded network adapter.")
+
+    def dns_server_start(self, interface_name, configuration):
+        raise NotImplementedError("A DNS server requires an explicit embedded network adapter.")
+
+    def dns_server_stop(self, native):
+        raise NotImplementedError("A DNS server requires an explicit embedded network adapter.")
+
+    def dns_server_status(self, native):
+        raise NotImplementedError("A DNS server requires an explicit embedded network adapter.")
+
     @staticmethod
     def _fallback_interfaces():
         try:
@@ -602,18 +632,22 @@ def _configuration_interface(value, function_name, position, runtime):
     return interface
 
 
-def _adapter_configuration(runtime, method_name, interface, position, *arguments):
+def _adapter_call(runtime, method_name, interface, position, *arguments, error_code="E980", error_category="network_address_error"):
     implementation = getattr(runtime.network_adapter, method_name, None)
     if implementation is None:
-        raise error("E978", "network_operation_unavailable", "The selected network adapter does not implement this address operation.", position, actual=method_name)
+        raise error("E978", "network_operation_unavailable", "The selected network adapter does not implement this network operation.", position, actual=method_name)
     try:
-        implementation(interface.fields["name"], *arguments)
+        return implementation(interface.fields["name"], *arguments)
     except NotImplementedError as exc:
         raise error("E978", "network_operation_unavailable", str(exc), position, actual=method_name)
     except TimeoutError:
         raise error("E974", "network_timeout_error", "Network address operation timed out.", position, actual=method_name)
     except Exception as exc:
-        raise error("E980", "network_address_error", str(exc), position, actual=method_name)
+        raise error(error_code, error_category, str(exc), position, actual=method_name)
+
+
+def _adapter_configuration(runtime, method_name, interface, position, *arguments):
+    _adapter_call(runtime, method_name, interface, position, *arguments)
     return None
 
 

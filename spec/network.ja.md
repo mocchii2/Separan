@@ -1,17 +1,18 @@
 # Separan Native Network仕様 v0.1
 
-状態: Separan `0.2.0-alpha.11`で実験実装済み。
+状態: Separan `0.2.0-alpha.12`で実験実装済み。
 
 ## 目的と境界
 
-native network APIはPC／server上のscript向けです。HTTP、および
-Embedded／Micro Separanのdriver層とは分離します。この仕様にはboard固有Wi-Fi driver、
-GPIO接続Ethernet controller、firmware生成、AP hosting、hardware safety検証を含めません。
+native network APIはPC／serverとembedded adapterで共通の意図を表します。HTTPとは
+分離し、board固有Wi-Fi driver、GPIO接続Ethernet controller、firmware生成はadapter側の
+責任です。`0.2.0-alpha.12`ではAP、DHCP server、簡易DNS serverのcontractも含みます。
 
-権限は次の4つへ分離します。
+権限は次の5つへ分離します。
 
 - `inspect_network`: hostのinterface状態を読む
 - `configure_network`: 明示adapterを通じてIP設定変更を要求する
+- `host_network_services`: AP、DHCP server、DNS serverをlocal interface上でhostする
 - `network`: 明示許可された宛先host／portを名前解決・通信する
 - `bind_network`: 明示許可されたlocal address／portへUDP socketをbindする
 
@@ -33,9 +34,9 @@ print ip_address_is_loopback(address)
 print ip_address_is_global(address)
 ```
 
-ほかの公開型は`network_interface`、`tcp_connection`、`udp_socket`です。
-TCP／UDP resourceは`tcp_close`／`udp_close`で閉じ、program終了時にはruntimeが
-未close resourceも自動closeします。
+ほかの公開型は`network_interface`、`tcp_connection`、`udp_socket`、
+`dhcp_server`、`dns_server`です。明示close／stop関数で解放でき、program終了時には
+runtimeが未close resourceも自動closeします。
 
 ## Interface照会
 
@@ -95,8 +96,70 @@ NetworkManager `nmcli`を利用します。安全なnative scannerがないplatf
 `wifi_wait_until_connected(wifi, timeout)`は同じinterface identityの最新host状態を
 確認してbooleanを返します。duration 0なら1回だけ確認します。
 
-Wi-Fi接続／切断、machine hostname変更、AP開始はnative previewに入れません。それぞれ
-credentialとmachine全体のpolicyが別途必要だからです。
+Wi-Fi接続／切断とmachine hostname変更はnative previewに入れません。AP開始は下記の
+独立したhosting capabilityとadapter contractに分離します。
+
+## Wi-Fi AP、DHCP server、簡易DNS server
+
+DHCP clientの`network_use_dhcp(interface)`と、接続端末へaddressを配布する
+`dhcp_server_start(...)`は別機能です。AP hostingには`host_network_services`、interfaceを
+APへ変更する操作には加えて`configure_network`が必要です。CLI flagはそれぞれ
+`--allow-network-service-hosting`と`--allow-network-configuration`です。
+
+```separan
+wifi = wifi_open()
+setup_password = secret_from_environment("SEPARAN_SETUP_PASSWORD")
+
+wifi_start_access_point(wifi, ssid = "Separan-Device", password = setup_password, channel = 6)
+dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", gateway = "192.168.4.1", dns_servers = ["192.168.4.1"], lease_time = duration("1h"))
+```
+
+初期APはWPA2 Personal固定で、passwordは`secret`型かつ8〜63 byteが必須です。open APを
+暗黙に作る方法はありません。DHCP serverはIPv4、単一subnet、連続pool、gateway、DNS、
+1分〜7日のlease、任意のMAC固定予約に限定します。pool上限はhost capabilityが決め、
+server／gateway／予約addressとの衝突、subnet外address、重複を開始前に拒否します。
+
+状態とleaseは次で取得します。
+
+- `wifi_access_point_status(wifi)`
+- `dhcp_server_status(dhcp)`／`dhcp_server_leases(dhcp)`
+- `dhcp_server_stop(dhcp)`／`wifi_stop_access_point(wifi)`
+
+簡易DNS serverはASCII hostnameのIPv4 A recordだけを扱います。
+
+```separan
+object:empty_records
+end_object:empty_records
+
+records = object_set(empty_records, "setup.separan", "192.168.4.1")
+dns = dns_server_start(wifi, server_address = "192.168.4.1", records = records, catch_all = true)
+```
+
+未知名をsetup addressへ返すcaptive-portal向け動作は`catch_all = true`を明示した場合だけ
+有効です。DNSはauthoritative recursive resolver、relay、dynamic updateを提供しません。
+AP、DHCP、DNSは独立resourceであり、明示stopまたはruntime終了時に逆順で停止します。
+HTTP setup serverとの一括起動APIは、HTTP lifecycle統合後の将来機能です。
+
+default desktop adapterはこれらを実行せず`network_operation_unavailable`を返します。
+Pico W／ESP32等のadapterは次のcontractをlwIP、Pico SDK、ESP-IDF等へ接続します。
+
+```text
+wifi_start_access_point(interface_name, configuration)
+wifi_stop_access_point(interface_name)
+wifi_access_point_status(interface_name)
+dhcp_server_start(interface_name, configuration)
+dhcp_server_stop(native)
+dhcp_server_status(native)
+dhcp_server_leases(native)
+dns_server_start(interface_name, configuration)
+dns_server_stop(native)
+dns_server_status(native)
+```
+
+DHCPのserver応答は[RFC 2131 section 4.3.1](https://www.rfc-editor.org/rfc/rfc2131.html#section-4.3.1)、
+DNS messageと名前の基本modelは[RFC 1034](https://www.rfc-editor.org/rfc/rfc1034.html)および
+[RFC 1035](https://www.rfc-editor.org/rfc/rfc1035.html)へ従うadapter責任です。完全なsource例は
+[`examples/network_access_point.sep`](../examples/network_access_point.sep)にあります。
 
 ## 共通IP address設定
 
@@ -245,6 +308,10 @@ bindには別の`bind_network` capabilityとlocal address／port allowlistが必
 - `network_protocol_error`
 - `network_operation_unavailable`
 - `network_address_error`
+- `network_service_error`
+- `dhcp_server_error`
+- `dns_server_error`
+- `wifi_access_point_error`
 
 capability拒否は`network_error`ではなく`permission_error`です。host policy違反と
 通信失敗を区別できます。

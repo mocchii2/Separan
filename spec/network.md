@@ -1,18 +1,20 @@
 # Separan Native Network Specification v0.1
 
-Status: experimental implementation in Separan `0.2.0-alpha.11`.
+Status: experimental implementation in Separan `0.2.0-alpha.12`.
 
 ## Purpose and boundary
 
-The native network API serves desktop and server scripts. It is separate from
-HTTP and from the Embedded/Micro Separan driver layer. This specification does
-not define board Wi-Fi drivers, GPIO-connected Ethernet controllers, firmware
-generation, access-point hosting, or hardware safety validation.
+The native network API expresses common intent across desktop/server and
+embedded adapters. It remains separate from HTTP. Board Wi-Fi drivers,
+GPIO-connected Ethernet controllers, and firmware generation remain adapter
+responsibilities. `0.2.0-alpha.12` also defines AP, DHCP-server, and simple
+DNS-server contracts.
 
-Separan separates three authorities:
+Separan separates five authorities:
 
 - `inspect_network`: read host interface state;
 - `configure_network`: request IP configuration changes through an explicit adapter;
+- `host_network_services`: host AP, DHCP, and DNS services on a local interface;
 - `network`: resolve or contact explicitly allowed destination hosts and ports;
 - `bind_network`: bind a UDP socket to an explicitly allowed local address and port.
 
@@ -35,9 +37,9 @@ print ip_address_is_loopback(address)
 print ip_address_is_global(address)
 ```
 
-Other public values are `network_interface`, `tcp_connection`, and
-`udp_socket`. TCP and UDP resources are closed by `tcp_close`/`udp_close`, and
-the runtime also closes all still-open resources on termination.
+Other public values are `network_interface`, `tcp_connection`, `udp_socket`,
+`dhcp_server`, and `dns_server`. Explicit close/stop functions release them,
+and the runtime also closes all still-open resources on termination.
 
 ## Interface inspection
 
@@ -101,9 +103,73 @@ not return a fabricated empty scan.
 identity against fresh host state and returns boolean. Zero duration performs a
 single check.
 
-Joining/leaving Wi-Fi, setting the machine hostname, and starting an access
-point remain outside this native preview. They have separate credential and
-machine-wide policy requirements.
+Joining/leaving Wi-Fi and setting the machine hostname remain outside this
+native preview. AP startup uses the separate hosting capability and adapter
+contract below.
+
+## Wi-Fi AP, DHCP server, and simple DNS server
+
+`network_use_dhcp(interface)` is a DHCP client. `dhcp_server_start(...)` is a
+separate service that leases addresses to attached clients. Hosting requires
+`host_network_services`; changing an interface into AP mode additionally
+requires `configure_network`. The CLI flags are
+`--allow-network-service-hosting` and `--allow-network-configuration`.
+
+```separan
+wifi = wifi_open()
+setup_password = secret_from_environment("SEPARAN_SETUP_PASSWORD")
+
+wifi_start_access_point(wifi, ssid = "Separan-Device", password = setup_password, channel = 6)
+dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", gateway = "192.168.4.1", dns_servers = ["192.168.4.1"], lease_time = duration("1h"))
+```
+
+The initial AP is fixed to WPA2 Personal. Its password must be a `secret` of
+8–63 bytes; no implicit open-AP path exists. The DHCP server is deliberately
+limited to IPv4, one subnet, one continuous pool, gateway, DNS addresses,
+1-minute through 7-day leases, and optional MAC reservations. Host capability
+limits bound pool size. Subnet errors and conflicts with the server, gateway,
+pool, or reservations fail before adapter startup.
+
+`wifi_access_point_status`, `dhcp_server_status`, and `dhcp_server_leases`
+provide typed state. Explicit stop functions and runtime shutdown close AP,
+DHCP, and DNS resources in reverse order.
+
+The simple DNS server supports ASCII hostnames and IPv4 A records only:
+
+```separan
+object:empty_records
+end_object:empty_records
+
+records = object_set(empty_records, "setup.separan", "192.168.4.1")
+dns = dns_server_start(wifi, server_address = "192.168.4.1", records = records, catch_all = true)
+```
+
+Captive-portal-style unknown-name redirection is enabled only by explicit
+`catch_all = true`. This is not a recursive resolver, relay, or dynamic DNS
+server. An integrated AP/DHCP/DNS/HTTP setup-portal helper remains future work.
+
+The default desktop adapter reports `network_operation_unavailable`. Pico W,
+ESP32, and other adapters connect this contract to lwIP, Pico SDK, ESP-IDF, or
+their native network stack:
+
+```text
+wifi_start_access_point(interface_name, configuration)
+wifi_stop_access_point(interface_name)
+wifi_access_point_status(interface_name)
+dhcp_server_start(interface_name, configuration)
+dhcp_server_stop(native)
+dhcp_server_status(native)
+dhcp_server_leases(native)
+dns_server_start(interface_name, configuration)
+dns_server_stop(native)
+dns_server_status(native)
+```
+
+Adapter behavior follows [RFC 2131 section 4.3.1](https://www.rfc-editor.org/rfc/rfc2131.html#section-4.3.1)
+for DHCP server responses and the basic DNS model in
+[RFC 1034](https://www.rfc-editor.org/rfc/rfc1034.html) and
+[RFC 1035](https://www.rfc-editor.org/rfc/rfc1035.html). See the complete
+[`examples/network_access_point.sep`](../examples/network_access_point.sep).
 
 ## Common IP address configuration
 
@@ -259,6 +325,10 @@ All specialized failures are catchable as `network_error`:
 - `network_protocol_error`
 - `network_operation_unavailable`
 - `network_address_error`
+- `network_service_error`
+- `dhcp_server_error`
+- `dns_server_error`
+- `wifi_access_point_error`
 
 Capability rejection is `permission_error`, not `network_error`. This keeps
 host policy distinguishable from a failed network operation.

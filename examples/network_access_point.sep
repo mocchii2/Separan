@@ -1,0 +1,30 @@
+########################################
+# Wi-Fi AP + DHCP + simple DNS
+########################################
+
+object:empty_records
+end_object:empty_records
+
+function:main
+
+@embedded
+@network
+@setup
+
+wifi = wifi_open()
+setup_password = secret_from_environment("SEPARAN_SETUP_PASSWORD")
+
+wifi_start_access_point(wifi, ssid = "Separan-Device", password = setup_password, channel = 6)
+
+dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", gateway = "192.168.4.1", dns_servers = ["192.168.4.1"], lease_time = duration("1h"))
+
+records = object_set(empty_records, "setup.separan", "192.168.4.1")
+dns = dns_server_start(wifi, server_address = "192.168.4.1", records = records, catch_all = true)
+
+print "Separan setup network is ready."
+print dhcp_server_status(dhcp)
+print dns_server_status(dns)
+
+# Start the HTTP setup service here. Runtime shutdown closes DNS, DHCP, and AP.
+
+end_function:main
