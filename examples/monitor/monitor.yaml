@@ -213,7 +213,7 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - {Effect: Allow, Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents], Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*"}
-              - {Effect: Allow, Action: [dynamodb:GetItem, dynamodb:PutItem], Resource: !GetAtt MonitorTable.Arn}
+              - {Effect: Allow, Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem], Resource: !GetAtt MonitorTable.Arn}
               - {Effect: Allow, Action: s3:GetObject, Resource: !Sub "${MonitorConfigBucket.Arn}/config/*"}
               - {Effect: Allow, Action: sns:Publish, Resource: [!Ref EmailTopic, !Ref SmsTopic, !Ref TeamsTopic]}
 
@@ -246,7 +246,7 @@ Resources:
       Code:
         ZipFile: |
           import hashlib, json, os, time, uuid
-          from datetime import datetime
+          from datetime import datetime, timedelta, timezone
           from zoneinfo import ZoneInfo
           import boto3
           from botocore.exceptions import ClientError
@@ -280,15 +280,32 @@ Resources:
                   if exc.response.get("Error",{}).get("Code") in ("NoSuchKey","NoSuchBucket"): return default
                   raise
 
-          def time_window(now, start, end): return start <= now <= end if start <= end else now >= start or now <= end
+          def clock_minutes(value):
+              hour, minute = (int(part) for part in value.split(":"))
+              if hour not in range(24) or minute not in range(60): raise ValueError(f"Invalid time: {value}")
+              return hour * 60 + minute
+
+          def weekly_window(local, entry):
+              days={str(value).upper() for value in entry.get("days",[])}; now=local.hour*60+local.minute; start=clock_minutes(entry.get("start","00:00")); end=clock_minutes(entry.get("end","23:59")); today=local.strftime("%a").upper()
+              if start <= end: return today in days and start <= now <= end
+              if now >= start: return today in days
+              yesterday=(local-timedelta(days=1)).strftime("%a").upper(); return now <= end and yesterday in days
+
+          def date_window(local, entry):
+              target=datetime.strptime(entry.get("date",""),"%Y-%m-%d").date(); now=local.hour*60+local.minute; start=clock_minutes(entry.get("start","00:00")); end=clock_minutes(entry.get("end","23:59"))
+              if start <= end: return local.date()==target and start <= now <= end
+              return (local.date()==target and now>=start) or (local.date()==target+timedelta(days=1) and now<=end)
+
           def holiday(config, epoch):
-              try: local = datetime.fromtimestamp(epoch, ZoneInfo(config.get("timezone") or os.environ["DEFAULT_TIMEZONE"]))
-              except Exception: local = datetime.fromtimestamp(epoch, ZoneInfo(os.environ["DEFAULT_TIMEZONE"]))
-              day, date_text, now = local.strftime("%a").upper(), local.strftime("%Y-%m-%d"), local.strftime("%H:%M")
+              try: zone=ZoneInfo(config.get("timezone") or os.environ["DEFAULT_TIMEZONE"])
+              except Exception:
+                  try: zone=ZoneInfo(os.environ["DEFAULT_TIMEZONE"])
+                  except Exception: zone=timezone.utc
+              local=datetime.fromtimestamp(epoch,zone)
               for entry in config.get("weekly",[]):
-                  if entry.get("enabled") and day in entry.get("days",[]) and time_window(now,entry.get("start","00:00"),entry.get("end","23:59")): return "HOLIDAY_WEEKLY"
+                  if entry.get("enabled") and weekly_window(local,entry): return "HOLIDAY_WEEKLY"
               for entry in config.get("dates",[]):
-                  if entry.get("enabled") and date_text == entry.get("date") and time_window(now,entry.get("start","00:00"),entry.get("end","23:59")): return "HOLIDAY_DATE"
+                  if entry.get("enabled") and date_window(local,entry): return "HOLIDAY_DATE"
               return ""
 
           def rule_match(c, rule):
@@ -305,19 +322,24 @@ Resources:
               item = ddb.get_item(TableName=TABLE,Key={"pk":{"S":f"STATE#{resource_type}#{c['resource_id']}"},"sk":{"S":"CURRENT"}},ConsistentRead=True).get("Item",{})
               return epoch < int(item.get("suppress_metrics_until",{}).get("N","0"))
 
-          def duplicate(c, epoch):
+          def reserve_duplicate(c, epoch):
               raw = "|".join(str(c.get(k,"")) for k in ("notification_type","resource_id","state","title","message"))
               digest = hashlib.sha256(raw.encode()).hexdigest(); expires = epoch + int(os.environ["DEDUP_MINUTES"])*60
               try:
                   ddb.put_item(TableName=TABLE,Item={"pk":{"S":f"DEDUP#{digest}"},"sk":{"S":"CURRENT"},"expires_at":{"N":str(expires)}},ConditionExpression="attribute_not_exists(pk) OR expires_at < :now",ExpressionAttributeValues={":now":{"N":str(epoch)}})
-                  return False
+                  return digest
               except ClientError as exc:
-                  if exc.response.get("Error",{}).get("Code") == "ConditionalCheckFailedException": return True
+                  if exc.response.get("Error",{}).get("Code") == "ConditionalCheckFailedException": return None
                   raise
+
+          def release_duplicate(digest):
+              ddb.delete_item(TableName=TABLE,Key={"pk":{"S":f"DEDUP#{digest}"},"sk":{"S":"CURRENT"}})
+
+          def clip(value, max_bytes): return str(value).encode("utf-8")[:max_bytes].decode("utf-8","ignore")
 
           def history(c, epoch, status, reason):
               ttl = epoch + int(os.environ["HISTORY_DAYS"])*86400
-              ddb.put_item(TableName=TABLE,Item={"pk":{"S":"HISTORY#"+datetime.utcfromtimestamp(epoch).strftime("%Y-%m-%d")},"sk":{"S":f"{epoch:010d}#{uuid.uuid4()}"},"notification_type":{"S":str(c.get("notification_type","UNKNOWN"))},"resource_id":{"S":str(c.get("resource_id","UNKNOWN"))},"status":{"S":status},"suppression_reason":{"S":reason or "NONE"},"payload":{"S":json.dumps(c,ensure_ascii=False,default=str)[:100000]},"expires_at":{"N":str(ttl)}})
+              ddb.put_item(TableName=TABLE,Item={"pk":{"S":"HISTORY#"+datetime.fromtimestamp(epoch,timezone.utc).strftime("%Y-%m-%d")},"sk":{"S":f"{epoch:010d}#{uuid.uuid4()}"},"notification_type":{"S":str(c.get("notification_type","UNKNOWN"))},"resource_id":{"S":str(c.get("resource_id","UNKNOWN"))},"status":{"S":status},"suppression_reason":{"S":reason or "NONE"},"payload":{"S":clip(json.dumps(c,ensure_ascii=False,default=str),60000)},"expires_at":{"N":str(ttl)}})
 
           def publish(c):
               kind = c.get("notification_type","F"); requested = {x.strip().lower() for x in ROUTES.get(kind,"email").split(",") if x.strip()}; delivered=[]
@@ -325,8 +347,8 @@ Resources:
                   enabled, topic = CHANNELS[channel]
                   if channel not in requested or not enabled: continue
                   subject_template, body_template = TEMPLATES.get(kind,TEMPLATES["F"])[channel]; values=Safe(c)
-                  subject, body = subject_template.format_map(values)[:100], body_template.format_map(values)
-                  if channel == "teams": body=json.dumps({"version":"1.0","source":"custom","id":str(uuid.uuid4()),"content":{"textType":"client-markdown","title":subject,"description":body[:8000],"keywords":[kind,c.get("resource_type","unknown")]},"metadata":{"threadId":f"{c.get('resource_type','resource')}#{c.get('resource_id','unknown')}","summary":subject,"eventType":kind}},ensure_ascii=False)
+                  subject, body = clip(subject_template.format_map(values).replace("\n"," ").replace("\r"," "),100), body_template.format_map(values)
+                  if channel == "teams": body=json.dumps({"version":"1.0","source":"custom","id":str(uuid.uuid4()),"content":{"textType":"client-markdown","title":subject,"description":clip(body,8000),"keywords":[kind,c.get("resource_type","unknown")]},"metadata":{"threadId":f"{c.get('resource_type','resource')}#{c.get('resource_id','unknown')}","summary":subject,"eventType":kind}},ensure_ascii=False)
                   args={"TopicArn":topic,"Message":body}
                   if subject and channel == "email": args["Subject"]=subject
                   sns.publish(**args); delivered.append(channel)
@@ -342,8 +364,19 @@ Resources:
               suppression=load(os.environ["SUPPRESSION_KEY"],{"rules":[]}); holidays=load(os.environ["HOLIDAY_KEY"],{"weekly":[],"dates":[]})
               reason="USER_SUPPRESSION_RULE" if any(rule_match(c,r) for r in suppression.get("rules",[])) else holiday(holidays,epoch)
               if not reason and transition_grace(c,epoch): reason="STATE_TRANSITION_GRACE"
-              if not reason and duplicate(c,epoch): reason="DUPLICATE_WITHIN_WINDOW"
-              delivered=[] if reason else publish(c); c["delivered_channels"]=delivered
+              reservation=None
+              if not reason:
+                  reservation=reserve_duplicate(c,epoch)
+                  if reservation is None: reason="DUPLICATE_WITHIN_WINDOW"
+              if reason: delivered=[]
+              else:
+                  try: delivered=publish(c)
+                  except Exception:
+                      if reservation: release_duplicate(reservation)
+                      try: history(c,epoch,"DELIVERY_FAILED","SNS_PUBLISH_FAILED")
+                      except Exception: pass
+                      raise
+              c["delivered_channels"]=delivered
               history(c,epoch,"SUPPRESSED" if reason else ("SENT" if delivered else "NO_ENABLED_DESTINATION"),reason)
 
           def handler(event, context):
@@ -397,6 +430,7 @@ Resources:
       Code:
         ZipFile: |
           import base64, gzip, json, os
+          import xml.etree.ElementTree as ET
           import boto3
           sns=boto3.client("sns"); TOPIC=os.environ["INGRESS_TOPIC"]; KEYWORDS=[v.casefold() for v in os.environ["KEYWORDS"].split(",") if v]
           def names(ids_key,names_key):
@@ -410,17 +444,24 @@ Resources:
                   if not isinstance(value,dict): return {},message
               except Exception: return {},message
               return value,str(value.get("Message") or value.get("message") or message)
+          def parse_windows(message):
+              try:
+                  root=ET.fromstring(message); system=root.find("{*}System"); rendering=root.find("{*}RenderingInfo")
+                  provider=system.find("{*}Provider") if system is not None else None; event_id=system.findtext("{*}EventID","") if system is not None else ""; level_code=system.findtext("{*}Level","") if system is not None else ""; rendered=rendering.findtext("{*}Message","") if rendering is not None else ""
+                  levels={"1":"CRITICAL","2":"ERROR","3":"WARNING","4":"INFORMATION","5":"VERBOSE"}; return {"source":provider.attrib.get("Name","") if provider is not None else "","event_id":event_id,"level":levels.get(level_code,level_code)},rendered or message
+              except (ET.ParseError,ValueError): return {},message
           def logs(event):
               payload=json.loads(gzip.decompress(base64.b64decode(event["awslogs"]["data"]))); group=payload.get("logGroup",""); stream=payload.get("logStream",""); is_rds="/aws/rds/" in group; rid=stream.split("/")[0]
               if is_rds:
                   parts=group.split("/"); rid=parts[4] if len(parts)>4 else stream
               for item in payload.get("logEvents",[]):
-                  meta,content=parse(item.get("message","")); matched=any(k in content.casefold() for k in KEYWORDS)
+                  raw=item.get("message",""); meta,content=parse(raw); matched=any(k in content.casefold() for k in KEYWORDS)
                   if is_rds and rid in RDS and matched: send("D","RDS",rid,RDS[rid],group,content,title="RDS log keyword")
                   if not is_rds and rid in EC2:
+                      if not meta: meta,content=parse_windows(raw); matched=any(k in content.casefold() for k in KEYWORDS)
                       source=meta.get("Source") or meta.get("source") or group.rsplit("/",1)[-1]; event_id=meta.get("EventID") or meta.get("event_id") or meta.get("EventId") or ""; level=str(meta.get("Level") or meta.get("level") or "").upper()
                       if matched: send("B","EC2",rid,EC2[rid],group,content,title="Windows log keyword",windows_source=str(source),event_id=str(event_id))
-                      if level in ("WARNING","ERROR","CRITICAL") or event_id: send("C","EC2",rid,EC2[rid],group,content,title="Windows event",windows_source=str(source),event_id=str(event_id))
+                      send("C","EC2",rid,EC2[rid],group,content,title="Windows event",windows_source=str(source),event_id=str(event_id),event_level=level)
           def rds_event(event):
               detail=event.get("detail",{}); rid=detail.get("SourceIdentifier") or detail.get("SourceArn","").rsplit(":",1)[-1]
               if rid in RDS:
@@ -467,23 +508,35 @@ Resources:
               if state=="rebooting" or old=="rebooting": return int(os.environ["REBOOT_SUPPRESSION"])*60
               if state in ("running","available","pending","starting"): return int(os.environ["STARTUP_SUPPRESSION"])*60
               return 0
-          def store(t,rid,state,old):
-              now=int(time.time()); ddb.put_item(TableName=TABLE,Item={**key(t,rid),"state":{"S":state},"previous_state":{"S":old or ""},"changed_at":{"N":str(now)},"suppress_metrics_until":{"N":str(now+grace(state,old))},"expires_at":{"N":str(now+int(os.environ["HISTORY_DAYS"])*86400)}})
+          def store(t,rid,state,old,item,apply_grace):
+              now=int(time.time()); previous=item.get("previous_state",{}).get("S",""); changed_at=int(item.get("changed_at",{}).get("N",str(now))); suppress_until=int(item.get("suppress_metrics_until",{}).get("N","0"))
+              if apply_grace: previous=old or ""; changed_at=now; suppress_until=now+grace(state,old)
+              ddb.put_item(TableName=TABLE,Item={**key(t,rid),"state":{"S":state},"previous_state":{"S":previous},"changed_at":{"N":str(changed_at)},"suppress_metrics_until":{"N":str(suppress_until)},"expires_at":{"N":str(now+int(os.environ["HISTORY_DAYS"])*86400)}})
           def notify(t,rid,name,state,old,source,message): sns.publish(TopicArn=TOPIC,Message=json.dumps({"notification_type":"F","resource_type":t,"resource_id":rid,"resource_name":name,"state":state,"previous_state":old or "unknown","source":source,"title":"Resource state change","message":message},ensure_ascii=False))
           def transition(t,rid,name,state,source,message,force=False):
-              item=previous(t,rid); old=item.get("state",{}).get("S",""); normalized=state.casefold(); public="reboot_completed" if old=="rebooting" and normalized in ("running","available") else normalized; changed=bool(old and old!=normalized); store(t,rid,normalized,old)
+              item=previous(t,rid); old=item.get("state",{}).get("S",""); normalized=state.casefold(); public="reboot_completed" if old=="rebooting" and normalized in ("running","available") else normalized; changed=bool(old and old!=normalized); store(t,rid,normalized,old,item,changed or force)
               if changed or force: notify(t,rid,name,public,old,source,message)
           def scheduled():
-              if EC2:
-                  response=ec2.describe_instances(InstanceIds=list(EC2)); found={i["InstanceId"]:i.get("State",{}).get("Name","unknown") for r in response.get("Reservations",[]) for i in r.get("Instances",[])}
-                  for rid,name in EC2.items(): transition("EC2",rid,name,found.get(rid,"not_found"),"EventBridge periodic check","Periodic EC2 state confirmation")
+              for rid,name in EC2.items():
+                  try:
+                      response=ec2.describe_instances(InstanceIds=[rid]); instances=[i for reservation in response.get("Reservations",[]) for i in reservation.get("Instances",[])]; state=instances[0].get("State",{}).get("Name","unknown") if instances else "not_found"
+                  except ClientError as exc:
+                      code=exc.response.get("Error",{}).get("Code","")
+                      if code not in ("InvalidInstanceID.NotFound","InvalidInstanceID.Malformed"):
+                          item=previous("EC2",rid); notify("EC2",rid,name,"check_failed",item.get("state",{}).get("S",""),"EventBridge periodic check",f"EC2 state check failed: {code}"); continue
+                      state="not_found"
+                  transition("EC2",rid,name,state,"EventBridge periodic check","Periodic EC2 state confirmation")
               for rid,name in RDS.items():
                   try: state=rds.describe_db_instances(DBInstanceIdentifier=rid)["DBInstances"][0]["DBInstanceStatus"]
-                  except ClientError as exc: state="not_found" if exc.response.get("Error",{}).get("Code")=="DBInstanceNotFound" else "check_failed"
+                  except ClientError as exc:
+                      code=exc.response.get("Error",{}).get("Code","")
+                      if code!="DBInstanceNotFound":
+                          item=previous("RDS",rid); notify("RDS",rid,name,"check_failed",item.get("state",{}).get("S",""),"EventBridge periodic check",f"RDS state check failed: {code}"); continue
+                      state="not_found"
                   transition("RDS",rid,name,state,"EventBridge periodic check","Periodic RDS state confirmation")
           def ec2_state(event):
               detail=event.get("detail",{}); rid=detail.get("instance-id","")
-              if rid in EC2: transition("EC2",rid,EC2[rid],detail.get("state","unknown"),"EC2 push event",f"EC2 reported state {detail.get('state','unknown')}")
+              if rid in EC2: transition("EC2",rid,EC2[rid],detail.get("state","unknown"),"EC2 push event",f"EC2 reported state {detail.get('state','unknown')}",True)
           def rds_state(event):
               detail=event.get("detail",{}); rid=detail.get("SourceIdentifier") or detail.get("SourceArn","").rsplit(":",1)[-1]; message=str(detail.get("Message","")); text=message.casefold(); state="rebooting" if "reboot" in text else ("stopped" if "stop" in text else ("available" if "start" in text or "available" in text else ""))
               if rid in RDS and state: transition("RDS",rid,RDS[rid],state,"RDS push event",message,True)
@@ -613,7 +666,7 @@ Resources:
       Type: String
       Description: !Sub "${ProjectName} Windows CloudWatch Agent configuration"
       Value: !Sub |
-        {"agent":{"metrics_collection_interval":60},"metrics":{"namespace":"CWAgent","append_dimensions":{"InstanceId":"${!aws:InstanceId}"},"aggregation_dimensions":[["InstanceId"]],"metrics_collected":{"LogicalDisk":{"measurement":[{"name":"% Free Space","rename":"LogicalDiskFreeSpacePercent","unit":"Percent"}],"resources":["_Total"],"metrics_collection_interval":60,"drop_original_metrics":["% Free Space"]}}},"logs":{"logs_collected":{"windows_events":{"collect_list":[{"event_name":"Application","event_levels":["WARNING","ERROR","CRITICAL"],"log_group_name":"/${ProjectName}/windows/application","log_stream_name":"${!aws:InstanceId}"},{"event_name":"System","event_levels":["WARNING","ERROR","CRITICAL"],"log_group_name":"/${ProjectName}/windows/system","log_stream_name":"${!aws:InstanceId}"},{"event_name":"Security","event_levels":["WARNING","ERROR","CRITICAL"],"log_group_name":"/${ProjectName}/windows/security","log_stream_name":"${!aws:InstanceId}"}]}}}}
+        {"agent":{"metrics_collection_interval":60},"metrics":{"namespace":"CWAgent","append_dimensions":{"InstanceId":"${!aws:InstanceId}"},"aggregation_dimensions":[["InstanceId"]],"metrics_collected":{"LogicalDisk":{"measurement":[{"name":"% Free Space","rename":"LogicalDiskFreeSpacePercent","unit":"Percent"}],"resources":["_Total"],"metrics_collection_interval":60,"drop_original_metrics":["% Free Space"]}}},"logs":{"logs_collected":{"windows_events":{"collect_list":[{"event_name":"Application","event_levels":["WARNING","ERROR","CRITICAL"],"event_format":"xml","log_group_name":"/${ProjectName}/windows/application","log_stream_name":"{instance_id}"},{"event_name":"System","event_levels":["WARNING","ERROR","CRITICAL"],"event_format":"xml","log_group_name":"/${ProjectName}/windows/system","log_stream_name":"{instance_id}"},{"event_name":"Security","event_levels":["WARNING","ERROR","CRITICAL"],"event_format":"xml","log_group_name":"/${ProjectName}/windows/security","log_stream_name":"{instance_id}"}]}}}}
   Ec2AgentManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
     Condition: ConfigureAgents
@@ -624,25 +677,25 @@ Resources:
         Statement:
           - {Effect: Allow, Action: cloudwatch:PutMetricData, Resource: "*"}
           - {Effect: Allow, Action: [logs:CreateLogStream, logs:DescribeLogStreams, logs:PutLogEvents], Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${ProjectName}/windows/*"}
-          - {Effect: Allow, Action: ssm:GetParameter, Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${CloudWatchAgentConfig}"}
+          - {Effect: Allow, Action: ssm:GetParameter, Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CloudWatchAgentConfig}"}
 
   InstallAgent1:
     Type: AWS::SSM::Association
     Condition: ConfigureAgentEc21
-    Properties: {Name: AWS-ConfigureAWSPackage, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance1]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}
-  InstallAgent2: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc22, Properties: {Name: AWS-ConfigureAWSPackage, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance2]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
-  InstallAgent3: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc23, Properties: {Name: AWS-ConfigureAWSPackage, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance3]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
-  InstallAgent4: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc24, Properties: {Name: AWS-ConfigureAWSPackage, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance4]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
-  InstallAgent5: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc25, Properties: {Name: AWS-ConfigureAWSPackage, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance5]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
+    Properties: {Name: AWS-ConfigureAWSPackage, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance1]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}
+  InstallAgent2: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc22, Properties: {Name: AWS-ConfigureAWSPackage, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance2]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
+  InstallAgent3: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc23, Properties: {Name: AWS-ConfigureAWSPackage, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance3]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
+  InstallAgent4: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc24, Properties: {Name: AWS-ConfigureAWSPackage, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance4]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
+  InstallAgent5: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc25, Properties: {Name: AWS-ConfigureAWSPackage, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance5]}], Parameters: {action: [Install], name: [AmazonCloudWatchAgent]}}}
   ConfigureAgent1:
     Type: AWS::SSM::Association
     Condition: ConfigureAgentEc21
-    DependsOn: InstallAgent1
-    Properties: {Name: AmazonCloudWatch-ManageAgent, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance1]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}
-  ConfigureAgent2: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc22, DependsOn: InstallAgent2, Properties: {Name: AmazonCloudWatch-ManageAgent, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance2]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
-  ConfigureAgent3: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc23, DependsOn: InstallAgent3, Properties: {Name: AmazonCloudWatch-ManageAgent, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance3]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
-  ConfigureAgent4: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc24, DependsOn: InstallAgent4, Properties: {Name: AmazonCloudWatch-ManageAgent, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance4]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
-  ConfigureAgent5: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc25, DependsOn: InstallAgent5, Properties: {Name: AmazonCloudWatch-ManageAgent, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance5]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
+    DependsOn: [InstallAgent1, Ec2AgentManagedPolicy]
+    Properties: {Name: AmazonCloudWatch-ManageAgent, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance1]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}
+  ConfigureAgent2: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc22, DependsOn: [InstallAgent2, Ec2AgentManagedPolicy], Properties: {Name: AmazonCloudWatch-ManageAgent, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance2]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
+  ConfigureAgent3: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc23, DependsOn: [InstallAgent3, Ec2AgentManagedPolicy], Properties: {Name: AmazonCloudWatch-ManageAgent, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance3]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
+  ConfigureAgent4: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc24, DependsOn: [InstallAgent4, Ec2AgentManagedPolicy], Properties: {Name: AmazonCloudWatch-ManageAgent, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance4]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
+  ConfigureAgent5: {Type: AWS::SSM::Association, Condition: ConfigureAgentEc25, DependsOn: [InstallAgent5, Ec2AgentManagedPolicy], Properties: {Name: AmazonCloudWatch-ManageAgent, WaitForSuccessTimeoutSeconds: 900, Targets: [{Key: InstanceIds, Values: [!Ref Ec2Instance5]}], Parameters: {action: [configure], mode: [ec2], optionalConfigurationSource: [ssm], optionalConfigurationLocation: [!Ref CloudWatchAgentConfig], optionalRestart: ["yes"]}}}
 
   Ec2CpuAlarm1:
     Type: AWS::CloudWatch::Alarm

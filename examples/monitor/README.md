@@ -52,7 +52,8 @@ The following paths have extra prerequisites:
 
 - Windows disk and event logs require `ConfigureWindowsAgents=true`. The Windows
   instances must already be Systems Manager managed nodes and use the common IAM
-  role named in the parameters. The template installs/configures the CloudWatch Agent.
+  role named in the parameters. The template installs/configures the CloudWatch Agent
+  and waits up to 15 minutes for each association instead of silently completing the stack.
 - RDS logs must already be exported to CloudWatch Logs; provide each existing log-group name.
 - Microsoft Teams must first be authorized in Amazon Q Developer in chat applications;
   then provide tenant, team, and channel IDs and set `EnableTeams=true`.
@@ -77,6 +78,17 @@ The stack seeds these files once and never overwrites operator edits during an u
 The S3 bucket and DynamoDB table use retain policies. DynamoDB TTL is enabled on
 history/dedup/state records. AWS service charges may apply, and TTL expiration is
 not an immediate-deletion guarantee.
+
+## Failure behavior
+
+- An SNS publish failure is stored as `DELIVERY_FAILED`; its dedup reservation is
+  released so that the Lambda retry can deliver it.
+- Periodic EC2/RDS API failures emit `check_failed` without overwriting the last
+  known healthy resource state.
+- Transition grace is set only on a real or pushed state transition and is never
+  extended by an unchanged periodic check.
+- Windows events are requested as XML and parsed for provider, event ID, level, and message.
+- The SSM completion wait can make CloudFormation drift detection less accurate.
 
 ## Local Separan decision model
 

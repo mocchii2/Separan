@@ -52,7 +52,8 @@ CPU、RDS空き容量、定期状態確認、EC2 state push、RDS eventは対象
 
 - EC2のdisk／Windows event log: `ConfigureWindowsAgents=true`にします。対象Windows EC2は
   Systems Managerのmanaged nodeで、全対象がパラメータ指定した同一IAM roleを使用している必要があります。
-  テンプレートがCloudWatch Agentのinstall、Parameter Store設定、起動を関連付けます。
+  テンプレートがCloudWatch Agentのinstall、Parameter Store設定、起動を関連付け、各処理の成功を
+  最大15分待ちます。失敗時は監視できないままstackを成功扱いにせず、stack作成を失敗させます。
 - RDS log: RDS側でCloudWatch Logs exportを有効化し、各`RdsLogGroup`へ既存log group名を指定します。
 - Teams: 先にAmazon Q Developer in chat applicationsでMicrosoft Teams clientを認証し、
   tenant／team／channel IDを用意してから`EnableTeams=true`にします。
@@ -121,11 +122,19 @@ stack作成時に、設定bucketへ次の2ファイルが初回だけ作成さ�
 
 曜日、日付、時間帯を指定でき、日をまたぐ時間帯にも対応します。
 
+## 障害時の扱い
+
+- SNSへの送信が失敗した場合は`DELIVERY_FAILED`を履歴化し、dedup予約を解除してLambda retryで再送できます。
+- EC2／RDSの定期状態取得が権限・APIエラーになった場合は`check_failed`を通知し、直前の正常な状態を上書きしません。
+- 起動・停止・再起動後のmetric抑制期限は状態が実際に変化した時だけ設定し、定期確認では延長しません。
+- Windows eventはCloudWatch AgentからXML形式で受け、provider、event ID、level、messageを明示的に解析します。
+
 ## 実装上の境界
 
 - 単一YAMLでdeployできますが、対象EC2／RDS自体は作成せず、同一account・regionの既存resourceを監視します。
 - RDS direct eventはEventBridgeのbest-effort deliveryです。F1の定期確認が状態検知の補完経路になります。
 - Teams通知はSNS topicをAmazon Q DeveloperのTeams channel configurationへ接続します。
+- SSM Associationの完了待ちを使用するため、CloudFormation drift検査結果が正確でない場合があります。
 - SMS、CloudWatch、Lambda、SNS、DynamoDB、S3などの利用料金が発生し得ます。
 - DynamoDB TTL削除は期限直後の即時削除を保証する仕組みではありません。
 
