@@ -334,13 +334,13 @@ stringとlistで共通です。
 明示的なroot／log名、統計、移動平均、進数変換、区切り付き2／8／16進数literalが含まれ、
 定義域外やoverflowを黙ってNaN／Infinityにせずmath domain errorにします。
 
-## 監視dogfoodingモデル
+## deploy可能な監視サンプル
 
-実行可能な[Separan Monitorモデル](https://github.com/mocchii2/Separan/tree/main/examples/monitor)では、
-mockのEC2・log・JOBイベントを、模擬送信または理由付き抑制履歴へ変換します。
-`notify`／`logcheck`／`status`／`normal_check`の4モジュール境界、固定された抑制順序、
-重複抑制、通知候補の全履歴化をSeparanコードで確認できます。厳密なYAML parserと
-型付きAWS capability adapterが入るまでは、AWSへdeployしたふりをしない構成です。
+[Separan Monitorサンプル](https://github.com/mocchii2/Separan/tree/main/examples/monitor)には、
+最大5台のEC2と最大5台のRDSをGUIパラメータで指定できるCloudFormation一括YAMLが入っています。
+inlineの`notify`／`log2`／`status`／設定初期化Lambdaにより、CloudWatch Alarm、Windows／RDS log、
+EventBridge状態event、Email／SMS／Teams通知、S3抑制・休止設定、DynamoDB 30日履歴を接続します。
+`.sep`の4モジュールはAWS不要で動く判断coreモデルとして引き続き実行できます。
 
 ```console
 python -m pip install -e .
@@ -349,7 +349,7 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
-現在のテストは1,700件を超えています。専用の異常系適合テストでは、構文・構造・型・
+現在のテストは1,900件を超えています。専用の異常系適合テストでは、構文・構造・型・
 実行時エラーに加え、登録済みの全組み込み関数について引数不足、引数過剰、未知の
 名前付き引数を検証します。
 

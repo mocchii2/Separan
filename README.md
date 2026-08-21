@@ -482,15 +482,14 @@ Labeled `object:name` and `list:name` data blocks, `user.name` member access,
 namespaced imports, and labeled `try`/`catch`/`finally`/`throw` also have
 experimental reference implementations.
 
-## Monitoring dogfooding model
+## Deployable monitoring sample
 
-The runnable [Separan Monitor model](https://github.com/mocchii2/Separan/tree/main/examples/monitor)
-turns mock EC2, log, and job events into either simulated delivery or a
-reason-bearing suppression record. It demonstrates the four-module
-`notify`/`logcheck`/`status`/`normal_check` boundary, fixed suppression order,
-deduplication, and complete notification-candidate history using Separan code.
-AWS deployment is deliberately kept outside the example until strict YAML and
-typed AWS capability adapters exist.
+The [Separan Monitor sample](https://github.com/mocchii2/Separan/tree/main/examples/monitor)
+now includes one upload-ready CloudFormation YAML for up to five EC2 instances
+and five RDS DB instances. Its inline `notify`, `log2`, `status`, and config-bootstrap
+Lambda programs connect CloudWatch alarms, Windows/RDS logs, EventBridge state
+events, Email/SMS/Teams delivery, S3 suppression schedules, and 30-day DynamoDB
+history. The `.sep` modules remain executable as an AWS-free decision-core model.
 
 ```console
 python -m pip install -e .
@@ -499,7 +498,7 @@ separan --ast examples/if.sep
 python -m unittest discover -s tests -v
 ```
 
-The suite currently contains more than 1,700 tests. Its dedicated negative
+The suite currently contains more than 1,900 tests. Its dedicated negative
 conformance corpus checks syntax, structure, type and runtime failures, plus
 too few, too many, and unknown named arguments across every registered built-in.
 
