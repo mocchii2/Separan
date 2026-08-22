@@ -186,7 +186,11 @@ class Environment:
                         expected="EMPTY or a list element value", actual="EMPTYS")
         expected = binding.element_type
         if isinstance(value, EmptyValue): value = EmptyValue(expected)
-        elif expected is not None and type_name(value) != expected:
+        elif expected is None:
+            expected = type_name(value)
+            binding.element_type = expected
+            binding.value = normalize_list_values(binding.value, expected, position)
+        elif type_name(value) != expected:
             raise error("E201", "Type error", f"List variable '{name}' requires elements of type {expected}.", position,
                         expected=expected, actual=type_name(value))
         updated = list(binding.value); updated[index] = value; binding.value = updated
@@ -213,7 +217,8 @@ def list_element_type(value, position):
 
 def normalize_list_values(values, element_type, position):
     if values and element_type is None:
-        raise error("E134", "List element type required", "A list containing only EMPTY elements requires an explicit element type.", position,
+        if all(isinstance(item, EmptyValue) and item.external for item in values): return list(values)
+        raise error("E134", "List element type required", "A source list containing only EMPTY elements requires an explicit element type.", position,
                     expected="list<type>", actual="list[EMPTY]")
     result = []
     for item in values:
@@ -697,7 +702,7 @@ class Interpreter:
             return ErrorValue(name, args[0])
         builtin = BUILTINS.get(name)
         if builtin is not None:
-            empty_safe = {"type", "type_of", "is_null", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set"}
+            empty_safe = {"type", "type_of", "is_null", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set", "json_encode"}
             if name not in empty_safe and any(isinstance(value, EmptyValue) for value in (*args, *named.values())):
                 raise error("E131", "EMPTY value use", f"{name}() cannot use EMPTY as a concrete value.", position,
                             expected="a present value", actual="EMPTY")
@@ -791,6 +796,12 @@ class Interpreter:
         return result
     @staticmethod
     def is_number(value): return type(value) in (int, float) and type(value) is not bool
+    @staticmethod
+    def is_empty_state(value): return isinstance(value, EmptyValue)
+    @staticmethod
+    def value_type_spec(value, position):
+        value_type = type_name(value)
+        return value_type, list_element_type(value, position) if value_type == "list" else None
     @staticmethod
     def type_name(value): return type_name(value)
     @staticmethod

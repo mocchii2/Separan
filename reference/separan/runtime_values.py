@@ -14,6 +14,7 @@ class EmptyValue:
 
     declared_type: str | None = None
     element_type: str | None = None
+    external: bool = False
 
 
 @dataclass(frozen=True)

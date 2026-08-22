@@ -158,7 +158,10 @@ text = json_encode(data)
 - JSON object → `object`
 - JSON array → 同型`list`。異型arrayは初期実装では拒否。
 - JSON number → `number`
-- JSON string、boolean、nullは直接対応。
+- JSON string、booleanは直接対応。
+- JSON `null`はSeparan EMPTYへdecodeし、EMPTYはJSON `null`へencodeする。
+- rootのJSON `null`を格納するにはSeparan側の宣言型が必要。
+- 全要素nullのJSON arrayは、最初の実値index代入で同型element型を確定する。
 - object key重複は`parse_error`。
 - 非有限numberを拒否。
 - `json_encode`は決定的。object keyをUnicodeコードポイント順に出力し、不要空白なし。

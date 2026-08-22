@@ -7,6 +7,7 @@ import shutil
 
 from .errors import error
 from .objects import ObjectValue
+from .runtime_values import EmptyValue
 from .randomness import BytesValue
 
 
@@ -160,9 +161,11 @@ def _from_json(value, position):
     if isinstance(value, dict): return ObjectValue.create({key: _from_json(item, position) for key, item in value.items()})
     if type(value) is list:
         result = [_from_json(item, position) for item in value]
-        from .interpreter import list_element_type
-        list_element_type(result, position); return result
-    if value is None or type(value) in (str, bool, int, float): return value
+        from .interpreter import list_element_type, normalize_list_values
+        element_type = list_element_type(result, position)
+        return normalize_list_values(result, element_type, position)
+    if value is None: return EmptyValue(external=True)
+    if type(value) in (str, bool, int, float): return value
     raise error("E740", "JSON error", "JSON contains an unsupported value.", position)
 
 
@@ -176,6 +179,7 @@ def json_decode(arguments, position, runtime):
 
 
 def _to_json(value, position):
+    if isinstance(value, EmptyValue): return None
     if isinstance(value, ObjectValue): return {key: _to_json(value.fields[key], position) for key in sorted(value.fields)}
     if type(value) is list: return [_to_json(item, position) for item in value]
     if value is None or type(value) in (str, bool, int): return value

@@ -67,4 +67,19 @@ endif:no_values
 `list<number> values = EMPTYS`は空の型付きlistを初期化します。objectには保持対象fieldが
 ないためEMPTYSで初期化できず、scalarや個別list slotにもEMPTYSを代入できません。
 
-残る移行は、JSON null変換、標準API移行、最後にsource-level `null`削除の順で進めます。
+JSONは明示的な外部format境界です。`json_decode()`はJSON `null`をobject fieldや
+list slotを含むEMPTYへ変換し、`json_encode()`はEMPTYをJSON `null`へ戻します。
+rootのJSON `null`を変数へ格納する場合はSeparan側の宣言型が必要です。
+
+```separan
+string optional_name = json_decode("null")
+print optional_name is EMPTY
+print json_encode(optional_name)  # null
+```
+
+全要素がnullのJSON arrayは、外部dataを失わず受け取るためelement型未確定のまま
+許可します。最初の実値をindex代入した時点でelement型を確定し、残るEMPTY slotも
+その型を保持します。この例外は外部JSONだけです。source literalの
+`[EMPTY, EMPTY]`には引き続き`list<type>`が必要です。
+
+残る移行は、標準API移行、最後にsource-level `null`削除の順で進めます。

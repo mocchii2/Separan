@@ -41,10 +41,11 @@ def object_set(arguments, position, runtime):
     if type(key) is not str: runtime.type_error(position, "string key", runtime.type_name(key), "object_set() key must be a string.")
     field_types = dict(value.field_types)
     expected = field_types.get(key)
-    if expected is None and key in value.fields:
+    if expected is None and key in value.fields and not runtime.is_empty_state(value.fields[key]):
         expected = (runtime.type_name(value.fields[key]), None)
     field = runtime.prepare_object_field(key, expected, field, position, value.fields.get(key), key in value.fields)
     result = dict(value.fields); result[key] = field
+    if expected is None and not runtime.is_empty_state(field): expected = runtime.value_type_spec(field, position)
     if expected is not None: field_types[key] = expected
     return ObjectValue.create(result, field_types)
 

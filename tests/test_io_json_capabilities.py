@@ -67,6 +67,37 @@ print json_encode(data)
                 with self.assertRaises(SeparanError) as caught: execute(f'print json_decode("{encoded}")\n')
                 self.assertEqual(caught.exception.code, code)
 
+    def test_json_null_maps_to_empty_and_encodes_back_to_null(self):
+        source = '''print json_decode("null") is EMPTY
+string value = json_decode("null")
+print type_of(value)
+print json_encode(value)
+data = json_decode("{\\"name\\":null}")
+print data.name is EMPTY
+print json_encode(data)
+updated = object_set(data, "name", "Alice")
+print updated.name
+'''
+        self.assertEqual(execute(source)[1], 'true\nstring\nnull\ntrue\n{"name":null}\nAlice\n')
+
+    def test_json_arrays_retain_empty_slots_and_adopt_concrete_type(self):
+        source = '''values = json_decode("[1,null,2]")
+print values[1] is EMPTY
+print type_of(values[1])
+print json_encode(values)
+unknown = json_decode("[null,null]")
+print unknown is EMPTYS
+unknown[0] = 7
+print type_of(unknown[1])
+print json_encode(unknown)
+'''
+        self.assertEqual(execute(source)[1], 'true\nnumber\n[1,null,2]\ntrue\nnumber\n[7,null]\n')
+
+    def test_untyped_root_json_null_still_requires_binding_type(self):
+        with self.assertRaises(SeparanError) as caught:
+            execute('value = json_decode("null")\n')
+        self.assertEqual(caught.exception.code, "E129")
+
     def test_path_escape_is_rejected(self):
         with self.assertRaises(SeparanError) as caught: execute('print read_text("../secret")\n')
         self.assertEqual(caught.exception.code, "E721")

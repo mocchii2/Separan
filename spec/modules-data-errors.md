@@ -180,7 +180,11 @@ text = json_encode(data)
 - JSON object → `object`
 - JSON array → homogeneous `list`; heterogeneous arrays are rejected initially
 - JSON number → `number`
-- JSON string, boolean, and null map directly
+- JSON string and boolean map directly
+- JSON `null` decodes to Separan EMPTY; EMPTY encodes to JSON `null`
+- a root JSON `null` requires a declared Separan type before storage
+- an all-null JSON array adopts its homogeneous element type on the first
+  concrete index assignment
 - duplicate object keys are `parse_error`
 - non-finite numbers are rejected
 - `json_encode` is deterministic: object keys are emitted in Unicode code-point

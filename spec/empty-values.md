@@ -73,5 +73,21 @@ An empty list/object and a container whose slots/fields are all EMPTY satisfy
 list. EMPTYS cannot initialize an object because no field structure exists to
 preserve, and it cannot be assigned to a scalar or individual list slot.
 
-The remaining migration is intentionally staged: JSON null conversion,
-standard API migration, and finally removal of source-level `null`.
+JSON is an explicit external-format boundary. `json_decode()` converts JSON
+`null` to EMPTY, including object fields and list slots. `json_encode()`
+converts EMPTY back to JSON `null`. A root JSON `null` still needs a declared
+Separan type before it can be stored:
+
+```separan
+string optional_name = json_decode("null")
+print optional_name is EMPTY
+print json_encode(optional_name)  # null
+```
+
+An all-null JSON array is accepted even though its element type is not yet
+known. Its first concrete index assignment fixes that type; all retained EMPTY
+slots then keep the adopted type. This exception exists only for external JSON.
+The source literal `[EMPTY, EMPTY]` still requires `list<type>`.
+
+The remaining migration is intentionally staged: standard API migration and
+finally removal of source-level `null`.
