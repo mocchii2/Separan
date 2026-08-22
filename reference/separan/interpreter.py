@@ -133,13 +133,17 @@ class Returned(Exception):
 
 
 class Interpreter:
-    def __init__(self, output=None, clock=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, module_cache=None, import_stack=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None, mail_transport=None, embedded_context=None, board_id=None, embedded_adapter=None, network_adapter=None):
+    def __init__(self, output=None, clock=None, command_arguments=None, script_path=None, project_root=None, environment_variables=None, module_cache=None, import_stack=None, capabilities=None, input_stream=None, error_output=None, http_transport=None, secret_provider=None, cookie_key_provider=None, mail_transport=None, embedded_context=None, board_id=None, embedded_adapter=None, network_adapter=None, host_functions=None):
         self.output = output or StringIO()
         self.input_stream = input_stream or StringIO()
         self.error_output = error_output or StringIO()
         self.globals = Environment()
         self.environment = self.globals
         self.functions = {}
+        self.host_functions = dict(host_functions or {})
+        conflicts = sorted(set(self.host_functions) & set(BUILTINS))
+        if conflicts:
+            raise ValueError(f"Host functions cannot replace Separan built-ins: {', '.join(conflicts)}")
         self.error_categories = set()
         self.http_routes = []
         self.http_static_mounts = []
@@ -172,13 +176,13 @@ class Interpreter:
     def run(self, program: Program, invoke_main=True):
         for stmt in program.statements:
             if isinstance(stmt, FunctionDecl):
-                if stmt.name in BUILTINS:
+                if stmt.name in BUILTINS or stmt.name in self.host_functions:
                     raise error("E209", "Reserved function name", f"Function '{stmt.name}' is a built-in and cannot be redefined.", stmt.position, actual=stmt.name)
                 if stmt.name in self.functions:
                     raise error("E204", "Duplicate function", f"Function '{stmt.name}' is already defined.", stmt.position, actual=stmt.name)
                 self.functions[stmt.name] = stmt
             elif isinstance(stmt, ErrorDecl):
-                if stmt.name in BUILTINS or stmt.name in self.error_categories or any(item.name == stmt.name for item in program.statements if isinstance(item, FunctionDecl)):
+                if stmt.name in BUILTINS or stmt.name in self.host_functions or stmt.name in self.error_categories or any(item.name == stmt.name for item in program.statements if isinstance(item, FunctionDecl)):
                     raise error("E122", "Duplicate error name", f"Custom error name '{stmt.name}' conflicts with an existing declaration or built-in.", stmt.position, actual=stmt.name)
                 self.error_categories.add(stmt.name)
             elif isinstance(stmt, HttpRouteDecl):
@@ -193,6 +197,11 @@ class Interpreter:
             if not isinstance(stmt, (FunctionDecl, HttpRouteDecl, ErrorDecl)): self._execute(stmt)
         if invoke_main and main: self._call("main", [], main.position)
         return self.output.getvalue() if hasattr(self.output, "getvalue") else None
+
+    def invoke(self, name, arguments=None, named_arguments=None):
+        """Invoke a loaded Separan function from an explicit host boundary."""
+        position = SourcePosition(self.script_path or "<host>", 1, 1, f"host invoke {name}")
+        return self._call(name, list(arguments or []), position, dict(named_arguments or {}))
 
     def dispatch_http(self, request: ServerRequest):
         for route, compiled in self.http_routes:
@@ -361,7 +370,7 @@ class Interpreter:
         if isinstance(expr, GroupExpr): return self._eval(expr.expression)
         if isinstance(expr, VariableExpr):
             if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
-            if expr.name in self.functions or expr.name in BUILTINS: return FunctionValue(self, expr.name)
+            if expr.name in self.functions or expr.name in BUILTINS or expr.name in self.host_functions: return FunctionValue(self, expr.name)
             return self.environment.get(expr.name, expr.position)
         if isinstance(expr, ListExpr):
             values = [self._eval(e) for e in expr.elements]; list_element_type(values, expr.position); return values
@@ -464,6 +473,9 @@ class Interpreter:
         builtin = BUILTINS.get(name)
         if builtin is not None:
             return builtin.call(args, position, self, named)
+        host_function = self.host_functions.get(name)
+        if host_function is not None:
+            return host_function.call(args, position, self, named)
         function = self.functions.get(name)
         if function is None: raise error("E206", "Undefined function", f"Function '{name}' is not defined.", position, actual=name)
         if named: raise error("E207", "Unsupported named argument", f"Function '{name}' does not declare named arguments.", position, actual=next(iter(named)))

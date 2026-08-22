@@ -189,7 +189,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.12
+## v0.2.0-alpha.13
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -207,9 +207,16 @@ and Pico/Pico 2 C++ firmware generation with Pico SDK ELF/UF2/HEX builds.
 Built-ins use the same strict argument and type diagnostics as user-defined
 functions; implicit coercion remains forbidden.
 
+This release also adds the experimental [AWS Lambda runtime](spec/aws-lambda.md):
+host JSON is converted to immutable Separan values, parsed applications are
+cached across warm invocations, explicit `aws_*` adapters form the capability
+boundary, and `separan lambda-package` builds Linux-compatible ZIP artifacts.
+The [monitor sample](examples/monitor/README.md) now keeps its Lambda routing,
+suppression, and state decisions in Separan source.
+
 ## Native LAN, Wi-Fi, DNS, TCP, and UDP
 
-The `0.2.0-alpha.12` reference runtime provides a capability-gated native network
+The `0.2.0-alpha.13` reference runtime provides a capability-gated native network
 layer for desktop and server scripts. It uses dedicated `ip_address`,
 `network_interface`, `tcp_connection`, and `udp_socket` values rather than
 passing ambiguous strings through every operation.
@@ -536,7 +543,7 @@ plus static validation and a Pico/Pico 2 C++ → Pico SDK → ELF/UF2/HEX firmwa
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.12**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.13**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License

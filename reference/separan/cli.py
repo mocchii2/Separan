@@ -33,6 +33,9 @@ def create_application(source, filename="<source>", **runtime_options):
 
 def main(argv=None):
     command_line = list(sys.argv[1:] if argv is None else argv)
+    if command_line and command_line[0] == "lambda-package":
+        from .lambda_build import main as lambda_package_main
+        return lambda_package_main(command_line[1:])
     if command_line and command_line[0] == "build":
         return _build(command_line[1:])
     if command_line and command_line[0] == "flash":

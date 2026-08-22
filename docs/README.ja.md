@@ -167,7 +167,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.12
+## v0.2.0-alpha.13
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -183,9 +183,15 @@ Pico／Pico 2向けC++ firmware生成とPico SDK ELF／UF2／HEX buildが
 実験実装されています。暗黙変換は禁止したまま、組み込み関数でも引数の数と型を
 厳密に診断します。
 
+このreleaseでは実験的な[AWS Lambda runtime](../spec/aws-lambda.ja.md)も追加しました。
+host JSONを不変Separan値へ変換し、warm invocationではparse済みapplicationを再利用し、
+明示的な`aws_*` adapterをcapability境界にします。`separan lambda-package`はLinux互換ZIPを
+生成します。[monitor sample](../examples/monitor/README.ja.md)のrouting、抑制、状態判断も
+Separan sourceへ移しました。
+
 ## Native LAN／Wi-Fi／DNS／TCP／UDP
 
-`0.2.0-alpha.12`のreference runtimeには、PC／server向けのcapability制御native network層を
+`0.2.0-alpha.13`のreference runtimeには、PC／server向けのcapability制御native network層を
 追加しました。曖昧なstringをすべての操作へ流さず、`ip_address`、
 `network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
 
@@ -470,7 +476,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.12** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.13** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

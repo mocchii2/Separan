@@ -1,9 +1,26 @@
-# Separan Monitor — CloudFormation一括デプロイ
+# Separan Monitor — Separan native Lambda runtime
 
 [`monitor.yaml`](monitor.yaml)は、最大5台のEC2と最大5台のRDSを監視するための
-CloudFormationテンプレートです。監視設定、CloudWatch Alarm、EventBridge、SNS、
-DynamoDB、S3、IAM、および4本のinline Lambdaプログラムを1つのYAMLに収録しています。
-CloudFormationコンソールでパラメータを入力してdeployすれば、選択した監視経路が作成されます。
+CloudFormationテンプレートです。CloudWatch Alarm、EventBridge、SNS、DynamoDB、S3、IAMは
+CloudFormationで構築し、4本のLambdaは同じ[Separan application](lambda/monitor.sep)を実行します。
+Pythonは汎用reference-runtime adapterだけで、監視の判断処理は含みません。
+
+## Separan runtime artifactを作る
+
+interpreterとbinary依存はCloudFormationのinline source一個には収まらないため、Linux互換ZIPを
+一度buildし、deploy先と同じregionのS3 bucketへ置きます。
+
+```powershell
+./examples/monitor/build-runtime.ps1 -Bucket my-deployment-artifacts
+```
+
+scriptが表示する`SeparanRuntimeBucket`と`SeparanRuntimeKey`をCloudFormation GUIへ入力します。
+生成ZIPは約7 MBで、`application.sep`、Separan interpreter、Linux wheel、1行だけの
+`index.handler` adapterを収録します。4関数は同じobjectを使い、`SEPARAN_HANDLER`で
+`notify_handler`／`log2_handler`／`status_handler`／`config_handler`を選びます。
+
+以前のPython inline一括版は[`monitor-inline-python.yaml`](monitor-inline-python.yaml)へ
+compatibility sampleとして残しています。今後の実装対象はSeparan native版です。
 
 ## 監視と通知の経路
 
@@ -41,7 +58,7 @@ S3 config/holidays.json ─────┴─ notify Lambdaの送信判定
 
 1. AWS CloudFormationコンソールで「スタックの作成」→「新しいリソースを使用」を開きます。
 2. 「テンプレートファイルのアップロード」で[`monitor.yaml`](monitor.yaml)を選びます。
-3. EC2 instance ID、RDS DB instance identifier、通知先、しきい値をGUIで入力します。
+3. runtime artifactのbucket／key、EC2 instance ID、RDS DB instance identifier、通知先、しきい値をGUIで入力します。
    未使用の2〜5番slotは空のままで構いません。
 4. IAM resource作成への同意を選択してstackを作成します。
 5. Emailを指定した場合は、届いたSNS subscription確認メールを承認します。
@@ -138,10 +155,10 @@ stack作成時に、設定bucketへ次の2ファイルが初回だけ作成さ�
 - SMS、CloudWatch、Lambda、SNS、DynamoDB、S3などの利用料金が発生し得ます。
 - DynamoDB TTL削除は期限直後の即時削除を保証する仕組みではありません。
 
-## Separanで判断coreを試す
+## Separan applicationを試す
 
-`.sep`の`notify`／`logcheck`／`status`／`normal_check`は、同じ抑制思想をローカルで確認する
-実行可能なreference modelとして残しています。AWSへ接続せず実行できます。
+本番Lambdaの判断処理は[`lambda/monitor.sep`](lambda/monitor.sep)です。従来の`.sep` module群も、
+同じ抑制思想をAWSなしで確認する実行可能なreference modelとして残しています。
 
 ```console
 separan examples/monitor/main.sep

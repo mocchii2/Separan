@@ -14,7 +14,9 @@ from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE_PATH = ROOT / "examples" / "monitor" / "monitor.yaml"
+TEMPLATE_PATH = ROOT / "examples" / "monitor" / "monitor-inline-python.yaml"
+NATIVE_TEMPLATE_PATH = ROOT / "examples" / "monitor" / "monitor.yaml"
+NATIVE_SOURCE_PATH = ROOT / "examples" / "monitor" / "lambda" / "monitor.sep"
 
 
 class CloudFormationLoader(yaml.SafeLoader):
@@ -451,6 +453,45 @@ class MonitorCloudFormationTests(unittest.TestCase):
             for index in range(1, 6):
                 association = self.resources[f"{prefix}{index}"]
                 self.assertEqual(900, association["Properties"]["WaitForSuccessTimeoutSeconds"])
+
+
+class NativeSeparanMonitorTemplateTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.source = NATIVE_TEMPLATE_PATH.read_text(encoding="utf-8")
+        cls.template = yaml.load(cls.source, Loader=CloudFormationLoader)
+        cls.resources = cls.template["Resources"]
+
+    def test_all_lambda_functions_use_one_packaged_separan_application(self):
+        handlers = {
+            "NotifyFunction": "notify_handler",
+            "Log2Function": "log2_handler",
+            "StatusFunction": "status_handler",
+            "ConfigBootstrapFunction": "config_handler",
+        }
+        for name, handler in handlers.items():
+            with self.subTest(function=name):
+                properties = self.resources[name]["Properties"]
+                self.assertEqual("python3.13", properties["Runtime"])
+                self.assertEqual("index.handler", properties["Handler"])
+                self.assertEqual("SeparanRuntimeBucket", properties["Code"]["S3Bucket"])
+                self.assertEqual("SeparanRuntimeKey", properties["Code"]["S3Key"])
+                self.assertEqual(handler, properties["Environment"]["Variables"]["SEPARAN_HANDLER"])
+                self.assertNotIn("ZipFile", properties["Code"])
+
+    def test_runtime_artifact_parameters_are_visible_in_cloudformation_gui(self):
+        parameters = self.template["Parameters"]
+        self.assertIn("SeparanRuntimeBucket", parameters)
+        self.assertIn("SeparanRuntimeKey", parameters)
+        groups = self.template["Metadata"]["AWS::CloudFormation::Interface"]["ParameterGroups"]
+        self.assertTrue(any("SeparanRuntimeBucket" in group["Parameters"] for group in groups))
+
+    def test_monitor_business_logic_is_not_inline_python(self):
+        application = NATIVE_SOURCE_PATH.read_text(encoding="utf-8")
+        for handler in ("notify_handler", "log2_handler", "status_handler", "config_handler"):
+            self.assertIn(f"function:{handler}(event, context)", application)
+        self.assertNotIn("import boto3", self.source)
+        self.assertNotIn("ZipFile: |", self.source)
 
 
 if __name__ == "__main__":
