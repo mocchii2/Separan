@@ -59,17 +59,25 @@ function:configured_name(ids_name, names_name, resource_id)
 ids = split(aws_environment(ids_name, ""), ",")
 names = split(aws_environment(names_name, ""), ",")
 position = index_of(ids, resource_id)
-if position != null && position < length(names) :configured_name_found
+if position == null :configured_name_missing
+return resource_id
+endif:configured_name_missing
+if position >= length(names) :configured_name_out_of_range
+return resource_id
+endif:configured_name_out_of_range
 name = names[position]
 if name != "" :configured_name_nonempty
 return name
 endif:configured_name_nonempty
-endif:configured_name_found
 return resource_id
 end_function:configured_name
 
 function:is_configured(ids_name, resource_id)
-return contains(split(aws_environment(ids_name, ""), ","), resource_id) && resource_id != ""
+if resource_id == "" :empty_resource_id
+return false
+endif:empty_resource_id
+ids = split(aws_environment(ids_name, ""), ",")
+return contains(ids, resource_id)
 end_function:is_configured
 
 function:new_candidate(kind, resource_type, resource_id, resource_name, source, title, message)
@@ -437,7 +445,10 @@ return false
 end_function:list_rule_matches
 
 function:user_rule_matches(candidate, rule)
-if !object_has(rule, "enabled") || !rule.enabled :disabled_rule
+if !object_has(rule, "enabled") :rule_enabled_missing
+return false
+endif:rule_enabled_missing
+if !rule.enabled :disabled_rule
 return false
 endif:disabled_rule
 if !list_rule_matches(rule, "notification_types", candidate.notification_type) :rule_type_mismatch
@@ -456,14 +467,20 @@ needle = ""
 if object_has(rule, "content_contains") :rule_content_present
 needle = lower(string(rule.content_contains))
 endif:rule_content_present
-return needle == "" || contains(lower(candidate.message), needle)
+if needle == "" :rule_content_wildcard
+return true
+endif:rule_content_wildcard
+return contains(lower(candidate.message), needle)
 end_function:user_rule_matches
 
 function:user_suppressed(candidate)
 @monitor:notification:suppression
 @aws:s3
 config = aws_s3_read_json(aws_environment("CONFIG_BUCKET"), aws_environment("SUPPRESSION_KEY", "config/suppression.json"), empty_object)
-if !is_object(config) || !object_has(config, "rules") :no_suppression_rules
+if !is_object(config) :invalid_suppression_config
+return false
+endif:invalid_suppression_config
+if !object_has(config, "rules") :no_suppression_rules
 return false
 endif:no_suppression_rules
 for rule in config.rules :each_suppression_rule
@@ -506,7 +523,10 @@ return "SUN"
 end_function:weekday_name
 
 function:weekly_break_matches(local_time, entry)
-if !object_has(entry, "enabled") || !entry.enabled :weekly_disabled
+if !object_has(entry, "enabled") :weekly_enabled_missing
+return false
+endif:weekly_enabled_missing
+if !entry.enabled :weekly_disabled
 return false
 endif:weekly_disabled
 now_minutes = datetime_hour(local_time) * 60 + datetime_minute(local_time)
@@ -515,17 +535,29 @@ end_minutes = clock_minutes(text_field(entry, "end"))
 today = weekday_name(local_time)
 days = entry.days
 if start_minutes <= end_minutes :weekly_same_day
-return contains(days, today) && now_minutes >= start_minutes && now_minutes <= end_minutes
+if !contains(days, today) :weekly_wrong_day
+return false
+endif:weekly_wrong_day
+if now_minutes < start_minutes :weekly_before_start
+return false
+endif:weekly_before_start
+return now_minutes <= end_minutes
 endif:weekly_same_day
 if now_minutes >= start_minutes :weekly_late_part
 return contains(days, today)
 endif:weekly_late_part
 yesterday = weekday_name(local_time - duration("1d"))
-return now_minutes <= end_minutes && contains(days, yesterday)
+if now_minutes > end_minutes :weekly_after_overnight_end
+return false
+endif:weekly_after_overnight_end
+return contains(days, yesterday)
 end_function:weekly_break_matches
 
 function:date_break_matches(local_time, entry)
-if !object_has(entry, "enabled") || !entry.enabled :date_disabled
+if !object_has(entry, "enabled") :date_enabled_missing
+return false
+endif:date_enabled_missing
+if !entry.enabled :date_disabled
 return false
 endif:date_disabled
 today = datetime_format(local_time, "yyyy-MM-dd")
@@ -534,13 +566,22 @@ now_minutes = datetime_hour(local_time) * 60 + datetime_minute(local_time)
 start_minutes = clock_minutes(text_field(entry, "start"))
 end_minutes = clock_minutes(text_field(entry, "end"))
 if start_minutes <= end_minutes :date_same_day
-return today == target && now_minutes >= start_minutes && now_minutes <= end_minutes
+if today != target :date_wrong_day
+return false
+endif:date_wrong_day
+if now_minutes < start_minutes :date_before_start
+return false
+endif:date_before_start
+return now_minutes <= end_minutes
 endif:date_same_day
 if today == target && now_minutes >= start_minutes :date_late_part
 return true
 endif:date_late_part
 yesterday = datetime_format(local_time - duration("1d"), "yyyy-MM-dd")
-return yesterday == target && now_minutes <= end_minutes
+if yesterday != target :date_previous_day_mismatch
+return false
+endif:date_previous_day_mismatch
+return now_minutes <= end_minutes
 end_function:date_break_matches
 
 function:holiday_reason(now)
@@ -551,9 +592,11 @@ if !is_object(config) :holiday_config_missing
 return ""
 endif:holiday_config_missing
 zone_name = aws_environment("DEFAULT_TIMEZONE", "UTC")
-if object_has(config, "timezone") && config.timezone != "" :holiday_timezone
+if object_has(config, "timezone") :holiday_timezone_present
+if config.timezone != "" :holiday_timezone_nonempty
 zone_name = config.timezone
-endif:holiday_timezone
+endif:holiday_timezone_nonempty
+endif:holiday_timezone_present
 local_time = datetime_in_timezone(datetime_from_unix(now), timezone(zone_name))
 if object_has(config, "weekly") :weekly_breaks_present
 for entry in config.weekly :each_weekly_break
@@ -578,7 +621,13 @@ return false
 endif:not_metric_candidate
 pk = format("STATE#{}#{}", candidate.resource_type, candidate.resource_id)
 state = aws_dynamodb_get(aws_environment("TABLE_NAME"), pk, "CURRENT")
-return !is_null(state) && object_has(state, "suppress_metrics_until") && now < state.suppress_metrics_until
+if is_null(state) :state_missing
+return false
+endif:state_missing
+if !object_has(state, "suppress_metrics_until") :grace_missing
+return false
+endif:grace_missing
+return now < state.suppress_metrics_until
 end_function:metric_grace_active
 
 function:store_history(candidate, now, status, reason)
@@ -587,6 +636,8 @@ function:store_history(candidate, now, status, reason)
 @aws:dynamodb
 payload_text = json_encode(candidate)
 payload = clip_utf8(payload_text, 60_000)
+payload_bytes = length(bytes_from_string(payload))
+original_bytes = length(bytes_from_string(payload_text))
 object:history
 pk = format("HISTORY#{}", string(now / 86400))
 sk = format("{}#{}", now, aws_uuid())
@@ -595,7 +646,7 @@ resource_id = candidate.resource_id
 status = status
 suppression_reason = reason
 payload = payload
-payload_truncated = length(bytes_from_string(payload)) < length(bytes_from_string(payload_text))
+payload_truncated = payload_bytes < original_bytes
 expires_at = now + number(aws_environment("HISTORY_DAYS", "30")) * 86400
 end_object:history
 aws_dynamodb_put(aws_environment("TABLE_NAME"), history)
@@ -609,7 +660,8 @@ return lower(trim(text_field(candidate, "title")))
 endif:metric_identity
 message = lower(trim(text_field(candidate, "message")))
 message = regex_replace(r"\s+", " ", message)
-return regex_replace(r"\b[0-9]{4}-[0-9]{2}-[0-9]{2}[t ][0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:z|[+-][0-9]{2}:[0-9]{2})?\b", "<timestamp>", message)
+timestamp_pattern = r"\b[0-9]{4}-[0-9]{2}-[0-9]{2}[t ][0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:z|[+-][0-9]{2}:[0-9]{2})?\b"
+return regex_replace(timestamp_pattern, "<timestamp>", message)
 end_function:normalized_dedup_message
 
 function:dedup_identity(candidate)
@@ -651,7 +703,9 @@ digest = bytes_to_hexadecimal(sha256_hash(dedup_identity(candidate)))
 reserved = false
 if reason == "" :reserve_duplicate
 expires_at = now + number(aws_environment("DEDUP_MINUTES", "30")) * 60
-reserved = aws_dynamodb_reserve_until(aws_environment("TABLE_NAME"), format("DEDUP#{}", digest), "CURRENT", expires_at, now)
+table = aws_environment("TABLE_NAME")
+dedup_key = format("DEDUP#{}", digest)
+reserved = aws_dynamodb_reserve_until(table, dedup_key, "CURRENT", expires_at, now)
 if !reserved :duplicate_found
 reason = "DUPLICATE_WITHIN_WINDOW"
 endif:duplicate_found
