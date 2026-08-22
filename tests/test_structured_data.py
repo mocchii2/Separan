@@ -55,6 +55,17 @@ end_function:main
 '''
         self.assertEqual(execute(source)[1], "string\nstring\n12\n1000.0\n")
 
+    def test_yaml_null_maps_to_empty_and_encodes_back(self):
+        source = '''function:main
+data = yaml_to_object("name: null\\nvalues: [1, null, 2]\\n")
+print data.name is EMPTY
+print data.values[1] is EMPTY
+print contains(object_to_yaml(data), "name: null")
+print yaml_to_object("") is EMPTY
+end_function:main
+'''
+        self.assertEqual(execute(source)[1], "true\ntrue\ntrue\ntrue\n")
+
     def test_yaml_multiple_documents_and_stream_type_rule(self):
         source = '''function:main
 documents = yaml_to_objects("---\\nname: one\\n---\\nname: two\\n")
@@ -191,10 +202,23 @@ child = xml_child(root, "child")
 xml_remove_child(root, child)
 print length(xml_children(root))
 xml_remove_attribute(root, "key")
-print xml_get_attribute(root, "key")
+print xml_get_attribute(root, "key") is EMPTY
 end_function:main
 '''
-        self.assertEqual(execute(source)[1], "0\nnull\n")
+        self.assertEqual(execute(source)[1], "0\ntrue\n")
+
+    def test_xml_optional_queries_return_typed_empty(self):
+        source = '''function:main
+document = xml_document_parse("<root/>")
+root = xml_root(document)
+print xml_get_attribute(root, "missing") is EMPTY
+print xml_child(root, "missing") is EMPTY
+print xml_find(document, "/root/missing") is EMPTY
+print xml_namespace_uri(root) is EMPTY
+print xml_namespace_prefix(root) is EMPTY
+end_function:main
+'''
+        self.assertEqual(execute(source)[1], "true\ntrue\ntrue\ntrue\ntrue\n")
         self.assert_error('document = xml_document_parse("<root/>")\nxml_remove_attribute(xml_root(document), "missing")\n', "E951")
 
 

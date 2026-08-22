@@ -89,13 +89,13 @@ print row.name
 print hex_encode(row.data)
 print db_scalar(db, "select count(*) from users", [])
 print length(db_query(db, "select id, name from users", []))
-print db_query_one(db, "select id from users where id = ?", [2])
+print db_query_one(db, "select id from users where id = ?", [2]) is EMPTY
 db_close(db)
 db_close(db)
 end_function:main
 '''
         output = execute(source)[1]
-        self.assertEqual(output, "db_connection\ndb_connection(driver=sqlite, database=[REDACTED])\n0\n1\n1\n1\n1\nAlice\n00FF\n1\n1\nnull\n")
+        self.assertEqual(output, "db_connection\ndb_connection(driver=sqlite, database=[REDACTED])\n0\n1\n1\n1\n1\nAlice\n00FF\n1\n1\ntrue\n")
 
     def test_query_one_cardinality_and_errors_are_catchable(self):
         source = '''function:main
@@ -215,12 +215,24 @@ end_function:main
         source = '''function:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table no_pk(value text)", [])
-print db_primary_key(db, "no_pk")
+print db_primary_key(db, "no_pk") is EMPTY
 print db_indexes(db, "no_pk")
-print db_columns(db, "no_pk")[0].default
+print db_columns(db, "no_pk")[0].default is EMPTY
 end_function:main
 '''
-        self.assertEqual(execute(source)[1], "null\n[]\nnull\n")
+        self.assertEqual(execute(source)[1], "true\n[]\ntrue\n")
+
+    def test_sql_null_maps_to_empty_and_empty_binds_as_sql_null(self):
+        source = '''function:main
+db = db_connect(driver = "sqlite", database = ":memory:")
+db_execute(db, "create table values_table(id integer, value text)", [])
+list<string> params = [EMPTY]
+db_execute(db, "insert into values_table(value) values (?)", params)
+row = db_query_one(db, "select value from values_table", [])
+print row.value is EMPTY
+end_function:main
+'''
+        self.assertEqual(execute(source)[1], "true\n")
         with self.assertRaises(SeparanError) as caught:
             execute('function:main\ndb = db_connect(driver = "sqlite", database = ":memory:")\nprint db_columns(db, "missing")\nend_function:main\n')
         self.assertEqual(caught.exception.code, "E903")

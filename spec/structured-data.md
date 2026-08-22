@@ -29,11 +29,11 @@ Implemented functions:
 - `yaml_validate(text)` / `yaml_validate_file(path)`
 
 The names say `object` for a readable conversion direction, but scalar and list
-document roots are also accepted. Empty input maps to `null`; an empty stream
+document roots are also accepted. Empty input maps to EMPTY; an empty stream
 maps to `[]`. A single-document API rejects a stream containing two or more
 documents. A multi-document result must remain a homogeneous Separan list.
 
-Mapping rules are `null -> null`, boolean -> `boolean`, integer/float ->
+Mapping rules are YAML `null -> EMPTY`, boolean -> `boolean`, integer/float ->
 `number`, scalar text -> `string`, sequence -> homogeneous `list`, and mapping
 -> insertion-ordered `object`. Mapping keys must be strings. Duplicate keys,
 unsupported tags, non-finite numbers, mixed lists, recursive aliases, excessive
@@ -82,13 +82,15 @@ function calls are not accepted.
 
 Attribute functions accept an optional explicit `namespace_uri`; prefixes are
 never smuggled into the attribute name string.
+Missing `xml_get_attribute`, `xml_child`, `xml_find`, namespace URI, and
+namespace prefix results are typed EMPTY. Mutating XML operations return VOID.
 
 The convenience conversion functions `xml_to_object`, `object_to_xml`,
 `xml_file_to_object`, and `object_to_xml_file` use this explicit node shape:
 
 ```text
 name: string
-namespace_uri: string | null
+namespace_uri: string | EMPTY
 attributes: object<string,string>
 text: string
 children: list<object>

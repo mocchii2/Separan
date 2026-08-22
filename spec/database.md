@@ -44,15 +44,16 @@ db_close(db)
 ```
 
 `db_query` returns all rows as `list<object>` and returns `[]` for no rows.
-`db_query_one` returns null, exactly one object, or an error for two or more
-rows. `db_scalar` returns the first column of the first row or null. `db_execute`
+`db_query_one` returns typed EMPTY, exactly one object, or an error for two or more
+rows. `db_scalar` returns the first column of the first row or typed EMPTY. `db_execute`
 returns affected rows, with unavailable DDL counts normalized to zero.
 
 Parameters are always bound. A homogeneous list uses positional `?` binding.
 An object may supply heterogeneous positional values in declaration order for
 `?` placeholders. Named `:name` binding remains available where the selected
 driver supports it, but portable Separan SQL uses `?`.
-Supported values are null, number, string, boolean, bytes, and datetime.
+Supported values are EMPTY, number, string, boolean, bytes, and datetime.
+EMPTY binds as SQL NULL; SQL NULL is returned as EMPTY.
 Secrets cannot be bound as ordinary data. SQL string concatenation remains
 possible but is strongly discouraged.
 
@@ -86,7 +87,7 @@ deterministically ordered. `db_server_info` includes `driver`, `driver_version`,
 omitting both `user` and `password` selects Windows authentication, while
 specifying only one is an authentication error. Encrypted connections are the
 default. Self-signed certificates are trusted only for explicit local hosts;
-remote hosts require certificate validation. SQL NULL maps to null and BLOB maps to bytes. SQLite has no reliable declared
+remote hosts require certificate validation. SQL NULL maps to EMPTY and BLOB maps to bytes. SQLite has no reliable declared
 boolean/datetime result type, so values returned by its native driver remain
 numbers or strings; other adapters may perform stronger documented mapping.
 

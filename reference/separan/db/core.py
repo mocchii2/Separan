@@ -7,6 +7,7 @@ from ..auth import SecretValue
 from ..errors import error
 from ..objects import ObjectValue
 from ..randomness import BytesValue
+from ..runtime_values import EmptyValue, VOID, empty_of
 from ..system_utilities import UtilityFunction
 from ..temporal import DatetimeValue, DurationValue, format_datetime
 from .errors import AdapterError
@@ -141,14 +142,15 @@ def _close(args, named, position, runtime):
     value = args[0]
     if not isinstance(value, DbConnectionValue):
         runtime.type_error(position, "db_connection", runtime.type_name(value), "db_close() requires a connection.")
-    if value.closed: return None
+    if value.closed: return VOID
     try: value.adapter.close(value.native)
     except AdapterError as exc: _raise_adapter(exc, position)
     value.closed = True; value.transaction_active = False
-    return None
+    return VOID
 
 
 def _parameter(value, position, runtime):
+    if isinstance(value, EmptyValue): return None
     if value is None or type(value) in (str, int, float): return value
     if type(value) is bool: return value
     if isinstance(value, BytesValue): return value.value
@@ -179,6 +181,7 @@ def _run(connection, sql, params, named, position, runtime):
 
 
 def _result(value):
+    if value is None: return empty_of(external=True)
     if isinstance(value, bytes): return BytesValue(value)
     if isinstance(value, (PyDateTime, PyDate)): return value.isoformat()
     return value
@@ -198,11 +201,11 @@ def _query(mode):
             except AdapterError as translated: _raise_adapter(translated, position)
         finally: cursor.close()
         if mode == "scalar":
-            if not values: return None
+            if not values: return empty_of(external=True)
             return next(iter(values[0].fields.values()))
         if mode == "one":
             if len(values) > 1: raise error("E906", "db_query_error", "db_query_one() returned more than one row.", position, actual=str(len(values)))
-            return None if not values else values[0]
+            return empty_of("object") if not values else values[0]
         return values
     return implementation
 
@@ -219,6 +222,7 @@ def begin(connection, position, runtime):
     try: db.adapter.begin(db.native)
     except AdapterError as exc: _raise_adapter(exc, position)
     db.transaction_active = True
+    return VOID
 
 
 def commit(connection, position, runtime):
@@ -227,6 +231,7 @@ def commit(connection, position, runtime):
     try: db.adapter.commit(db.native)
     except AdapterError as exc: _raise_adapter(exc, position)
     db.transaction_active = False
+    return VOID
 
 
 def rollback(connection, position, runtime):
@@ -235,6 +240,7 @@ def rollback(connection, position, runtime):
     try: db.adapter.rollback(db.native)
     except AdapterError as exc: _raise_adapter(exc, position)
     db.transaction_active = False
+    return VOID
 
 
 def _begin(args, named, position, runtime): return begin(args[0], position, runtime)
@@ -248,9 +254,9 @@ def _metadata(method):
         try: value = getattr(db.adapter, method)(db.native, *args[1:], database=db.database, host=db.host)
         except AdapterError as exc: _raise_adapter(exc, position)
         if method in ("columns", "indexes"):
-            return [ObjectValue.create(item) for item in value]
+            return [ObjectValue.create({key: _result(field) for key, field in item.items()}) for item in value]
         if method in ("primary_key", "server_info"):
-            return None if value is None else ObjectValue.create(value)
+            return empty_of("object") if value is None else ObjectValue.create({key: _result(field) for key, field in value.items()})
         return value
     return implementation
 

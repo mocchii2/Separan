@@ -14,6 +14,7 @@ import yaml
 from .errors import error
 from .io_json import _atomic_write
 from .objects import ObjectValue
+from .runtime_values import EmptyValue, VOID, empty_of
 from .system_utilities import UtilityFunction
 
 
@@ -121,7 +122,8 @@ def _from_yaml(value, position, runtime, ancestors, depth, budget):
     budget[0] += 1
     if budget[0] > MAX_NODES or depth > MAX_DEPTH:
         raise error("E943", "yaml_limit_error", "YAML structure exceeds the node or nesting limit.", position)
-    if value is None or type(value) in (str, bool, int): return value
+    if value is None: return empty_of(external=True)
+    if type(value) in (str, bool, int): return value
     if type(value) is float:
         if not math.isfinite(value): raise error("E942", "yaml_type_error", "YAML non-finite numbers are not supported.", position)
         return value
@@ -131,8 +133,10 @@ def _from_yaml(value, position, runtime, ancestors, depth, budget):
         nested = set(ancestors); nested.add(identity)
         if type(value) is list:
             result = [_from_yaml(item, position, runtime, nested, depth + 1, budget) for item in value]
-            from .interpreter import list_element_type
-            try: list_element_type(result, position)
+            from .interpreter import list_element_type, normalize_list_values
+            try:
+                element_type = list_element_type(result, position)
+                result = normalize_list_values(result, element_type, position)
             except Exception as exc:
                 if getattr(exc, "code", None) == "E203":
                     raise error("E942", "yaml_type_error", "YAML sequence contains mixed Separan value types.", position, expected=exc.expected, actual=exc.actual)
@@ -148,6 +152,7 @@ def _to_data(value, position, ancestors=None, depth=0, budget=None):
     budget[0] += 1
     if budget[0] > MAX_NODES or depth > MAX_DEPTH:
         raise error("E943", "yaml_limit_error", "Value exceeds the YAML node or nesting limit.", position)
+    if isinstance(value, EmptyValue): return None
     if value is None or type(value) in (str, bool, int): return value
     if type(value) is float:
         if not math.isfinite(value): raise error("E941", "yaml_encode_error", "YAML cannot encode a non-finite number.", position)
@@ -199,13 +204,13 @@ def _write_file(path_text, text, name, position, runtime):
     runtime.capabilities.require(runtime.capabilities.write_files, name, position)
     path = runtime.capabilities.path(path_text, name, position)
     _atomic_write(path, text.encode("utf-8"), position)
-    return None
+    return VOID
 
 
 def yaml_to_object(args, named, position, runtime):
     documents = _yaml_documents(args[0], position, runtime)
     if len(documents) > 1: raise error("E940", "yaml_parse_error", "yaml_to_object() accepts exactly one YAML document; use yaml_to_objects() for a stream.", position, expected="0 or 1 document", actual=str(len(documents)))
-    return documents[0] if documents else None
+    return documents[0] if documents else empty_of(external=True)
 
 
 def yaml_to_objects(args, named, position, runtime):
@@ -227,7 +232,7 @@ def objects_to_yaml(args, named, position, runtime):
 def yaml_file_to_object(args, named, position, runtime):
     documents = _yaml_documents(_read_file(args[0], "yaml_file_to_object", position, runtime), position, runtime, args[0])
     if len(documents) > 1: raise error("E940", "yaml_parse_error", "YAML file contains multiple documents; use yaml_file_to_objects().", position, actual=str(len(documents)))
-    return documents[0] if documents else None
+    return documents[0] if documents else empty_of(external=True)
 
 
 def yaml_file_to_objects(args, named, position, runtime):
@@ -357,7 +362,7 @@ def _node_to_object(element, namespaces, position, depth=0, budget=None):
     children = [_node_to_object(child, namespaces, position, depth + 1, budget) for child in list(element) if type(child.tag) is str]
     fields = {
         "name": _local_name(element.tag),
-        "namespace_uri": _namespace_uri(element.tag),
+        "namespace_uri": _namespace_uri(element.tag) or empty_of("string", external=True),
         "attributes": ObjectValue.create(dict(element.attrib)),
         "text": element.text or "",
         "children": children,
@@ -379,7 +384,8 @@ def _object_to_element(value, position, runtime, depth=0, budget=None):
     missing = required - set(value.fields)
     if missing: raise error("E951", "xml_model_error", "XML node object is missing required fields.", position, actual=sorted(missing)[0])
     name = _name(value.fields["name"], "XML element name", position); namespace = value.fields.get("namespace_uri")
-    if namespace is not None and (type(namespace) is not str or not namespace): runtime.type_error(position, "string or null namespace_uri", runtime.type_name(namespace), "XML namespace_uri must be a non-empty string or null.")
+    if isinstance(namespace, EmptyValue): namespace = None
+    if namespace is not None and (type(namespace) is not str or not namespace): runtime.type_error(position, "string or EMPTY namespace_uri", runtime.type_name(namespace), "XML namespace_uri must be a non-empty string or EMPTY.")
     attributes = value.fields["attributes"]
     if not isinstance(attributes, ObjectValue): runtime.type_error(position, "object<string,string> attributes", runtime.type_name(attributes), "XML attributes must be an object.")
     clean_attributes = {}
@@ -415,19 +421,20 @@ def xml_element_text(args, named, position, runtime): return _element(args[0], "
 def xml_set_element_text(args, named, position, runtime):
     item = _element(args[0], "xml_set_element_text", position, runtime)
     if type(args[1]) is not str: runtime.type_error(position, "string", runtime.type_name(args[1]), "XML element text must be a string.")
-    item.element.text = args[1]; return None
+    item.element.text = args[1]; return VOID
 
 
 def xml_get_attribute(args, named, position, runtime):
-    item = _element(args[0], "xml_get_attribute", position, runtime); key = _qualified_name(args[1], named.get("namespace_uri"), "XML attribute name", position, runtime); return item.element.attrib.get(key)
+    item = _element(args[0], "xml_get_attribute", position, runtime); key = _qualified_name(args[1], named.get("namespace_uri"), "XML attribute name", position, runtime)
+    return item.element.attrib[key] if key in item.element.attrib else empty_of("string")
 def xml_set_attribute(args, named, position, runtime):
     item = _element(args[0], "xml_set_attribute", position, runtime); key = _qualified_name(args[1], named.get("namespace_uri"), "XML attribute name", position, runtime)
     if type(args[2]) is not str: runtime.type_error(position, "string", runtime.type_name(args[2]), "XML attribute value must be a string.")
-    item.element.set(key, args[2]); return None
+    item.element.set(key, args[2]); return VOID
 def xml_remove_attribute(args, named, position, runtime):
     item = _element(args[0], "xml_remove_attribute", position, runtime); key = _qualified_name(args[1], named.get("namespace_uri"), "XML attribute name", position, runtime)
     if key not in item.element.attrib: raise error("E951", "xml_model_error", "XML attribute does not exist.", position, actual=key)
-    del item.element.attrib[key]; return None
+    del item.element.attrib[key]; return VOID
 
 
 def xml_children(args, named, position, runtime):
@@ -435,21 +442,24 @@ def xml_children(args, named, position, runtime):
 def xml_child(args, named, position, runtime):
     item = _element(args[0], "xml_child", position, runtime); name = _name(args[1], "XML child name", position)
     found = next((child for child in list(item.element) if type(child.tag) is str and _local_name(child.tag) == name), None)
-    return None if found is None else XmlElementValue(found, item.namespaces)
+    return empty_of("xml_element") if found is None else XmlElementValue(found, item.namespaces)
 def xml_add_child(args, named, position, runtime):
     parent = _element(args[0], "xml_add_child", position, runtime); child = _element(args[1], "xml_add_child", position, runtime)
     if child.element in list(parent.element): raise error("E951", "xml_model_error", "XML element is already a direct child of the parent.", position)
-    parent.element.append(child.element); return None
+    parent.element.append(child.element); return VOID
 def xml_remove_child(args, named, position, runtime):
     parent = _element(args[0], "xml_remove_child", position, runtime); child = _element(args[1], "xml_remove_child", position, runtime)
     if child.element not in list(parent.element): raise error("E951", "xml_model_error", "XML element is not a direct child of the parent.", position)
-    parent.element.remove(child.element); return None
+    parent.element.remove(child.element); return VOID
 
 
-def xml_namespace_uri(args, named, position, runtime): return _namespace_uri(_element(args[0], "xml_namespace_uri", position, runtime).element.tag)
+def xml_namespace_uri(args, named, position, runtime):
+    value = _namespace_uri(_element(args[0], "xml_namespace_uri", position, runtime).element.tag)
+    return value if value is not None else empty_of("string")
 def xml_namespace_prefix(args, named, position, runtime):
     item = _element(args[0], "xml_namespace_prefix", position, runtime); uri = _namespace_uri(item.element.tag)
-    return None if uri is None else item.namespaces.get(uri)
+    if uri is None: return empty_of("string")
+    return item.namespaces[uri] if uri in item.namespaces else empty_of("string")
 
 
 def _path_parts(path, position, runtime):
@@ -478,7 +488,7 @@ def _find_all(args, position, runtime):
 
 def xml_find_all(args, named, position, runtime): return _find_all(args, position, runtime)
 def xml_find(args, named, position, runtime):
-    found = _find_all(args, position, runtime); return found[0] if found else None
+    found = _find_all(args, position, runtime); return found[0] if found else empty_of("xml_element")
 
 
 def xml_escape_text(args, named, position, runtime):

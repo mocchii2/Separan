@@ -28,10 +28,10 @@ object_to_yaml_file(
 - `yaml_validate(text)`／`yaml_validate_file(path)`
 
 変換方向を読めるよう関数名には`object`を使いますが、document rootにはscalarとlistも
-利用できます。空入力は`null`、空streamは`[]`です。単一document APIは複数documentを
+利用できます。空入力はEMPTY、空streamは`[]`です。単一document APIは複数documentを
 拒否し、複数documentの戻り値もSeparanの同型list規則を維持します。
 
-型対応は、YAML null→null、boolean→boolean、integer／float→number、text→string、
+型対応は、YAML null→EMPTY、boolean→boolean、integer／float→number、text→string、
 sequence→同型list、mapping→宣言順を保持するobjectです。mapping keyはstring限定です。
 重複key、未対応tag、非有限数、混在list、再帰alias、過大な深さ・node数はerrorです。
 
@@ -71,13 +71,15 @@ document model関数:
 
 attribute関数は明示的な`namespace_uri` optionを受け付けます。prefixをattribute名stringへ
 暗黙に埋め込みません。
+`xml_get_attribute`、`xml_child`、`xml_find`、namespace URI、namespace prefixの不在結果は
+型付きEMPTYです。XMLの変更操作はVOIDを返します。
 
 簡易変換`xml_to_object`、`object_to_xml`、`xml_file_to_object`、
 `object_to_xml_file`は、次の明示node形を使います。
 
 ```text
 name: string
-namespace_uri: string | null
+namespace_uri: string | EMPTY
 attributes: object<string,string>
 text: string
 children: list<object>

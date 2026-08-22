@@ -38,14 +38,15 @@ changed = db_execute(db, "update users set active = :active where id = :id", par
 db_close(db)
 ```
 
-`db_query` は全行を `list<object>` で返し、0件は `[]`。`db_query_one` は0件ならnull、
-1件ならobject、2件以上ならerror。`db_scalar` は先頭行の先頭列、0行ならnull。
+`db_query` は全行を `list<object>` で返し、0件は `[]`。`db_query_one` は0件なら型付きEMPTY、
+1件ならobject、2件以上ならerror。`db_scalar` は先頭行の先頭列、0行なら型付きEMPTY。
 `db_execute` は影響行数を返し、DDLで不明な場合は0に正規化する。
 
 値は必ずbindする。同型listは`?` positional bindingに使う。異型parameterはobjectの
 宣言順を`?`へ対応させる。`:name` named bindingはdriverが対応する場合の互換機能とし、
-portableなSeparan SQLでは`?`を使う。null、number、string、
-boolean、bytes、datetimeをbindできる。secretを通常のSQL値としてbindすることは禁止する。
+portableなSeparan SQLでは`?`を使う。EMPTY、number、string、
+boolean、bytes、datetimeをbindできる。EMPTYはSQL NULLへbindし、SQL NULLはEMPTYへ変換する。
+secretを通常のSQL値としてbindすることは禁止する。
 SQL文字列連結は文法上禁止しないが強く非推奨とする。
 
 Separanの位置bindは常に`?`を使う。adapterはSQL文字列、quoted identifier、行・block
@@ -72,7 +73,7 @@ begin前のcommit/rollbackは `db_transaction_error`。
 `server_host`、`mode`を返し、Oracleでは`thin`／`thick`も示す。SQL Serverでは認証方式
 `windows`／`password`を示し、userとpasswordを両方省略した場合はWindows認証、片方だけなら
 認証errorとする。暗号化接続をdefaultとし、自己署名証明書を許可するのは明示的なlocal hostだけ、
-remote hostでは証明書検証を必須にする。SQL NULLはnull、BLOBはbytes。
+remote hostでは証明書検証を必須にする。SQL NULLはEMPTY、BLOBはbytes。
 SQLiteがboolean/datetimeの確実な結果型情報を持たない場合、nativeのnumber/stringを維持する。
 
 DBアクセスには `database` Capabilityとdriver許可が必要。SQLite pathはfilesystem capability root内。
