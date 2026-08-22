@@ -133,6 +133,27 @@ end_function:config
         rejected = verify_tag_scope(self.snapshot(before, "a"), self.snapshot(before.replace('print "fixed"', 'print "changed"'), "b"), "@notification")
         self.assertFalse(rejected["passed"])
 
+    def test_parent_tag_path_resolves_descendant_scopes(self):
+        before = '''function:decide
+@monitor:notification:decision
+print "one"
+end_function:decide
+function:history
+@monitor:notification:history
+print "two"
+end_function:history
+function:status
+@monitor:status
+print "fixed"
+end_function:status
+'''
+        inside = before.replace('print "one"', 'print "changed"')
+        report = verify_tag_scope(self.snapshot(before, "a"), self.snapshot(inside, "b"), "monitor:notification")
+        self.assertTrue(report["passed"])
+        self.assertEqual(report["summary"]["resolved_functions"], 2)
+        outside = before.replace('print "fixed"', 'print "changed"')
+        self.assertFalse(verify_tag_scope(self.snapshot(before, "a"), self.snapshot(outside, "b"), "@monitor:notification")["passed"])
+
     def test_tag_metadata_is_exposed_in_snapshot(self):
         snapshot = self.snapshot('function:notify\n@notification\n@通知\nend_function:notify\n', "tag.sep")
         self.assertEqual(snapshot.blocks[1].tags, ("notification", "通知"))

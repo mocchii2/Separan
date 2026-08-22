@@ -48,7 +48,7 @@ Copy AI Edit Scopeが出す完全pathを要求します。
 
 Function TagはParser連動structure metadataに含まれます。LSPは同一documentのtag completion／
 renameと`separan/verifyTagScope`を提供します。workspace tag treeとfile横断renameは安定した
-workspace indexが必要な将来UIですが、CLIの完全一致tag検索はdirectoryを再帰走査できます。
+workspace indexが必要な将来UIですが、CLIのtag path検索はdirectoryを再帰走査できます。
 
 ## 計画中の高度な機能
 

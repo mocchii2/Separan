@@ -249,9 +249,16 @@ def verify_scopes(before: StructureSnapshot, after: StructureSnapshot, requested
     }
 
 
+def _tag_path_matches(tags: tuple[str, ...], query: str) -> bool:
+    return any(tag == query or tag.startswith(query + ":") for tag in tags)
+
+
 def resolve_tag(snapshot: StructureSnapshot, tag: str) -> tuple[BlockRecord, ...]:
     query = tag[1:] if tag.startswith("@") else tag
-    matches = tuple(item for item in snapshot.blocks if item.kind == "function" and query in item.tags)
+    matches = tuple(
+        item for item in snapshot.blocks
+        if item.kind == "function" and _tag_path_matches(item.tags, query)
+    )
     if not matches:
         raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
     return matches
@@ -269,7 +276,7 @@ def verify_tag_scope(before: StructureSnapshot, after: StructureSnapshot, tag: s
 
     for scope in scopes:
         current = after_by_id.get(scope.id)
-        if current is None or query not in current.tags:
+        if current is None or not _tag_path_matches(current.tags, query):
             violations.append({"status": "boundary_removed", "id": scope.id, "path": scope.path,
                                "reason": f"The function was removed, moved, renamed, or detached from '@{query}'."})
     for change in diff["changes"]:
@@ -294,7 +301,7 @@ def inspect_tag_path(path: Path, tag: str) -> dict[str, Any]:
     for source_path in paths:
         snapshot = inspect_file(source_path)
         for item in snapshot.blocks:
-            if item.kind == "function" and query in item.tags:
+            if item.kind == "function" and _tag_path_matches(item.tags, query):
                 functions.append({"source": str(source_path), "path": item.path, "function": item.label,
                                   "line": item.start_line, "tags": list(item.tags)})
     if not functions:
@@ -304,7 +311,7 @@ def inspect_tag_path(path: Path, tag: str) -> dict[str, Any]:
 
 
 def verify_tag_paths(before_path: Path, after_path: Path, tag: str) -> dict[str, Any]:
-    """Verify an exact semantic scope across either two files or two workspaces."""
+    """Verify a semantic tag-path scope across either two files or two workspaces."""
     if before_path.is_file() and after_path.is_file():
         return verify_tag_scope(inspect_file(before_path), inspect_file(after_path), tag)
     if not before_path.is_dir() or not after_path.is_dir():
@@ -315,7 +322,7 @@ def verify_tag_paths(before_path: Path, after_path: Path, tag: str) -> dict[str,
     snapshots_before = {relative: inspect_file(path) for relative, path in before_files.items()}
     snapshots_after = {relative: inspect_file(path) for relative, path in after_files.items()}
     scopes = [(relative, item) for relative, snapshot in snapshots_before.items()
-              for item in snapshot.blocks if item.kind == "function" and query in item.tags]
+              for item in snapshot.blocks if item.kind == "function" and _tag_path_matches(item.tags, query)]
     if not scopes:
         raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
     allowed, violations, all_changes = [], [], []
@@ -336,7 +343,7 @@ def verify_tag_paths(before_path: Path, after_path: Path, tag: str) -> dict[str,
         after_snapshot = snapshots_after[relative] if relative in snapshots_after else empty(str(relative))
         current = next((item for item in after_snapshot.blocks
                         if item.id == scope.id), None)
-        if current is None or query not in current.tags:
+        if current is None or not _tag_path_matches(current.tags, query):
             violations.append({"status": "boundary_removed", "id": scope.id,
                                "path": f"{relative}:{scope.path}", "source": str(relative),
                                "reason": f"The function was removed, moved, renamed, or detached from '@{query}'."})
@@ -382,7 +389,7 @@ def main(argv=None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     inspect_parser = subparsers.add_parser("inspect", help="emit machine-readable block identities")
     inspect_parser.add_argument("source", type=Path, nargs="?", default=Path(".")); inspect_parser.add_argument("--json", action="store_true")
-    inspect_parser.add_argument("--tag", metavar="TAG", help="list functions carrying an exact semantic tag")
+    inspect_parser.add_argument("--tag", metavar="TAG", help="list functions carrying a semantic tag path or one of its descendants")
     diff_parser = subparsers.add_parser("diff", help="compare two Separan programs structurally")
     diff_parser.add_argument("before", type=Path); diff_parser.add_argument("after", type=Path)
     diff_parser.add_argument("--json", action="store_true"); diff_parser.add_argument("--include-unchanged", action="store_true")

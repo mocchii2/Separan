@@ -38,12 +38,24 @@ class StringBuiltinTests(unittest.TestCase):
         source = 'print substring("Separan", 0, 4)\nprint substring("Separan", 4)\nprint substring("日本語", 1, 3)\nprint substring("abc", 1, 1)\n'
         self.assertEqual(execute(source)[1], "Sepa\nran\n本語\n\n")
 
+    def test_clip_utf8_never_splits_a_code_point(self):
+        source = '''print clip_utf8("abc", 10)
+print clip_utf8("A日本B", 7)
+print clip_utf8("日本", 5)
+print clip_utf8("日本", 0)
+'''
+        self.assertEqual(execute(source)[1], "abc\nA日本\n日\n\n")
+        for call in ('clip_utf8(1, 3)', 'clip_utf8("x", -1)', 'clip_utf8("x", 1.5)'):
+            with self.subTest(call=call):
+                self.assert_error(call, "E201")
+
     def test_string_functions_reject_implicit_conversion(self):
         calls = (
             "trim(1)", "upper(true)", "lower(null)", 'contains("x", 1)',
             'starts_with([], "x")', 'ends_with("x", false)',
             'split(1, ",")', 'join("a", ",")', 'join([1, 2], ",")',
             'join(["a"], 1)', 'replace("a", "a", 1)', "substring(1, 0)",
+            'clip_utf8(1, 1)',
         )
         for call in calls:
             with self.subTest(call=call): self.assert_error(call, "E201")
@@ -62,9 +74,9 @@ class StringBuiltinTests(unittest.TestCase):
             with self.subTest(call=call): self.assert_error(call, code)
 
     def test_argument_counts_and_reserved_names(self):
-        for call in ("trim()", 'contains("x")', 'split("x")', 'join([])', 'replace("x", "x")', 'substring("x")', 'substring("x", 0, 1, 2)'):
+        for call in ("trim()", 'contains("x")', 'split("x")', 'join([])', 'replace("x", "x")', 'substring("x")', 'substring("x", 0, 1, 2)', 'clip_utf8("x")', 'clip_utf8("x", 1, 2)'):
             with self.subTest(call=call): self.assert_error(call, "E207")
-        for name in ("trim", "upper", "lower", "contains", "starts_with", "ends_with", "split", "join", "replace", "substring"):
+        for name in ("trim", "upper", "lower", "contains", "starts_with", "ends_with", "split", "join", "replace", "substring", "clip_utf8"):
             with self.subTest(name=name):
                 with self.assertRaises(SeparanError) as caught:
                     execute(f"function:{name}\nend_function:{name}\n")

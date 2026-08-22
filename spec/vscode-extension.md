@@ -54,7 +54,7 @@ short labels require the full path copied by Copy AI Edit Scope.
 Function tags are included in parser-backed structure metadata. The LSP supports
 same-document tag completion and rename plus `separan/verifyTagScope`. Workspace
 tag trees and cross-file rename require a stable workspace index and remain a
-future editor UI layer; the CLI already performs recursive exact-tag inspection.
+future editor UI layer; the CLI already performs recursive tag-path inspection.
 
 ## Planned advanced tooling
 

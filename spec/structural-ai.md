@@ -72,6 +72,6 @@ separan-structure verify app.before.sep app.after.sep --allow-tag notification
 ```
 
 All tagged function boundaries are resolved from the before AST. Changes within
-those functions pass; changes elsewhere, removing a function, or removing its
-allowed tag fail. Initial tag queries use one exact tag—there is no implicit
-name inference or AND/OR query language.
+those functions pass; changes elsewhere, removing a function, or leaving its
+allowed tag path fail. A query matches the selected path and descendants; there
+is no fuzzy name inference or implicit AND/OR query language.

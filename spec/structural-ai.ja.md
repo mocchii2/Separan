@@ -52,7 +52,7 @@ VS Code v0.4拡張には **Show Structural Diff Against HEAD** と
 
 ## Semantic Tag Scope
 
-Function先頭metadataのtagをfileまたはworkspaceから完全一致で検索できます。
+Function先頭metadataのtag pathをfileまたはworkspaceから検索できます。指定pathはその子tagも含みます。
 
 ```console
 separan-structure inspect . --tag notification
@@ -66,5 +66,5 @@ separan-structure verify app.before.sep app.after.sep --allow-tag notification
 ```
 
 許可Function集合はbefore ASTから確定します。そのFunction内だけの変更はPASSし、外側の変更、
-Function境界の削除、許可tagの削除はFAILします。初期queryは単一tagの完全一致のみで、名前の
-推測やAND／OR queryは行いません。
+Function境界の削除、許可tag pathからの離脱はFAILします。名前の曖昧な推測や
+AND／OR queryは行いません。

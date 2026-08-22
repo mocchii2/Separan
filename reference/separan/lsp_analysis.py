@@ -23,6 +23,7 @@ WORD_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 BUILTIN_SIGNATURES = {
     "substring": "substring(value: string, start: number, end?: number) -> string",
     "char_at": "char_at(value: string, index: number) -> string",
+    "clip_utf8": "clip_utf8(value: string, maximum_bytes: number) -> string",
     "find_all": "find_all(value: string, search: string) -> list<number>",
     "map": "map(items: list, function: function) -> list",
     "filter": "filter(items: list, predicate: function) -> list",
@@ -312,7 +313,7 @@ def _literal_type(expression):
     if call:
         name = call.group(1)
         if name in ("number", "length", "len", "sum", "average", "count", "sqrt", "sin", "cos", "tan", "log", "log10", "log2", "exp", "abs", "ceil", "floor", "round", "min", "max", "pow", "absolute", "minimum", "maximum", "truncate", "clamp", "sign", "square_root", "cube_root", "power", "hypotenuse", "exponential", "exponential_base2", "natural_log", "log_base2", "log_base10", "log_one_plus", "arc_sin", "arc_cos", "arc_tan", "arc_tan2", "sinh", "cosh", "tanh", "arc_sinh", "arc_cosh", "arc_tanh", "to_radians", "to_degrees", "greatest_common_divisor", "least_common_multiple", "factorial", "median", "variance", "sample_variance", "standard_deviation", "sample_standard_deviation", "percentile", "binary_to_number", "octal_to_number", "hexadecimal_to_number", "base_to_number", "ip_address_version", "tcp_send", "udp_send"): return "number"
-        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape", "network_hostname", "network_address_mode", "network_dhcp_status"): return "string"
+        if name in ("string", "trim", "upper", "lower", "substring", "char_at", "clip_utf8", "reverse", "read_text", "http_get", "number_to_binary", "number_to_octal", "number_to_hexadecimal", "number_to_base", "object_to_yaml", "objects_to_yaml", "object_to_xml", "xml_document_to_text", "xml_element_name", "xml_element_text", "xml_namespace_uri", "xml_namespace_prefix", "xml_escape_text", "xml_escape_attribute", "xml_unescape", "network_hostname", "network_address_mode", "network_dhcp_status"): return "string"
         if name.startswith("is_") or name in ("boolean", "contains", "starts_with", "ends_with", "regex_match", "regex_search", "yaml_validate", "yaml_validate_file", "network_is_connected", "wifi_is_connected", "wifi_wait_until_connected", "network_wait_until_addressed", "ip_address_is_private", "ip_address_is_loopback", "ip_address_is_global"): return "boolean"
         if name in ("map", "filter", "flatten", "sort", "find_all", "split", "read_lines", "moving_average", "yaml_to_objects", "yaml_file_to_objects", "xml_children", "xml_find_all", "network_interfaces", "network_ip_addresses", "network_dns_servers", "wifi_scan", "dns_resolve"): return "list"
         if name in ("datetime", "datetime_now", "datetime_parse"): return "datetime"

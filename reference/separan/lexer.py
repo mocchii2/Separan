@@ -66,6 +66,10 @@ class Lexer:
         return bool(value) and value.isidentifier() and unicodedata.is_normalized("NFC", value)
 
     @classmethod
+    def _valid_tag(cls, value):
+        return bool(value) and all(cls._valid_name(segment) for segment in value.split(":"))
+
+    @classmethod
     def _comment_delimiter(cls, stripped):
         """Return the exact ## label, or None for an ordinary # line comment."""
         candidate = stripped.rstrip()
@@ -110,10 +114,15 @@ class Lexer:
                 if i >= len(text) or not self._name_start(text[i]):
                     raise error("E216", "Invalid function tag", "Expected an NFC-normalized tag name immediately after '@'.", pos, actual=text[start:i])
                 name_start = i
-                while i < len(text) and self._name_continue(text[i]): i += 1
+                while i < len(text):
+                    while i < len(text) and self._name_continue(text[i]): i += 1
+                    if i >= len(text) or text[i] != ":": break
+                    i += 1
+                    if i >= len(text) or not self._name_start(text[i]):
+                        raise error("E216", "Invalid function tag", "Each function tag path segment must be a non-empty NFC-normalized identifier.", pos, actual=text[start:i])
                 name = text[name_start:i]
-                if not self._valid_name(name):
-                    raise error("E216", "Invalid function tag", "Function tags must be NFC-normalized identifiers without whitespace.", pos, actual="@" + name)
+                if not self._valid_tag(name):
+                    raise error("E216", "Invalid function tag", "Function tags must contain colon-separated NFC-normalized identifiers without whitespace.", pos, actual="@" + name)
                 out.append(Token(TokenType.TAG, name, name, pos)); continue
             triples = {"//=": TokenType.FLOOR_DIV_EQUAL, "**=": TokenType.POWER_EQUAL}
             triple = text[i:i+3]

@@ -147,20 +147,20 @@ Allowed changes 1, violations 0
 
 ```separan
 function:send_notification
-@notification
-@aws
+@monitor:notification
+@aws:sns
 send_message()
 end_function:send_notification
 ```
 
-`@notification`はAST metadataなので、AIに「通知関連らしいFunction」を推測させず、
-toolが対象Function集合を完全一致で列挙できます。
+`@monitor:notification`はAST metadataなので、AIに「通知関連らしいFunction」を推測させず、
+toolが同じpathと子tagを持つ対象Function集合を列挙できます。
 
 ```console
 separan-structure diff before.sep after.sep
 separan-structure verify before.sep after.sep --allow active_user
-separan-structure inspect . --tag notification
-separan-structure verify before.sep after.sep --allow-tag notification
+separan-structure inspect . --tag monitor:notification
+separan-structure verify before.sep after.sep --allow-tag monitor:notification
 ```
 
 CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集中fileをGit `HEAD`と

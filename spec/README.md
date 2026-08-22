@@ -189,8 +189,9 @@ Decorative runs such as `################################` are ordinary line com
 
 `:` is reserved for structural identity. `@tag` lines in a function's initial
 metadata area attach semantic identity without runtime behavior. Tags may be
-Unicode, must be NFC-normalized, and cannot be duplicated or placed after the
-first executable statement. See [symbols, tags, and strings](symbols-tags.md).
+Unicode colon-separated paths, every segment must be NFC-normalized, and tags
+cannot be duplicated or placed after the first executable statement. See
+[symbols, tags, and strings](symbols-tags.md).
 
 Normal strings support `\\`, `\"`, `\n`, `\r`, `\t`, `\0`, `\uXXXX`, and
 `\UXXXXXXXX`. Unknown, incomplete, surrogate, and out-of-range escapes are

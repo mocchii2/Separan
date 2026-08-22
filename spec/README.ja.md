@@ -153,7 +153,8 @@ string検索位置はUnicodeコードポイント単位です。単一検索の�
 ネストは禁止です。`################################`のような装飾行は通常の1行コメントです。
 
 `:`はStructural Identity専用です。Function先頭のmetadata領域に置く`@tag`は、実行結果を
-変えずにSemantic IdentityをASTへ保持します。tagはNFC正規化済みUnicode identifierを許可し、
+変えずにSemantic IdentityをASTへ保持します。tagはNFC正規化済みUnicode identifierを
+`:`で区切ったpathを許可し、
 重複、Function外、最初の実行文より後への配置を拒否します。詳細は
 [記号・Function Tag・文字列](symbols-tags.ja.md)を参照してください。
 

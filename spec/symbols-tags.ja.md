@@ -37,19 +37,22 @@ tagは実行結果を変えないAST metadataです。
 
 ```separan
 function:notify
-@notification
-@aws
+@monitor:notification
+@aws:sns
 @通知
 send_message()
 end_function:notify
 ```
 
+tag名はNFC正規化済みidentifierを`:`で区切ったcase-sensitiveなpathです。
+`@notification`のような単一tagも、`@monitor:notification:decision`のような階層tagも使えます。
 Function宣言後、最初の実行文より前のmetadata領域だけに配置できます。tag行の周囲には
 空行を置けます。名前は空白を含まないNFC正規化済みidentifierで、大文字小文字を区別します。
 重複は`E218`、Function外は`E216`、実行文より後は`E217`です。
 
-同じtagを持つFunction集合をSemantic Scopeとします。`separan-structure`はこの集合を
-検索し、変更が集合内だけか検証できます。初期queryは曖昧な推測をせず、単一tagの完全一致です。
+同じtag pathを持つFunction集合をSemantic Scopeとします。`separan-structure`はこの集合を
+検索し、変更が集合内だけか検証できます。queryは指定pathとその子孫に一致します。
+`monitor:notification`は`monitor:notification:decision`を含みますが、無関係な名前を曖昧一致させません。
 
 ## Structural Completion
 

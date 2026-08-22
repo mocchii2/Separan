@@ -175,6 +175,23 @@ def _char_at(arguments, position, runtime):
     return value[index]
 
 
+def _clip_utf8(arguments, position, runtime):
+    value, maximum_bytes = arguments
+    if type(value) is not str:
+        runtime.type_error(position, "string", runtime.type_name(value), "clip_utf8() requires a string.")
+    if type(maximum_bytes) is not int or maximum_bytes < 0:
+        runtime.type_error(
+            position,
+            "non-negative integer byte limit",
+            repr(maximum_bytes),
+            "clip_utf8() maximum_bytes must be a non-negative integer.",
+        )
+    encoded = value.encode("utf-8")
+    if len(encoded) <= maximum_bytes:
+        return value
+    return encoded[:maximum_bytes].decode("utf-8", errors="ignore")
+
+
 def _find_all(arguments, position, runtime):
     _require_strings("find_all", arguments, position, runtime)
     value, search = arguments
@@ -682,6 +699,7 @@ BUILTINS = {
         BuiltinFunction("replace", 3, 3, _replace),
         BuiltinFunction("substring", 2, 3, _substring),
         BuiltinFunction("char_at", 2, 2, _char_at),
+        BuiltinFunction("clip_utf8", 2, 2, _clip_utf8),
         BuiltinFunction("find_all", 2, 2, _find_all),
         BuiltinFunction("compare", 2, 2, _compare()),
         BuiltinFunction("compare_ignore_case", 2, 2, _compare(True)),

@@ -370,7 +370,8 @@ NaN/Infinity results.
 
 String processing includes `trim`, `upper`, `lower`, `contains`, `starts_with`,
 `ends_with`, `split`, `join`, `replace`, code-point-based `substring`/`char_at`,
-non-overlapping literal `find_all`, and a string/list-shared `reverse`.
+UTF-8-byte-bounded `clip_utf8`, non-overlapping literal `find_all`, and a
+string/list-shared `reverse`.
 
 The experimental temporal implementation provides distinct `datetime`,
 `local_datetime`, `timezone`, and `duration` values. It requires explicit zones,

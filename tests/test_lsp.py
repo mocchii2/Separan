@@ -184,6 +184,15 @@ ap = wifi_access_point_status(wifi)
         self.assertIn("opened at line 3", items[0]["detail"])
         tags = completions(source + 'function:other\n@not', 5, 4)["items"]
         self.assertEqual(tags[0]["label"], "@notification")
+        hierarchical = 'function:first\n@monitor:notification:decision\nend_function:first\nfunction:other\n@monitor:n'
+        tags = completions(hierarchical, 4, len("@monitor:n"))["items"]
+        self.assertEqual(tags[0]["label"], "@monitor:notification:decision")
+
+    def test_clip_utf8_signature_and_inferred_type(self):
+        signature = signature_help('value = clip_utf8("日本語", ', 0, 27)
+        self.assertIn("maximum_bytes: number", signature["signatures"][0]["label"])
+        inferred = {item.name: item.type for item in variables('value = clip_utf8("日本語", 6)\n')}
+        self.assertEqual(inferred["value"], "string")
 
     def test_readable_math_signatures_and_number_literal_hints(self):
         source = "binary = 0b1111_0000\nhexadecimal = 0xff_ff\naverage = moving_average([1, 2, 3], 2)\n"

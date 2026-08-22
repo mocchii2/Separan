@@ -86,14 +86,17 @@ end_function:main
         self.assertEqual((branch.position.line, branch.position.column), (3, 3))
 
     def test_function_tags_are_ast_metadata(self):
-        program = parse('function:notify\n@notification\n@通知\nprint "ok"\nend_function:notify\n')
-        self.assertEqual(program.statements[0].tags, ["notification", "通知"])
+        program = parse('function:notify\n@monitor:notification:decision\n@通知\nprint "ok"\nend_function:notify\n')
+        self.assertEqual(program.statements[0].tags, ["monitor:notification:decision", "通知"])
         self.assertEqual(execute('function:main\n@demo\nprint "ok"\nend_function:main\n')[1], "ok\n")
 
     def test_function_tag_placement_and_duplicates(self):
         self.assert_code('@notification\nfunction:main\nend_function:main\n', "E216")
         self.assert_code('function:main\nprint "x"\n@notification\nend_function:main\n', "E217")
         self.assert_code('function:main\n@notification\n@notification\nend_function:main\n', "E218")
+        for tag in ("@notification:", "@notification::aws", "@notification: aws"):
+            with self.subTest(tag=tag):
+                self.assert_code(f"function:main\n{tag}\nend_function:main\n", "E216")
 
     def test_incomplete_structural_completion_lists_open_closers(self):
         exc = self.assert_code('function:main\nif true :active\n:end\nendif:active\nend_function:main\n', "E122")

@@ -39,8 +39,8 @@ Tags are AST metadata with no runtime effect:
 
 ```separan
 function:notify
-@notification
-@aws
+@monitor:notification
+@aws:sns
 @通知
 send_message()
 end_function:notify
@@ -48,13 +48,16 @@ end_function:notify
 
 They are valid only in the metadata area after a function declaration and
 before its first executable statement. Blank lines may surround tag lines.
-Names are case-sensitive NFC-normalized identifiers without whitespace.
+Names are case-sensitive paths of colon-separated NFC-normalized identifiers
+without whitespace. A flat tag such as `@notification` remains valid, while
+`@monitor:notification:decision` expresses a hierarchy without changing runtime behavior.
 Duplicate tags are `E218`; a tag outside a function is `E216`; a late tag is
 `E217`.
 
-Functions sharing one exact tag form a semantic scope. `separan-structure`
-can inspect that scope and verify that changes stay inside it. The initial
-query model intentionally supports one exact tag rather than fuzzy inference.
+Functions sharing a tag path form a semantic scope. `separan-structure` can
+inspect that scope and verify that changes stay inside it. A query matches the
+exact path and its descendants: `monitor:notification` includes
+`monitor:notification:decision`, but never fuzzy-matches an unrelated name.
 
 ## Structural completion
 
