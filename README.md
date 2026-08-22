@@ -101,7 +101,12 @@ uninitialized binding:
 number retry_count = 0
 string service_name = "api"
 list<number> samples = []
+string optional_note = EMPTY
 ```
+
+`EMPTY` keeps the declared type while removing only the current value. Test the
+state explicitly with `value is EMPTY`; a normal operation on an EMPTY value is
+an error rather than an implicit default.
 
 ```separan
 function:main

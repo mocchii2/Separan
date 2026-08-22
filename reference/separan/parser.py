@@ -123,17 +123,7 @@ class Parser:
         expr = self._expression(); self._line_end(); return ExpressionStmt(token.position, expr)
 
     def _typed_declaration(self, start, constant=False):
-        type_token = self._advance()
-        declared_type = self._type_name(type_token)
-        element_type = None
-        if declared_type == "list":
-            self._consume(T.LESS, "Typed lists require an element type, for example list<number>.")
-            element = self._consume(T.IDENTIFIER, "Expected list element type after '<'.")
-            if element.lexeme not in self.DECLARABLE_TYPES or element.lexeme == "list":
-                raise error("E123", "Unknown declared type", f"'{element.lexeme}' is not a supported list element type.", element.position,
-                            expected="a concrete Separan type", actual=element.lexeme)
-            element_type = element.lexeme
-            self._consume(T.GREATER, "Expected '>' after list element type.")
+        declared_type, element_type = self._declared_type()
         name = self._binding(self._consume(T.IDENTIFIER, "Expected variable name after declared type."))
         if not self._match(T.EQUAL):
             raise error("E124", "Initializer required", f"Typed variable '{name.lexeme}' requires an initial value.", name.position,
@@ -141,6 +131,26 @@ class Parser:
                         actual=f"{self._format_type(declared_type, element_type)} {name.lexeme}")
         value = self._expression(); self._line_end()
         return TypedDeclaration(start.position, name.lexeme, declared_type, element_type, value, constant)
+
+    def _declared_type(self):
+        type_token = self._advance()
+        declared_type = self._type_name(type_token)
+        if declared_type not in self.DECLARABLE_TYPES:
+            raise error("E123", "Unknown declared type", f"'{declared_type}' is not a supported Separan type.", type_token.position,
+                        expected="a supported Separan type", actual=declared_type)
+        element_type = None
+        if declared_type == "list":
+            self._consume(T.LESS, "Typed lists require an element type, for example list<number>.")
+            if not self._at(T.IDENTIFIER, T.OBJECT):
+                self._consume(T.IDENTIFIER, "Expected list element type after '<'.")
+            element = self._advance()
+            element_name = self._type_name(element)
+            if element_name not in self.DECLARABLE_TYPES or element_name == "list":
+                raise error("E123", "Unknown declared type", f"'{element.lexeme}' is not a supported list element type.", element.position,
+                            expected="a concrete Separan type", actual=element.lexeme)
+            element_type = element_name
+            self._consume(T.GREATER, "Expected '>' after list element type.")
+        return declared_type, element_type
 
     def _starts_typed_declaration(self):
         token = self._peek()
@@ -156,7 +166,7 @@ class Parser:
 
     @staticmethod
     def _type_name(token):
-        return "list" if token.type == T.LIST else token.lexeme if token.type == T.IDENTIFIER else ""
+        return "list" if token.type == T.LIST else "object" if token.type == T.OBJECT else token.lexeme if token.type == T.IDENTIFIER else ""
 
     @staticmethod
     def _format_type(declared_type, element_type):
@@ -165,7 +175,7 @@ class Parser:
     def _function(self):
         start = self._advance(); self._consume(T.COLON, "Expected ':' after function.")
         name = self._binding(self._consume(T.IDENTIFIER, "Expected function name."))
-        params = []
+        params, parameter_types = [], {}
         if self._match(T.LPAREN):
             if not self._at(T.RPAREN):
                 while True:
@@ -173,6 +183,12 @@ class Parser:
                     if parameter.lexeme in params:
                         raise error("E112", "Duplicate parameter", f"Parameter '{parameter.lexeme}' is already defined.", parameter.position, actual=parameter.lexeme)
                     params.append(parameter.lexeme)
+                    if self._match(T.COLON):
+                        if self._type_name(self._peek()) not in self.DECLARABLE_TYPES:
+                            token = self._peek()
+                            raise error("E123", "Unknown declared type", f"'{token.lexeme}' is not a supported parameter type.", token.position,
+                                        expected="a supported Separan type", actual=token.lexeme)
+                        parameter_types[parameter.lexeme] = self._declared_type()
                     if not self._match(T.COMMA): break
             self._consume(T.RPAREN, "Expected ')' after parameters.")
         self._line_end(); self._push("function", name); self._newlines()
@@ -184,7 +200,7 @@ class Parser:
             tags.append(tag.lexeme); self._line_end(); self._newlines()
         body = self._body_until({T.END_FUNCTION})
         self._close(T.END_FUNCTION, "function")
-        return FunctionDecl(start.position, name.lexeme, params, tags, body, name.position)
+        return FunctionDecl(start.position, name.lexeme, params, tags, body, name.position, parameter_types)
 
     def _import(self):
         start = self._advance(); path = self._consume(T.STRING, "Expected quoted .sep path after import.")
@@ -213,7 +229,13 @@ class Parser:
         while not self._at(T.END_OBJECT, T.EOF):
             token = self._peek()
             if token.type in self.CLOSERS: self._unexpected_or_nesting(token)
-            if token.type in (T.OBJECT, T.LIST):
+            if self._starts_typed_declaration():
+                field_type, element_type = self._declared_type()
+                field = self._binding(self._consume(T.IDENTIFIER, "Expected object field name after declared type."))
+                self._consume(T.EQUAL, "Expected '=' after typed object field name.")
+                value = self._expression(); self._line_end()
+                entry = ObjectField(field.position, field.lexeme, value, field_type, element_type)
+            elif token.type in (T.OBJECT, T.LIST):
                 entry = self._object() if token.type == T.OBJECT else self._block_list()
             elif token.type == T.IDENTIFIER and self._peek(1).type == T.EQUAL:
                 field = self._advance(); self._advance(); value = self._expression(); self._line_end()
@@ -374,6 +396,10 @@ class Parser:
             if isinstance(expr, EmptyTestExpr) or isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!=", "in", "not in"}:
                 self._chained(operator)
             right = self._empty_test()
+            from .runtime_values import EmptyValue
+            if isinstance(expr, LiteralExpr) and isinstance(expr.value, EmptyValue) or isinstance(right, LiteralExpr) and isinstance(right.value, EmptyValue):
+                raise error("E128", "Invalid state test", "Use 'is EMPTY' or 'is not EMPTY' instead of equality with EMPTY.", operator.position,
+                            expected="is EMPTY", actual=operator.lexeme + " EMPTY")
             if isinstance(right, EmptyTestExpr) or isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<=", "in", "not in"}:
                 self._chained(operator)
             expr = BinaryExpr(operator.position, expr, operator.lexeme, right)
@@ -453,6 +479,9 @@ class Parser:
             t = self._previous(); return LiteralExpr(t.position, t.literal)
         if self._match(T.NULL):
             t = self._previous(); return LiteralExpr(t.position, None)
+        if self._match(T.EMPTY):
+            from .runtime_values import EMPTY
+            t = self._previous(); return LiteralExpr(t.position, EMPTY)
         if self._match(T.LBRACKET):
             t = self._previous(); values = []
             if not self._at(T.RBRACKET):

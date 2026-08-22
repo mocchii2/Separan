@@ -44,7 +44,7 @@ class FunctionValue:
 
 
 def type_name(value):
-    if isinstance(value, EmptyValue): return "EMPTY"
+    if isinstance(value, EmptyValue): return value.declared_type or "EMPTY"
     if isinstance(value, VoidResult): return "VOID"
     if isinstance(value, SystemContextValue): return "system"
     if isinstance(value, BoardValue): return "board"
@@ -97,19 +97,31 @@ class Environment:
         if isinstance(value, VoidResult):
             raise error("E126", "VOID assignment", "VOID does not represent a value and cannot be assigned.", position,
                         expected="a value", actual="VOID")
-        value_type = type_name(value)
-        element_type = list_element_type(value, position) if value_type == "list" else None
         if name in self.values:
             old = self.values[name]
             if old.constant:
                 raise error("E211", "Constant reassignment", f"Constant '{name}' cannot be assigned again.", position, expected="no reassignment", actual=name, related=old.declaration_position)
+            if isinstance(value, EmptyValue):
+                old.value = EmptyValue(old.declared_type, old.element_type)
+                return
+            value_type = type_name(value)
+            element_type = list_element_type(value, position) if value_type == "list" else None
             if old.declared_type != value_type:
                 raise error("E201", "Type error", f"Variable '{name}' has fixed type {old.declared_type} and cannot receive {value_type}.", position, expected=old.declared_type, actual=value_type)
             if value_type == "list" and old.element_type and element_type and old.element_type != element_type:
                 raise error("E201", "Type error", f"List variable '{name}' has fixed element type {old.element_type}.", position, expected=old.element_type, actual=element_type)
             old.value = value
             if old.element_type is None: old.element_type = element_type
-        else: self.values[name] = Binding(value, value_type, element_type, False, position)
+        else:
+            if isinstance(value, EmptyValue):
+                if value.declared_type is None:
+                    raise error("E129", "EMPTY type required", f"Variable '{name}' cannot infer a type from EMPTY.", position,
+                                expected=f"type {name} = EMPTY", actual=f"{name} = EMPTY")
+                self.values[name] = Binding(value, value.declared_type, value.element_type, False, position)
+                return
+            value_type = type_name(value)
+            element_type = list_element_type(value, position) if value_type == "list" else None
+            self.values[name] = Binding(value, value_type, element_type, False, position)
     def define_const(self, name, value, position):
         if isinstance(value, VoidResult):
             raise error("E126", "VOID assignment", "VOID does not represent a value and cannot be assigned.", position,
@@ -117,6 +129,9 @@ class Environment:
         if name in self.values:
             previous = self.values[name]
             raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position, expected="a unique constant name", actual=name, related=previous.declaration_position)
+        if isinstance(value, EmptyValue):
+            raise error("E130", "EMPTY constant", "A constant must contain a value and cannot be initialized with EMPTY.", position,
+                        expected="a concrete constant value", actual="EMPTY")
         value_type = type_name(value)
         element_type = list_element_type(value, position) if value_type == "list" else None
         self.values[name] = Binding(value, value_type, element_type, True, position)
@@ -128,14 +143,10 @@ class Environment:
             previous = self.values[name]
             raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position,
                         expected="a unique variable name", actual=name, related=previous.declaration_position)
-        value_type = type_name(value)
-        if value_type != declared_type:
-            raise error("E201", "Type error", f"Variable '{name}' is declared as {declared_type} and cannot receive {value_type}.", position,
-                        expected=declared_type, actual=value_type)
-        element_type = list_element_type(value, position) if value_type == "list" else None
-        if declared_type == "list" and element_type is not None and element_type != declared_element_type:
-            raise error("E201", "Type error", f"List variable '{name}' requires elements of type {declared_element_type}.", position,
-                        expected=declared_element_type, actual=element_type)
+        if constant and isinstance(value, EmptyValue):
+            raise error("E130", "EMPTY constant", "A constant must contain a value and cannot be initialized with EMPTY.", position,
+                        expected="a concrete constant value", actual="EMPTY")
+        value = prepare_typed_value(name, declared_type, declared_element_type, value, position)
         self.values[name] = Binding(value, declared_type, declared_element_type, constant, position)
     def get(self, name, position):
         if name in self.values: return self.values[name].value
@@ -150,11 +161,31 @@ def list_element_type(value, position):
     if any(isinstance(item, VoidResult) for item in value):
         raise error("E127", "VOID value use", "VOID cannot be stored in a list because it does not represent a value.", position,
                     expected="list elements", actual="VOID")
+    if any(isinstance(item, EmptyValue) for item in value):
+        raise error("E132", "EMPTY list element", "EMPTY list elements require the typed list-element model, which is not active yet.", position,
+                    expected="concrete list elements", actual="EMPTY")
     first = type_name(value[0])
     for item in value[1:]:
         if type_name(item) != first:
             raise error("E203", "Heterogeneous list", "All list elements must have the same type in v0.1.", position, expected=first, actual=type_name(item))
     return first
+
+
+def prepare_typed_value(name, declared_type, declared_element_type, value, position):
+    if isinstance(value, EmptyValue):
+        if value.declared_type not in (None, declared_type):
+            raise error("E201", "Type error", f"'{name}' requires {declared_type}, but the EMPTY value retains {value.declared_type}.", position,
+                        expected=declared_type, actual=value.declared_type)
+        return EmptyValue(declared_type, declared_element_type)
+    value_type = type_name(value)
+    if value_type != declared_type:
+        raise error("E201", "Type error", f"'{name}' is declared as {declared_type} and cannot receive {value_type}.", position,
+                    expected=declared_type, actual=value_type)
+    element_type = list_element_type(value, position) if value_type == "list" else None
+    if declared_type == "list" and element_type is not None and element_type != declared_element_type:
+        raise error("E201", "Type error", f"List '{name}' requires elements of type {declared_element_type}.", position,
+                    expected=declared_element_type, actual=element_type)
+    return value
 
 
 class Returned(Exception):
@@ -360,10 +391,30 @@ class Interpreter:
     def _build_data_block(self, stmt):
         if isinstance(stmt, ListBlock):
             values = [self._eval(value) for value in stmt.elements]; list_element_type(values, stmt.position); return values
-        fields = {}
+        fields, field_types = {}, {}
         for entry in stmt.entries:
-            fields[entry.name] = self._eval(entry.value) if isinstance(entry, ObjectField) else self._build_data_block(entry)
-        return ObjectValue.create(fields)
+            if isinstance(entry, ObjectField):
+                value = self._eval(entry.value)
+                if entry.declared_type is not None:
+                    value = prepare_typed_value(entry.name, entry.declared_type, entry.element_type, value, entry.position)
+                    field_types[entry.name] = (entry.declared_type, entry.element_type)
+                elif isinstance(value, EmptyValue):
+                    raise error("E129", "EMPTY type required", f"Object field '{entry.name}' cannot infer a type from EMPTY.", entry.position,
+                                expected=f"type {entry.name} = EMPTY", actual=f"{entry.name} = EMPTY")
+                fields[entry.name] = value
+            else:
+                fields[entry.name] = self._build_data_block(entry)
+                field_types[entry.name] = (type_name(fields[entry.name]), None)
+        return ObjectValue.create(fields, field_types)
+
+    @staticmethod
+    def prepare_object_field(name, expected, value, position):
+        if expected is None:
+            if isinstance(value, EmptyValue):
+                raise error("E129", "EMPTY type required", f"New object field '{name}' cannot infer a type from EMPTY.", position,
+                            expected="a concrete value", actual="EMPTY")
+            return value
+        return prepare_typed_value(name, expected[0], expected[1], value, position)
 
     def _import(self, stmt):
         self.capabilities.require(self.capabilities.import_modules, "import modules", stmt.position)
@@ -413,12 +464,18 @@ class Interpreter:
             return self._call(expr.callee, positional, expr.position, named)
         if isinstance(expr, IndexExpr):
             target, index = self._eval(expr.target), self._eval(expr.index)
+            if isinstance(target, EmptyValue) or isinstance(index, EmptyValue):
+                raise error("E131", "EMPTY value use", "EMPTY cannot be used for list indexing.", expr.position,
+                            expected="a present list and index", actual="EMPTY")
             if type(target) is not list: self._type_error(expr.position, "list", type_name(target), "Only lists support indexing in v0.1.")
             if type(index) is not int or index < 0: self._type_error(expr.index.position, "non-negative integer", self._display(index), "List indexes must be non-negative integers.")
             if index >= len(target): raise error("E302", "Index out of range", f"Index {index} is outside a list of length {len(target)}.", expr.index.position, expected=f"0..{len(target)-1}", actual=str(index))
             return target[index]
         if isinstance(expr, MemberExpr):
             target = self._eval(expr.target)
+            if isinstance(target, EmptyValue):
+                raise error("E131", "EMPTY value use", "EMPTY has no members because it has no current value.", expr.position,
+                            expected="a present object", actual="EMPTY")
             if isinstance(target, PinNamespaceValue): return pin_member(target, expr.name, expr.position)
             member, supported = fixed_member(target, expr.name, expr.position)
             if supported: return member
@@ -458,6 +515,9 @@ class Interpreter:
             return target.runtime._call(expr.name, args, expr.position, named)
         if isinstance(expr, UnaryExpr):
             value = self._eval(expr.operand)
+            if isinstance(value, EmptyValue):
+                raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator.", expr.position,
+                            expected="a present value", actual="EMPTY")
             if isinstance(value, VoidResult):
                 raise error("E127", "VOID value use", "VOID cannot participate in an operator.", expr.position,
                             expected="a value", actual="VOID")
@@ -466,6 +526,9 @@ class Interpreter:
             return -value
         if isinstance(expr, BinaryExpr):
             left = self._eval(expr.left)
+            if isinstance(left, EmptyValue):
+                raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator; use 'is EMPTY'.", expr.left.position,
+                            expected="a present value", actual="EMPTY")
             if isinstance(left, VoidResult):
                 raise error("E127", "VOID value use", "VOID cannot participate in an operator.", expr.left.position,
                             expected="a value", actual="VOID")
@@ -473,6 +536,9 @@ class Interpreter:
             if expr.operator == "||": return self._boolean(left, expr.left.position) or self._boolean(self._eval(expr.right), expr.right.position)
             if expr.operator == "??": return left if left is not None else self._eval(expr.right)
             right = self._eval(expr.right); op = expr.operator
+            if isinstance(right, EmptyValue):
+                raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator; use 'is EMPTY'.", expr.right.position,
+                            expected="a present value", actual="EMPTY")
             if isinstance(right, VoidResult):
                 raise error("E127", "VOID value use", "VOID cannot participate in an operator.", expr.right.position,
                             expected="a value", actual="VOID")
@@ -517,14 +583,31 @@ class Interpreter:
             return ErrorValue(name, args[0])
         builtin = BUILTINS.get(name)
         if builtin is not None:
+            empty_safe = {"type", "type_of", "is_null", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set"}
+            if name not in empty_safe and any(isinstance(value, EmptyValue) for value in (*args, *named.values())):
+                raise error("E131", "EMPTY value use", f"{name}() cannot use EMPTY as a concrete value.", position,
+                            expected="a present value", actual="EMPTY")
             return builtin.call(args, position, self, named)
         host_function = self.host_functions.get(name)
         if host_function is not None:
+            if any(isinstance(value, EmptyValue) for value in (*args, *named.values())):
+                raise error("E131", "EMPTY value use", "EMPTY cannot cross a host-function boundary as a concrete value.", position,
+                            expected="a present value", actual="EMPTY")
             return host_function.call(args, position, self, named)
         function = self.functions.get(name)
         if function is None: raise error("E206", "Undefined function", f"Function '{name}' is not defined.", position, actual=name)
         if named: raise error("E207", "Unsupported named argument", f"Function '{name}' does not declare named arguments.", position, actual=next(iter(named)))
         if len(args) != len(function.parameters): raise error("E207", "Argument count mismatch", f"Function '{name}' requires {len(function.parameters)} argument(s).", position, expected=str(len(function.parameters)), actual=str(len(args)))
+        normalized_args = []
+        for parameter, value in zip(function.parameters, args):
+            declared = function.parameter_types.get(parameter)
+            if declared is not None:
+                value = prepare_typed_value(parameter, declared[0], declared[1], value, position)
+            elif isinstance(value, EmptyValue) and value.declared_type is None:
+                raise error("E129", "EMPTY type required", f"Untyped parameter '{parameter}' cannot infer a type from EMPTY.", position,
+                            expected=f"{parameter}: type", actual="EMPTY")
+            normalized_args.append(value)
+        args = normalized_args
         signature = tuple((type_name(value), list_element_type(value, position) if type(value) is list else None) for value in args)
         inferred = self.function_parameter_types.get(name)
         if inferred is None:
@@ -541,7 +624,10 @@ class Interpreter:
             self.function_parameter_types[name] = tuple(updated)
         previous = self.environment; self.environment = Environment(self.globals)
         try:
-            for param, value in zip(function.parameters, args): self.environment.assign(param, value, position)
+            for param, value in zip(function.parameters, args):
+                declared = function.parameter_types.get(param)
+                if declared is None: self.environment.assign(param, value, position)
+                else: self.environment.define_typed(param, declared[0], declared[1], value, False, position)
             try: self._execute_all(function.body)
             except Returned as result: return result.value
             return VOID
@@ -599,6 +685,9 @@ class Interpreter:
     def display(value): return Interpreter._display(value)
     @staticmethod
     def _display_value(value, position):
+        if isinstance(value, EmptyValue):
+            raise error("E131", "EMPTY value use", "EMPTY cannot be printed because it has no current value.", position,
+                        expected="a present value", actual="EMPTY")
         if isinstance(value, VoidResult):
             raise error("E127", "VOID value use", "VOID cannot be printed because it does not represent a value.", position,
                         expected="a value", actual="VOID")
@@ -651,6 +740,9 @@ class Interpreter:
         except OverflowError:
             raise error("E401", "Datetime overflow", "Datetime arithmetic exceeded years 0001 through 9999.", position)
     def _boolean(self, value, position):
+        if isinstance(value, EmptyValue):
+            raise error("E131", "EMPTY value use", "EMPTY cannot be used as a condition; test it with 'is EMPTY'.", position,
+                        expected="boolean", actual="EMPTY")
         if type(value) is not bool: self._type_error(position, "boolean", type_name(value), "Conditions must evaluate to boolean.")
         return value
     @staticmethod

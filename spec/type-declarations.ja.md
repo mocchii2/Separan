@@ -12,8 +12,8 @@ const string version = "0.2"
 ```
 
 すべての宣言で`= value`が必須です。`string name`のような裸の宣言は禁止します。
-意図的な未設定と初期値の書き忘れを区別できないためです。`EMPTY`実装後、意図的に
-初期値を持たせない場合は`string name = EMPTY`と記述します。
+意図的な未設定と初期値の書き忘れを区別できないためです。意図的に初期値を
+持たせない場合は`string name = EMPTY`と記述します。
 
 初期値は宣言型と完全に一致しなければならず、暗黙変換は行いません。型付きlistは
 空listで初期化する場合も要素型が必須で、その後の代入でも要素型を維持します。
@@ -28,3 +28,22 @@ values = ["one"]      # E201
 通常の再代入は、宣言済み固定型の範囲内で値を更新します。
 `const type name = value`は型付き定数を作ります。
 
+関数引数の型注釈では、読み手が引数名を先に認識できるよう名前を先に書きます。
+
+```separan
+function:show_age(age: number, labels: list<string>)
+...
+end_function:show_age
+```
+
+型付き引数は`EMPTY`を直接受け取れます。型なし引数が受け取れるのは、呼び出し元の
+bindingから型を保持しているEMPTYだけです。生のEMPTYから引数型を推論しません。
+
+object blockのfieldも変数と同じ宣言形式です。
+
+```separan
+object:user
+string name = EMPTY
+number age = 30
+end_object:user
+```

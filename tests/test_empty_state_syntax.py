@@ -47,10 +47,11 @@ class EmptyStateSyntaxTests(unittest.TestCase):
                 parse(source)
             self.assertEqual(caught.exception.code, "E111")
 
-    def test_empty_is_not_yet_a_general_expression(self):
-        with self.assertRaises(SeparanError) as caught:
-            parse("value = EMPTY\n")
-        self.assertEqual(caught.exception.code, "E100")
+    def test_equality_with_empty_is_rejected_in_favor_of_state_syntax(self):
+        for source in ("print value == EMPTY\n", "print EMPTY != value\n"):
+            with self.subTest(source=source), self.assertRaises(SeparanError) as caught:
+                parse(source)
+            self.assertEqual(caught.exception.code, "E128")
 
 
 if __name__ == "__main__":

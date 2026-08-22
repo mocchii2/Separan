@@ -56,7 +56,7 @@ class ReturnStmt(Stmt): value: Expr | None
 @dataclass
 class ExpressionStmt(Stmt): expression: Expr
 @dataclass
-class ObjectField(Node): name: str; value: Expr
+class ObjectField(Node): name: str; value: Expr; declared_type: str | None = None; element_type: str | None = None
 @dataclass
 class ObjectBlock(Stmt): name: str; entries: list[Node]; label_position: SourcePosition
 @dataclass
@@ -106,6 +106,7 @@ class FunctionDecl(Stmt):
     tags: list[str]
     body: list[Stmt]
     label_position: SourcePosition
+    parameter_types: dict[str, tuple[str, str | None]] = field(default_factory=dict)
 @dataclass
 class Program(Node): statements: list[Stmt] = field(default_factory=list)
 

@@ -97,7 +97,11 @@ Separanは、人間・AI・開発ツールがブロックの終わりを推測�
 number retry_count = 0
 string service_name = "api"
 list<number> samples = []
+string optional_note = EMPTY
 ```
+
+`EMPTY`は宣言型を残したまま現在値だけを消します。状態は`value is EMPTY`で明示的に
+判定し、EMPTYのまま通常演算へ使うと暗黙のdefault値にはならずerrorになります。
 
 ```separan
 function:main

@@ -26,7 +26,23 @@ endif:value_present
 chained state/comparison expressions are syntax errors. Ordinary value equality
 continues to use `==` and `!=`.
 
-The remaining migration is intentionally staged: typed EMPTY storage, object
-fields, list elements and EMPTYS, JSON null conversion, standard API migration,
-and finally removal of source-level `null`.
+Typed variables may start in the EMPTY state and later receive only their
+declared type. Assigning EMPTY to an existing mutable binding clears its value
+without clearing its type. An untyped first assignment cannot infer a type from
+EMPTY, and constants cannot be EMPTY.
 
+```separan
+number age = EMPTY
+age = 30
+age = EMPTY
+age = 31       # valid; age is still number
+```
+
+Typed parameters and typed object fields follow the same rule. Reading the
+state with `is EMPTY` or the retained type with `type_of()` is valid. Printing,
+arithmetic, indexing, conditions, and APIs requiring concrete values raise
+`E131` until a value is assigned.
+
+The remaining migration is intentionally staged: list elements and EMPTYS,
+JSON null conversion, standard API migration, and finally removal of
+source-level `null`.

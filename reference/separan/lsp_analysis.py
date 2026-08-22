@@ -354,9 +354,13 @@ def variables(source):
         if function:
             scope_stack.append("function " + function.group(1))
             search_start = text.find("(") + 1
-            for parameter in [item.strip() for item in (function.group(2) or "").split(",") if item.strip()]:
-                start = text.find(parameter, search_start); search_start = start + len(parameter)
-                result.append(Variable(parameter, "unknown", number, start, False, scope_stack[-1], True))
+            for declaration in [item.strip() for item in (function.group(2) or "").split(",") if item.strip()]:
+                match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)(?:\s*:\s*(list\s*<[^>]+>|[A-Za-z_][A-Za-z0-9_]*))?", declaration)
+                if match is None: continue
+                parameter, declared = match.groups()
+                start = text.find(parameter, search_start); search_start = start + len(declaration)
+                parameter_type = "list" if declared and declared.startswith("list") else declared or "unknown"
+                result.append(Variable(parameter, parameter_type, number, start, False, scope_stack[-1], True))
             continue
         if re.match(r"^\s*end_function:", code):
             if len(scope_stack) > 1: scope_stack.pop()

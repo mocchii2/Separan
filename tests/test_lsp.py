@@ -327,5 +327,20 @@ end_function:main
         self.assertEqual(function["calls"], ["load"])
         self.assertEqual(function["children"][0]["reads"], ["value"])
 
+    def test_explicit_variable_field_and_parameter_types_are_visible(self):
+        source = '''number count = EMPTY
+object:user
+string name = EMPTY
+end_object:user
+print user
+function:show(value: number, items: list<string>)
+print type_of(value)
+end_function:show
+'''
+        self.assertIn("Type: `number`", hover(source, 0, 8)["contents"]["value"])
+        self.assertIn("`name`: string", hover(source, 4, 7)["contents"]["value"])
+        self.assertIn("Type: `number`", hover(source, 5, 15)["contents"]["value"])
+        self.assertIn("Type: `list`", hover(source, 5, 30)["contents"]["value"])
+
 
 if __name__ == "__main__": unittest.main()

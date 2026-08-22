@@ -31,7 +31,10 @@
     { "name": "variable.language.system.separan", "match": "\\b(?:system|pin)\\b" },
     { "name": "support.variable.property.system.separan", "match": "(?<=\\bsystem\\.)(?:version|engine|script_path|script_name|script_dir|working_dir|args|arg_count|os|arch|hostname|pid|runtime|cpu_count)\\b" },
     { "name": "entity.name.namespace.separan", "match": "(?<=\\bas\\s)[A-Za-z_][A-Za-z0-9_]*\\b" },
-    { "name": "meta.function.parameters.separan", "begin": "\\b(function):([A-Za-z_][A-Za-z0-9_]*)(\\()", "beginCaptures": { "1": { "name": "keyword.control.separan" }, "2": { "name": "entity.name.function.separan" } }, "end": "\\)", "patterns": [{ "name": "variable.parameter.separan", "match": "[A-Za-z_][A-Za-z0-9_]*" }] },
+    { "name": "meta.function.parameters.separan", "begin": "\\b(function):([A-Za-z_][A-Za-z0-9_]*)(\\()", "beginCaptures": { "1": { "name": "keyword.control.separan" }, "2": { "name": "entity.name.function.separan" } }, "end": "\\)", "patterns": [
+      { "name": "storage.type.separan", "match": "\\b(?:number|string|boolean|list|object|bytes|datetime|local_datetime|timezone|duration|secret|regex_match_result|exec_result|http_profile|http_response|http_auth|oauth_token|cookie_jar|mail_address|mail_message|mail_sender|mail_send_result|xml_document|xml_element|db_connection|board|pin|embedded_bus|ip_address|network_interface|tcp_connection|udp_socket|dhcp_server|dns_server)\\b" },
+      { "name": "variable.parameter.separan", "match": "[A-Za-z_][A-Za-z0-9_]*(?=\\s*(?::|,|\\)))" }
+    ] },
     { "name": "variable.other.property.separan", "match": "(?<=\\.)[A-Za-z_][A-Za-z0-9_]*\\b" },
     { "name": "variable.other.readwrite.separan", "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*=)" },
     { "name": "entity.name.function.separan", "match": "(?<=\\bfunction:)[A-Za-z_][A-Za-z0-9_]*" },

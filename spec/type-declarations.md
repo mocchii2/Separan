@@ -14,8 +14,8 @@ const string version = "0.2"
 
 Every declaration requires `= value`. A bare declaration such as
 `string name` is invalid because it cannot distinguish an intentional missing
-value from a forgotten initializer. Once `EMPTY` is implemented, an explicitly
-missing initial value will be written as `string name = EMPTY`.
+value from a forgotten initializer. An explicitly missing initial value is
+written as `string name = EMPTY`.
 
 The initializer must have exactly the declared type. Separan performs no
 conversion. Typed lists require an element type even when initialized with an
@@ -31,3 +31,24 @@ An explicit declaration creates a new binding. Redeclaring a name in the same
 scope is an error. Ordinary later assignment updates the binding under its
 fixed declared type. `const type name = value` creates a typed constant.
 
+Function parameter annotations put the name first so the parameter remains the
+primary readable unit:
+
+```separan
+function:show_age(age: number, labels: list<string>)
+...
+end_function:show_age
+```
+
+A typed parameter accepts `EMPTY`; an untyped parameter can accept only an
+EMPTY value that already retains a type from its source binding. A raw EMPTY
+argument cannot establish an inferred parameter type.
+
+Object blocks use the same declaration form as variables:
+
+```separan
+object:user
+string name = EMPTY
+number age = 30
+end_object:user
+```
