@@ -183,13 +183,13 @@ for case_name, source, code in RUNTIME_CASES:
 
 for builtin_name, builtin in sorted(BUILTINS.items()):
     if builtin.minimum_arguments:
-        too_few = ["null"] * (builtin.minimum_arguments - 1)
+        too_few = ["0"] * (builtin.minimum_arguments - 1)
         setattr(
             BuiltinContractNegativeTests,
             f"test_{builtin_name}_rejects_too_few_arguments",
             make_builtin_test(builtin_name, too_few, "Argument count mismatch"),
         )
-    too_many = ["null"] * (builtin.maximum_arguments + 1)
+    too_many = ["0"] * (builtin.maximum_arguments + 1)
     setattr(
         BuiltinContractNegativeTests,
         f"test_{builtin_name}_rejects_too_many_arguments",
@@ -198,7 +198,7 @@ for builtin_name, builtin in sorted(BUILTINS.items()):
     setattr(
         BuiltinContractNegativeTests,
         f"test_{builtin_name}_rejects_unknown_named_argument",
-        make_builtin_test(builtin_name, ["unexpected = null"], "Unknown named argument" if hasattr(builtin, "named") else "Unsupported named argument"),
+        make_builtin_test(builtin_name, ["unexpected = 0"], "Unknown named argument" if hasattr(builtin, "named") else "Unsupported named argument"),
     )
 
 

@@ -499,8 +499,6 @@ class Parser:
     def _primary(self):
         if self._match(T.NUMBER, T.STRING, T.TRUE, T.FALSE):
             t = self._previous(); return LiteralExpr(t.position, t.literal)
-        if self._match(T.NULL):
-            t = self._previous(); return LiteralExpr(t.position, None)
         if self._match(T.EMPTY):
             from .runtime_values import EMPTY
             t = self._previous(); return LiteralExpr(t.position, EMPTY)

@@ -21,7 +21,7 @@ KEYWORDS = {
     "error": TokenType.ERROR, "end_error": TokenType.END_ERROR,
     "http_route": TokenType.HTTP_ROUTE, "end_http_route": TokenType.END_HTTP_ROUTE,
     "transaction": TokenType.TRANSACTION, "end_transaction": TokenType.END_TRANSACTION,
-    "true": TokenType.TRUE, "false": TokenType.FALSE, "null": TokenType.NULL,
+    "true": TokenType.TRUE, "false": TokenType.FALSE,
     "EMPTY": TokenType.EMPTY, "EMPTYS": TokenType.EMPTYS,
 }
 
@@ -201,6 +201,12 @@ class Lexer:
                 start = i
                 while i < len(text) and self._name_continue(text[i]): i += 1
                 lex = text[start:i]
+                if lex in ("null", "NULL"):
+                    raise error(
+                        "E135", "NULL unsupported",
+                        "NULL is not a Separan value. Use EMPTY and an explicit declared type.",
+                        pos, expected="EMPTY", actual=lex,
+                    )
                 if not all(ch.isascii() for ch in lex):
                     follows_colon = bool(out) and out[-1].type == TokenType.COLON
                     if not follows_colon:

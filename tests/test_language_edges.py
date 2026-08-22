@@ -108,9 +108,9 @@ class RuntimeEdgeTests(unittest.TestCase):
         with self.assertRaises(SeparanError) as caught: execute(source)
         self.assertEqual(caught.exception.code, code)
 
-    def test_null_comparisons(self):
-        source = 'function:main\nx = 1\nprint x != null\ny = null\nprint y == null\nend_function:main\n'
-        self.assertEqual(execute(source)[1], "true\ntrue\n")
+    def test_null_syntax_is_removed(self):
+        self.assert_runtime_error('print null\n', "E135")
+        self.assert_runtime_error('print NULL\n', "E135")
 
     def test_heterogeneous_equality_rejected(self):
         for expression in ('1 == "1"', 'true != 1', '[] == 1'):
@@ -133,8 +133,8 @@ class RuntimeEdgeTests(unittest.TestCase):
         self.assert_runtime_error('print missing()\n', "E206")
         self.assert_runtime_error('function:f(x)\nreturn x\nend_function:f\nprint f()\n', "E207")
 
-    def test_implicit_function_completion_is_not_null(self):
-        self.assert_runtime_error('function:f\nend_function:f\nprint f() == null\n', "E127")
+    def test_implicit_function_completion_is_void(self):
+        self.assert_runtime_error('function:f\nend_function:f\nprint f()\n', "E127")
 
     def test_empty_list_parameter_can_gain_element_type(self):
         source = 'function:f(x)\nreturn x\nend_function:f\nfunction:main\nprint f([])\nprint f([1])\nprint f([2])\nend_function:main\n'

@@ -248,7 +248,6 @@ def public_type(value):
     if isinstance(value, LocalDatetimeValue): return "local_datetime"
     if isinstance(value, TimezoneValue): return "timezone"
     if isinstance(value, DurationValue): return "duration"
-    if value is None: return "null"
     if type(value) is bool: return "boolean"
     if type(value) in (int, float): return "number"
     if type(value) is str: return "string"

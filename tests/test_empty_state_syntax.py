@@ -36,10 +36,14 @@ class EmptyStateSyntaxTests(unittest.TestCase):
         self.assertEqual(runtime.output.getvalue(), "false\ntrue\n")
 
     def test_is_cannot_be_generalized_to_normal_values(self):
-        for source in ("print value is 1\n", "print value is null\n", "print value is true\n"):
+        for source in ("print value is 1\n", "print value is true\n"):
             with self.subTest(source=source), self.assertRaises(SeparanError) as caught:
                 parse(source)
             self.assertEqual(caught.exception.code, "E128")
+
+        with self.assertRaises(SeparanError) as caught:
+            parse("print value is null\n")
+        self.assertEqual(caught.exception.code, "E135")
 
     def test_empty_state_comparisons_cannot_chain(self):
         for source in ("print value is EMPTY == true\n", "print value == other is EMPTY\n", "print value is EMPTY is EMPTY\n"):

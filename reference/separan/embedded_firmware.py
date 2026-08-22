@@ -548,7 +548,7 @@ class _PicoCppEmitter:
     def _expression(self, expression):
         if isinstance(expression, LiteralExpr):
             if expression.value is None:
-                self._unsupported(expression, "null values are not yet supported in generated firmware.")
+                self._unsupported(expression, "EMPTY values are not yet supported in generated firmware.")
             if type(expression.value) is bool:
                 return "true" if expression.value else "false"
             if type(expression.value) is str:

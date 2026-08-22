@@ -27,10 +27,9 @@ end_object:candidate_template
 
 function:text_field(value, name)
 if object_has(value, name) :field_present
-field = object_get(value, name)
-if !is_null(field) :field_not_null
-return string(field)
-endif:field_not_null
+if object_get(value, name) is not EMPTY :field_present_value
+return string(object_get(value, name))
+endif:field_present_value
 endif:field_present
 return ""
 end_function:text_field
@@ -59,7 +58,7 @@ function:configured_name(ids_name, names_name, resource_id)
 ids = split(aws_environment(ids_name, ""), ",")
 names = split(aws_environment(names_name, ""), ",")
 position = index_of(ids, resource_id)
-if position == null :configured_name_missing
+if position is EMPTY :configured_name_missing
 return resource_id
 endif:configured_name_missing
 if position >= length(names) :configured_name_out_of_range
@@ -217,9 +216,9 @@ function:record_transition(resource_type, resource_id, resource_name, state, sou
 @aws:dynamodb
 table = aws_environment("TABLE_NAME")
 pk = format("STATE#{}#{}", resource_type, resource_id)
-previous = aws_dynamodb_get(table, pk, "CURRENT")
+object previous = aws_dynamodb_get(table, pk, "CURRENT")
 old_state = ""
-if !is_null(previous) :previous_state_exists
+if previous is not EMPTY :previous_state_exists
 old_state = text_field(previous, "state")
 endif:previous_state_exists
 changed = old_state != "" && old_state != state
@@ -227,7 +226,7 @@ now = aws_epoch_seconds()
 suppress_until = 0
 if changed || force :set_transition_grace
 suppress_until = now + grace_seconds(state, old_state)
-elseif !is_null(previous) && object_has(previous, "suppress_metrics_until") :set_transition_grace
+elseif previous is not EMPTY && object_has(previous, "suppress_metrics_until") :set_transition_grace
 suppress_until = previous.suppress_metrics_until
 endif:set_transition_grace
 
@@ -620,8 +619,8 @@ if candidate.notification_type != "A" && candidate.notification_type != "A2" :no
 return false
 endif:not_metric_candidate
 pk = format("STATE#{}#{}", candidate.resource_type, candidate.resource_id)
-state = aws_dynamodb_get(aws_environment("TABLE_NAME"), pk, "CURRENT")
-if is_null(state) :state_missing
+object state = aws_dynamodb_get(aws_environment("TABLE_NAME"), pk, "CURRENT")
+if state is EMPTY :state_missing
 return false
 endif:state_missing
 if !object_has(state, "suppress_metrics_until") :grace_missing
@@ -810,5 +809,5 @@ aws_cloudformation_respond(event, context, "SUCCESS")
 catch any :seed_and_respond
 aws_cloudformation_respond(event, context, "FAILED", "Separan configuration bootstrap failed.")
 endtry:seed_and_respond
-return null
+return
 end_function:config_handler

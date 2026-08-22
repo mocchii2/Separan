@@ -311,8 +311,8 @@ end_function:main
 
     def test_v05_document_structure_request_exposes_human_insights(self):
         source = '''function:main
-value = load(source)
-if value != null :loaded
+string value = load(source)
+if value is not EMPTY :loaded
 print value
 endif:loaded
 end_function:main

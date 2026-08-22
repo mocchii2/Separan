@@ -123,12 +123,13 @@ print base_to_number("z", 36)
     def test_math_type_errors_are_explicit(self):
         for call in (
             'absolute("1")', 'maximum("1")', 'round(1, "2")',
-            'truncate(true)', 'clamp(1, 0, "2")', 'sign(null)', 'square_root("4")',
+            'truncate(true)', 'clamp(1, 0, "2")', 'square_root("4")',
             'power(2, true)', 'hypotenuse([], 2)', 'factorial(2.5)', 'median("1")',
             'moving_average([1], 1.5)', 'number_to_base(1.5, 10)', 'base_to_number(10, 10)',
         ):
             with self.subTest(call=call):
                 self.error(call, "E201")
+        self.error('sign(EMPTY)', "E131")
         self.error('minimum([1, "2"])', "E203")
 
     def test_math_domain_and_collection_errors_are_explicit(self):

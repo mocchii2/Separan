@@ -28,7 +28,7 @@ def _element_type(values, runtime):
 def _compatible_search(values, value, function, position, runtime):
     expected = _element_type(values, runtime)
     actual = runtime.type_name(value)
-    if expected is not None and expected != "null" and value is not None and expected != actual:
+    if expected is not None and expected != actual:
         runtime.type_error(position, expected, actual, f"{function}() search value must match the list element type.")
 
 

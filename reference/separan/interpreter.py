@@ -640,7 +640,7 @@ class Interpreter:
                 raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot participate in an operator.", expr.left.position,
                             expected="a present value", actual="EMPTYS")
             if expr.operator == "??":
-                return self._eval(expr.right) if isinstance(left, EmptyValue) or left is None else left
+                return self._eval(expr.right) if isinstance(left, EmptyValue) else left
             if isinstance(left, EmptyValue):
                 raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator; use 'is EMPTY'.", expr.left.position,
                             expected="a present value", actual="EMPTY")
@@ -663,7 +663,7 @@ class Interpreter:
                 contained = self._contains_operator(left, right, expr.position)
                 return not contained if op == "not in" else contained
             if op in ("==", "!="):
-                if left is not None and right is not None and type_name(left) != type_name(right):
+                if type_name(left) != type_name(right):
                     if self._is_temporal(left) or self._is_temporal(right):
                         raise error("E408", "Invalid temporal operation", "Temporal equality requires matching temporal types.", expr.position, expected=type_name(left), actual=type_name(right))
                     self._type_error(expr.position, type_name(left), type_name(right), "Equality does not convert between types.")
@@ -703,7 +703,7 @@ class Interpreter:
             return ErrorValue(name, args[0])
         builtin = BUILTINS.get(name)
         if builtin is not None:
-            empty_safe = {"type", "type_of", "is_null", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set", "json_encode", "object_to_yaml", "network_set_static_address"}
+            empty_safe = {"type", "type_of", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set", "json_encode", "object_to_yaml", "network_set_static_address"}
             if name not in empty_safe and any(isinstance(value, EmptyValue) for value in (*args, *named.values())):
                 raise error("E131", "EMPTY value use", f"{name}() cannot use EMPTY as a concrete value.", position,
                             expected="a present value", actual="EMPTY")
@@ -916,7 +916,6 @@ class Interpreter:
         if isinstance(value, EmptyValue): return "EMPTY"
         if isinstance(value, EmptysValue): return "EMPTYS"
         if isinstance(value, VoidResult): return "VOID"
-        if value is None: return "null"
         if type(value) is bool: return "true" if value else "false"
         if type(value) is list: return "[" + ", ".join(Interpreter._display(v) for v in value) + "]"
         return str(value)

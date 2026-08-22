@@ -1,8 +1,7 @@
 """Internal sentinels for absence and non-value function completion.
 
-These values are deliberately distinct from Python ``None``, which continues
-to represent legacy Separan ``null`` until the staged EMPTY migration reaches
-the external API boundary.
+These values are deliberately distinct from Python ``None``. Host adapters may
+use ``None`` internally, but it is converted at every Separan value boundary.
 """
 
 from dataclasses import dataclass

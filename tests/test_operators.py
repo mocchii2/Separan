@@ -27,14 +27,16 @@ class OperatorTests(unittest.TestCase):
         self.error("print 7.0 // 3\n", "E201")
         self.error("print 7 // 0\n", "E301")
 
-    def test_null_coalescing_is_right_associative_and_short_circuits(self):
+    def test_empty_coalescing_is_right_associative_and_short_circuits(self):
         source = '''function:fail
 print "called"
 return 9
 end_function:fail
 function:main
 print 1 ?? fail()
-print null ?? null ?? 3
+number first = EMPTY
+number second = EMPTY
+print first ?? second ?? 3
 end_function:main
 '''
         self.assertEqual(execute(source)[1], "1\n3\n")
@@ -67,8 +69,8 @@ print items
         self.error("const value = 1\nvalue += 1\n", "E211")
         self.error('items = [1]\nitems += ["x"]\n', "E201")
 
-    def test_null_coalescing_assignment_is_intentionally_rejected(self):
-        self.error('value = null\nvalue ??= "x"\n', "E100")
+    def test_empty_coalescing_assignment_is_intentionally_rejected(self):
+        self.error('string value = EMPTY\nvalue ??= "x"\n', "E100")
 
     def test_membership_for_supported_containers(self):
         body = '''print "bc" in "abcd"

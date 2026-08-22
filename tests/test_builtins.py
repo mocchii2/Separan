@@ -19,8 +19,8 @@ class BuiltinFunctionTests(unittest.TestCase):
         self.assertEqual(execute('print len("Separan")\nprint len([1, 2, 3])\nprint len([])\n')[1], "7\n3\n0\n")
 
     def test_type_returns_public_type_names(self):
-        source = 'print type(1)\nprint type(1.5)\nprint type("x")\nprint type(true)\nprint type([])\nprint type(null)\n'
-        self.assertEqual(execute(source)[1], "number\nnumber\nstring\nboolean\nlist\nnull\n")
+        source = 'print type(1)\nprint type(1.5)\nprint type("x")\nprint type(true)\nprint type([])\nprint type(EMPTY)\n'
+        self.assertEqual(execute(source)[1], "number\nnumber\nstring\nboolean\nlist\nEMPTY\n")
 
     def test_abs_preserves_integer_or_float_value(self):
         self.assertEqual(execute('print abs(-4)\nprint abs(-2.5)\n')[1], "4\n2.5\n")
@@ -63,12 +63,13 @@ end_function:main
     def test_number_conversion_is_strict(self):
         for value in ('"abc"', '" 42"', '"42 "', '"+42"', '".5"', '"1e3"'):
             with self.subTest(value=value): self.assert_error(f"print number({value})\n", "E304")
-        for value in ("true", "null", "[]"):
-            with self.subTest(value=value): self.assert_error(f"print number({value})\n", "E201")
+        for value, code in (("true", "E201"), ("EMPTY", "E131"), ("[]", "E201")):
+            with self.subTest(value=value): self.assert_error(f"print number({value})\n", code)
 
     def test_string_conversion(self):
-        source = 'print string(10)\nprint string(2.5)\nprint string(true)\nprint string(false)\nprint string(null)\nprint string("x")\n'
-        self.assertEqual(execute(source)[1], "10\n2.5\ntrue\nfalse\nnull\nx\n")
+        source = 'print string(10)\nprint string(2.5)\nprint string(true)\nprint string(false)\nprint string("x")\n'
+        self.assertEqual(execute(source)[1], "10\n2.5\ntrue\nfalse\nx\n")
+        self.assert_error("print string(EMPTY)\n", "E131")
 
     def test_string_does_not_serialize_lists(self):
         self.assert_error("print string([1, 2])\n", "E201")
@@ -78,7 +79,7 @@ end_function:main
         self.assertEqual(execute(source)[1], "true\nfalse\ntrue\n")
 
     def test_boolean_conversion_rejects_truthiness(self):
-        for value, code in (("1", "E201"), ("0", "E201"), ('"True"', "E304"), ('"FALSE"', "E304"), ('"abc"', "E304"), ('" true"', "E304"), ("null", "E201")):
+        for value, code in (("1", "E201"), ("0", "E201"), ('"True"', "E304"), ('"FALSE"', "E304"), ('"abc"', "E304"), ('" true"', "E304"), ("EMPTY", "E131")):
             with self.subTest(value=value): self.assert_error(f"print boolean({value})\n", code)
 
     def test_explicit_math_functions(self):

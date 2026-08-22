@@ -44,8 +44,8 @@ print removed
         self.assert_error("print last([])\n", "E602")
 
     def test_contains_supports_string_and_list_without_coercion(self):
-        source = 'print contains([10, 20], 20)\nprint contains([10, 20], 30)\nprint contains([10, 20], null)\nprint contains("Separan", "para")\n'
-        self.assertEqual(execute(source)[1], "true\nfalse\nfalse\ntrue\n")
+        source = 'print contains([10, 20], 20)\nprint contains([10, 20], 30)\nprint contains("Separan", "para")\n'
+        self.assertEqual(execute(source)[1], "true\nfalse\ntrue\n")
         self.assert_error('print contains([1, 2], "1")\n', "E201")
 
     def test_index_of_returns_number_or_empty(self):
@@ -73,7 +73,7 @@ print sort(["b", "a", "c"])
         self.assertEqual(execute(source)[1], "[2, 1, 3]\n[1, 2, 3]\n[3, 1, 2]\n[a, b, c]\n")
 
     def test_sort_rejects_non_ordered_types(self):
-        for value in ('[true, false]', '[null]', '[[1], [2]]'):
+        for value in ('[true, false]', '[[1], [2]]'):
             with self.subTest(value=value): self.assert_error(f"print sort({value})\n", "E201")
 
     def test_operations_require_lists_and_matching_types(self):
@@ -81,7 +81,7 @@ print sort(["b", "a", "c"])
             ('print list_append([1], "x")\n', "E201"),
             ('print list_remove([1], "1")\n', "E201"),
             ('print size("abc")\n', "E201"), ('print first(1)\n', "E201"),
-            ('print index_of([1], "1")\n', "E201"), ('print reverse(null)\n', "E201"),
+            ('print index_of([1], "1")\n', "E201"), ('print reverse(EMPTY)\n', "E131"),
         )
         for source, code in cases:
             with self.subTest(source=source): self.assert_error(source, code)
@@ -106,8 +106,8 @@ print items
         self.assertEqual(execute(source)[1], "[1, 2, 1, 3]\n[0, 1, 2, 1]\n[2, 1]\n[1, 1]\n[1, 2]\n[1, 2, 1]\n")
         self.assert_error("print remove_at([1], 1)\n", "E603")
 
-    def test_type_of_and_is_null_are_explicit(self):
-        self.assertEqual(execute('print type_of([])\nprint is_null(null)\nprint is_null(0)\n')[1], "list\ntrue\nfalse\n")
+    def test_type_of_and_empty_state_are_explicit(self):
+        self.assertEqual(execute('number value = EMPTY\nprint type_of([])\nprint value is EMPTY\nvalue = 0\nprint value is EMPTY\n')[1], "list\ntrue\nfalse\n")
 
 
 if __name__ == "__main__":

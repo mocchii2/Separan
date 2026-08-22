@@ -10,7 +10,6 @@ class TokenType(Enum):
     STRING = auto()
     TRUE = auto()
     FALSE = auto()
-    NULL = auto()
     EMPTY = auto()
     EMPTYS = auto()
     FUNCTION = auto()

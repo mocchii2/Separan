@@ -51,7 +51,7 @@ print clip_utf8("日本", 0)
 
     def test_string_functions_reject_implicit_conversion(self):
         calls = (
-            "trim(1)", "upper(true)", "lower(null)", 'contains("x", 1)',
+            "trim(1)", "upper(true)", "lower([])", 'contains("x", 1)',
             'starts_with([], "x")', 'ends_with("x", false)',
             'split(1, ",")', 'join("a", ",")', 'join([1, 2], ",")',
             'join(["a"], 1)', 'replace("a", "a", 1)', "substring(1, 0)",
@@ -82,7 +82,7 @@ print clip_utf8("日本", 0)
                     execute(f"function:{name}\nend_function:{name}\n")
                 self.assertEqual(caught.exception.code, "E209")
 
-    def test_string_indexes_return_number_or_null(self):
+    def test_string_indexes_return_number_or_empty(self):
         source = 'print index_of("日本語日本", "日本")\nprint last_index_of("日本語日本", "日本")\nprint index_of("abc", "x") is EMPTY\nprint last_index_of("abc", "x") is EMPTY\n'
         self.assertEqual(execute(source)[1], "0\n3\ntrue\ntrue\n")
         self.assert_error('index_of("abc", "")', "E305")
@@ -107,8 +107,8 @@ print clip_utf8("日本", 0)
     def test_length_and_empty_are_shared(self):
         source = 'print length("abc")\nprint length([1, 2])\nprint length(secure_random_bytes(3))\nprint is_empty("")\nprint is_empty([])\nprint is_empty(secure_random_bytes(0))\nprint is_empty("x")\n'
         self.assertEqual(execute(source)[1], "3\n2\n3\ntrue\ntrue\ntrue\nfalse\n")
-        for call in ("length(1)", "is_empty(null)"):
-            with self.subTest(call=call): self.assert_error(call, "E201")
+        for call, code in (("length(1)", "E201"), ("is_empty(EMPTY)", "E131")):
+            with self.subTest(call=call): self.assert_error(call, code)
 
     def test_compare_search_parts_and_occurrences(self):
         source = '''print compare("a", "b")

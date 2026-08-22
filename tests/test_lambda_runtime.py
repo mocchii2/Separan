@@ -86,7 +86,7 @@ end_function:handler
     def test_package_contains_source_entrypoint_and_runtime(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); source = root / "app.sep"; output = root / "app.zip"
-            source.write_text("function:handler(event, context)\nreturn null\nend_function:handler\n", encoding="utf-8")
+            source.write_text("function:handler(event, context)\nreturn EMPTY\nend_function:handler\n", encoding="utf-8")
             build_lambda_package(source, output, install_dependencies=False)
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())

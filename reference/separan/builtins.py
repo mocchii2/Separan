@@ -109,12 +109,6 @@ def _type(arguments, position, runtime):
     return runtime.type_name(arguments[0])
 
 
-def _is_null(arguments, position, runtime):
-    # Transitional compatibility only. Source-level null and is_null() are
-    # removed in the final EMPTY migration stage.
-    return arguments[0] is None or isinstance(arguments[0], EmptyValue)
-
-
 def _is_type(expected):
     return lambda arguments, position, runtime: runtime.type_name(arguments[0]) == expected
 
@@ -240,7 +234,7 @@ def _number(arguments, position, runtime):
 def _string(arguments, position, runtime):
     value = arguments[0]
     if type(value) is list or isinstance(value, (BytesValue, SecretValue)):
-        runtime.type_error(position, "number, string, boolean, or null", runtime.type_name(value), "string() does not serialize structured or binary values.")
+        runtime.type_error(position, "number, string, or boolean", runtime.type_name(value), "string() does not serialize absent, structured, or binary values.")
     return runtime.display(value)
 
 
@@ -661,7 +655,6 @@ BUILTINS = {
         BuiltinFunction("is_empty", 1, 1, _is_empty),
         BuiltinFunction("type", 1, 1, _type),
         BuiltinFunction("type_of", 1, 1, _type),
-        BuiltinFunction("is_null", 1, 1, _is_null),
         BuiltinFunction("is_number", 1, 1, _is_type("number")),
         BuiltinFunction("is_string", 1, 1, _is_type("string")),
         BuiltinFunction("is_boolean", 1, 1, _is_type("boolean")),

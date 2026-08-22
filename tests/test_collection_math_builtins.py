@@ -30,8 +30,8 @@ print exp(0)
         self.assertAlmostEqual(float(execute("print sin(1)\n")[1]), math.sin(1))
 
     def test_math_types_domains_and_finite_results_are_strict(self):
-        for call in ('sin("0")', "cos(true)", "log(null)"):
-            with self.subTest(call=call): self.error(f"print {call}\n", "E201")
+        for call, code in (('sin("0")', "E201"), ("cos(true)", "E201"), ("log(EMPTY)", "E131")):
+            with self.subTest(call=call): self.error(f"print {call}\n", code)
         for call in ("log(0)", "log(-1)", "log10(0)", "log2(-1)", "exp(10000)"):
             with self.subTest(call=call): self.error(f"print {call}\n", "E308")
 
@@ -73,7 +73,7 @@ print filter([5, 10, 20], is_large)
 end_function:main
 '''
         self.assertEqual(execute(source)[1], "[10, 20]\n")
-        self.error("print filter([], null)\n", "E201")
+        self.error("print filter([], EMPTY)\n", "E131")
         invalid = '''function:identity(value)
 return value
 end_function:identity
@@ -129,7 +129,8 @@ print is_string("x")
 print is_boolean(false)
 print is_list([])
 print is_object(item)
-print is_null(null)
+number missing = EMPTY
+print missing is EMPTY
 print is_bytes(bytes_from_hex("00"))
 print is_datetime(datetime("2026-08-13T00:00:00Z"))
 print is_duration(duration("1s"))

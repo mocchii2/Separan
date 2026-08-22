@@ -39,9 +39,12 @@ class RuntimeValueTests(unittest.TestCase):
                 Interpreter().run(program(source))
             self.assertIn(caught.exception.code, ("E126", "E127"))
 
-    def test_legacy_null_remains_separate_during_migration(self):
-        self.assertIsNone(program("value = null\n").statements[0].value.value)
-        self.assertNotEqual(type_name(None), type_name(EMPTY))
+    def test_null_source_syntax_is_rejected_with_empty_guidance(self):
+        for spelling in ("null", "NULL"):
+            with self.subTest(spelling=spelling), self.assertRaises(SeparanError) as caught:
+                program(f"value = {spelling}\n")
+            self.assertEqual(caught.exception.code, "E135")
+            self.assertEqual(caught.exception.expected, "EMPTY")
 
 
 if __name__ == "__main__":
