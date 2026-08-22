@@ -27,6 +27,7 @@ from .structured_data import XmlDocumentValue, XmlElementValue
 from .embedded import BoardValue, BusValue, EmbeddedContext, PinNamespaceValue, PinValue, fixed_member, pin_member
 from .network import IpAddressValue, NativeNetworkAdapter, NetworkInterfaceValue, TcpConnectionValue, UdpSocketValue
 from .network_services import DhcpServerValue, DnsServerValue
+from .runtime_values import EmptyValue, VoidResult, EMPTY, VOID
 from .token import SourcePosition
 
 
@@ -43,6 +44,8 @@ class FunctionValue:
 
 
 def type_name(value):
+    if isinstance(value, EmptyValue): return "EMPTY"
+    if isinstance(value, VoidResult): return "VOID"
     if isinstance(value, SystemContextValue): return "system"
     if isinstance(value, BoardValue): return "board"
     if isinstance(value, PinNamespaceValue): return "pin_namespace"
@@ -91,6 +94,9 @@ class Binding:
 class Environment:
     def __init__(self, parent=None): self.parent, self.values = parent, {}
     def assign(self, name, value, position):
+        if isinstance(value, VoidResult):
+            raise error("E126", "VOID assignment", "VOID does not represent a value and cannot be assigned.", position,
+                        expected="a value", actual="VOID")
         value_type = type_name(value)
         element_type = list_element_type(value, position) if value_type == "list" else None
         if name in self.values:
@@ -105,6 +111,9 @@ class Environment:
             if old.element_type is None: old.element_type = element_type
         else: self.values[name] = Binding(value, value_type, element_type, False, position)
     def define_const(self, name, value, position):
+        if isinstance(value, VoidResult):
+            raise error("E126", "VOID assignment", "VOID does not represent a value and cannot be assigned.", position,
+                        expected="a value", actual="VOID")
         if name in self.values:
             previous = self.values[name]
             raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position, expected="a unique constant name", actual=name, related=previous.declaration_position)
@@ -112,6 +121,9 @@ class Environment:
         element_type = list_element_type(value, position) if value_type == "list" else None
         self.values[name] = Binding(value, value_type, element_type, True, position)
     def define_typed(self, name, declared_type, declared_element_type, value, constant, position):
+        if isinstance(value, VoidResult):
+            raise error("E126", "VOID assignment", "VOID does not represent a value and cannot be assigned.", position,
+                        expected=declared_type, actual="VOID")
         if name in self.values:
             previous = self.values[name]
             raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position,
@@ -135,6 +147,9 @@ class Environment:
 
 def list_element_type(value, position):
     if not value: return None
+    if any(isinstance(item, VoidResult) for item in value):
+        raise error("E127", "VOID value use", "VOID cannot be stored in a list because it does not represent a value.", position,
+                    expected="list elements", actual="VOID")
     first = type_name(value[0])
     for item in value[1:]:
         if type_name(item) != first:
@@ -240,10 +255,10 @@ class Interpreter:
         elif isinstance(stmt, Assignment): self.environment.assign(stmt.name, self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, ConstDeclaration): self.environment.define_const(stmt.name, self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, TypedDeclaration): self.environment.define_typed(stmt.name, stmt.declared_type, stmt.element_type, self._eval(stmt.value), stmt.constant, stmt.position)
-        elif isinstance(stmt, PrintStmt): self.output.write(self._display(self._eval(stmt.value)) + "\n")
-        elif isinstance(stmt, PrintErrorStmt): self.error_output.write(self._display(self._eval(stmt.value)) + "\n")
+        elif isinstance(stmt, PrintStmt): self.output.write(self._display_value(self._eval(stmt.value), stmt.position) + "\n")
+        elif isinstance(stmt, PrintErrorStmt): self.error_output.write(self._display_value(self._eval(stmt.value), stmt.position) + "\n")
         elif isinstance(stmt, ExpressionStmt): self._eval(stmt.expression)
-        elif isinstance(stmt, ReturnStmt): raise Returned(None if stmt.value is None else self._eval(stmt.value))
+        elif isinstance(stmt, ReturnStmt): raise Returned(VOID if stmt.value is None else self._eval(stmt.value))
         elif isinstance(stmt, IfStmt):
             for branch in stmt.branches:
                 if self._boolean(self._eval(branch.condition), branch.condition.position): self._execute_all(branch.body); return
@@ -440,15 +455,24 @@ class Interpreter:
             return target.runtime._call(expr.name, args, expr.position, named)
         if isinstance(expr, UnaryExpr):
             value = self._eval(expr.operand)
+            if isinstance(value, VoidResult):
+                raise error("E127", "VOID value use", "VOID cannot participate in an operator.", expr.position,
+                            expected="a value", actual="VOID")
             if expr.operator in ("!", "not"): return not self._boolean(value, expr.position)
             if type(value) not in (int, float) or type(value) is bool: self._type_error(expr.position, "number", type_name(value), "Unary '-' requires a number.")
             return -value
         if isinstance(expr, BinaryExpr):
             left = self._eval(expr.left)
+            if isinstance(left, VoidResult):
+                raise error("E127", "VOID value use", "VOID cannot participate in an operator.", expr.left.position,
+                            expected="a value", actual="VOID")
             if expr.operator == "&&": return self._boolean(left, expr.left.position) and self._boolean(self._eval(expr.right), expr.right.position)
             if expr.operator == "||": return self._boolean(left, expr.left.position) or self._boolean(self._eval(expr.right), expr.right.position)
             if expr.operator == "??": return left if left is not None else self._eval(expr.right)
             right = self._eval(expr.right); op = expr.operator
+            if isinstance(right, VoidResult):
+                raise error("E127", "VOID value use", "VOID cannot participate in an operator.", expr.right.position,
+                            expected="a value", actual="VOID")
             if op in ("in", "not in"):
                 contained = self._contains_operator(left, right, expr.position)
                 return not contained if op == "not in" else contained
@@ -481,6 +505,9 @@ class Interpreter:
 
     def _call(self, name, args, position, named=None):
         named = named or {}
+        if any(isinstance(value, VoidResult) for value in args) or any(isinstance(value, VoidResult) for value in named.values()):
+            raise error("E127", "VOID value use", "VOID cannot be passed as a function argument.", position,
+                        expected="a value", actual="VOID")
         if name in self.error_categories:
             if named or len(args) != 1: raise error("E207", "Argument count mismatch", f"Custom error '{name}' requires one positional message.", position, expected="1", actual=str(len(args) + len(named)))
             if type(args[0]) is not str: self._type_error(position, "string message", type_name(args[0]), f"Custom error '{name}' requires a string message.")
@@ -514,7 +541,7 @@ class Interpreter:
             for param, value in zip(function.parameters, args): self.environment.assign(param, value, position)
             try: self._execute_all(function.body)
             except Returned as result: return result.value
-            return None
+            return VOID
         finally: self.environment = previous
 
     def call_function_value(self, value, arguments, position):
@@ -567,6 +594,12 @@ class Interpreter:
     def type_error(position, expected, actual, description): Interpreter._type_error(position, expected, actual, description)
     @staticmethod
     def display(value): return Interpreter._display(value)
+    @staticmethod
+    def _display_value(value, position):
+        if isinstance(value, VoidResult):
+            raise error("E127", "VOID value use", "VOID cannot be printed because it does not represent a value.", position,
+                        expected="a value", actual="VOID")
+        return Interpreter._display(value)
     def current_time(self):
         value = self.clock()
         if not isinstance(value, PyDateTime) or value.tzinfo is None:
@@ -656,6 +689,8 @@ class Interpreter:
         if isinstance(value, LocalDatetimeValue): return format_local(value)
         if isinstance(value, TimezoneValue): return value.name
         if isinstance(value, DurationValue): return format_duration(value)
+        if isinstance(value, EmptyValue): return "EMPTY"
+        if isinstance(value, VoidResult): return "VOID"
         if value is None: return "null"
         if type(value) is bool: return "true" if value else "false"
         if type(value) is list: return "[" + ", ".join(Interpreter._display(v) for v in value) + "]"

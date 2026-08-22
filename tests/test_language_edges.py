@@ -133,8 +133,8 @@ class RuntimeEdgeTests(unittest.TestCase):
         self.assert_runtime_error('print missing()\n', "E206")
         self.assert_runtime_error('function:f(x)\nreturn x\nend_function:f\nprint f()\n', "E207")
 
-    def test_implicit_null_return(self):
-        self.assertEqual(execute('function:f\nend_function:f\nprint f() == null\n')[1], "true\n")
+    def test_implicit_function_completion_is_not_null(self):
+        self.assert_runtime_error('function:f\nend_function:f\nprint f() == null\n', "E127")
 
     def test_empty_list_parameter_can_gain_element_type(self):
         source = 'function:f(x)\nreturn x\nend_function:f\nfunction:main\nprint f([])\nprint f([1])\nprint f([2])\nend_function:main\n'
