@@ -34,9 +34,9 @@ S3 config/holidays.json ─────┴─ notify Lambdaの送信判定
 |---|---|---|
 | A | EC2 | `CPUUtilization`、CloudWatch Agentのlogical disk空き容量 |
 | A2 | RDS | `CPUUtilization`、`FreeStorageSpace` |
-| B | Windows | `ERROR`、`CRITICAL`、`重大`を含むevent log |
+| B | Windows | `ERROR`または`CRITICAL`を含むevent log |
 | C | Windows | Application／System／Securityのwarning以上のevent |
-| D | RDS | export済みlogの`ERROR`、`CRITICAL`、`重大` |
+| D | RDS | export済みlogの`ERROR`または`CRITICAL` |
 | E | RDS | EventBridgeへ直接送られるDB instance event |
 | F | EC2／RDS | 起動、停止、再起動、および状態変化 |
 
@@ -149,3 +149,7 @@ stack作成時に、設定bucketへ次の2ファイルが初回だけ作成さ�
 
 本番Lambdaの判断処理は[`lambda/monitor.sep`](lambda/monitor.sep)で確認できます。
 配布用CloudFormation templateには、このapplicationと必要最小限のruntimeを埋め込んでいます。
+
+ソースでは`@monitor:notification:decision`、`@monitor:log:windows`、`@aws:dynamodb`など、
+英語の階層Function Tagを使用しています。通知historyのpayloadはUTF-8を壊さず60,000 bytes以内に制限し、
+dedup identityは安定したevent fieldと正規化済みmessageから生成します。

@@ -17,6 +17,7 @@ resource_type = "UNKNOWN"
 resource_id = "UNKNOWN"
 resource_name = "UNKNOWN"
 state = "ALARM"
+rule_id = ""
 source = "Separan Monitor"
 title = "Monitor event"
 message = ""
@@ -78,16 +79,20 @@ candidate = object_set(candidate, "resource_id", resource_id)
 candidate = object_set(candidate, "resource_name", resource_name)
 candidate = object_set(candidate, "source", source)
 candidate = object_set(candidate, "title", title)
+candidate = object_set(candidate, "rule_id", title)
 return object_set(candidate, "message", message)
 end_function:new_candidate
 
 function:send_candidate(candidate)
+@monitor:event:routing
+@aws:sns
 aws_sns_publish(aws_environment("INGRESS_TOPIC"), json_encode(candidate))
 end_function:send_candidate
 
 function:contains_alert_keyword(message)
+@monitor:anomaly_detection
 text = lower(message)
-return contains(text, "error") || contains(text, "critical") || contains(message, "\u91cd\u5927")
+return contains(text, "error") || contains(text, "critical")
 end_function:contains_alert_keyword
 
 ########################################
@@ -95,6 +100,9 @@ end_function:contains_alert_keyword
 ########################################
 
 function:process_windows_log(resource_id, group_name, raw_message)
+@monitor:log:windows
+@monitor:anomaly_detection
+@aws:cloudwatch_logs
 resource_name = configured_name("EC2_IDS", "EC2_NAMES", resource_id)
 parsed = aws_windows_event_parse(raw_message)
 message = parsed.message
@@ -113,6 +121,9 @@ send_candidate(event)
 end_function:process_windows_log
 
 function:process_rds_log(resource_id, group_name, raw_message)
+@monitor:log:rds
+@monitor:anomaly_detection
+@aws:cloudwatch_logs
 if contains_alert_keyword(raw_message) :rds_keyword
 resource_name = configured_name("RDS_IDS", "RDS_NAMES", resource_id)
 candidate = new_candidate("D", "RDS", resource_id, resource_name, group_name, "RDS log keyword", raw_message)
@@ -165,6 +176,8 @@ endif:configured_rds_event
 end_function:process_rds_event
 
 function:log2_handler(event, context)
+@monitor:handler:log
+@aws:lambda
 if object_has(event, "awslogs") :cloudwatch_logs_event
 awslogs = object_field(event, "awslogs")
 process_log_payload(aws_cloudwatch_logs_decode(awslogs.data))
@@ -192,6 +205,8 @@ return number(aws_environment("STARTUP_SUPPRESSION", "15")) * 60
 end_function:grace_seconds
 
 function:record_transition(resource_type, resource_id, resource_name, state, source, message, force)
+@monitor:status:transition
+@aws:dynamodb
 table = aws_environment("TABLE_NAME")
 pk = format("STATE#{}#{}", resource_type, resource_id)
 previous = aws_dynamodb_get(table, pk, "CURRENT")
@@ -310,6 +325,9 @@ endif:cloudtrail_ec2
 end_function:process_cloudtrail
 
 function:status_handler(event, context)
+@monitor:handler:status
+@aws:lambda
+@aws:eventbridge
 source = text_field(event, "source")
 detail_type = text_field(event, "detail-type")
 detail = object_field(event, "detail")
@@ -377,6 +395,8 @@ return ""
 end_function:channel_topic
 
 function:publish_notification(candidate)
+@monitor:notification:delivery
+@aws:sns
 routes = json_decode(aws_environment("ROUTES_JSON", "{}"))
 kind = candidate.notification_type
 channels_text = "email"
@@ -440,6 +460,8 @@ return needle == "" || contains(lower(candidate.message), needle)
 end_function:user_rule_matches
 
 function:user_suppressed(candidate)
+@monitor:notification:suppression
+@aws:s3
 config = aws_s3_read_json(aws_environment("CONFIG_BUCKET"), aws_environment("SUPPRESSION_KEY", "config/suppression.json"), empty_object)
 if !is_object(config) || !object_has(config, "rules") :no_suppression_rules
 return false
@@ -522,6 +544,8 @@ return yesterday == target && now_minutes <= end_minutes
 end_function:date_break_matches
 
 function:holiday_reason(now)
+@monitor:notification:suppression
+@aws:s3
 config = aws_s3_read_json(aws_environment("CONFIG_BUCKET"), aws_environment("HOLIDAY_KEY", "config/holidays.json"), empty_object)
 if !is_object(config) :holiday_config_missing
 return ""
@@ -558,6 +582,11 @@ return !is_null(state) && object_has(state, "suppress_metrics_until") && now < s
 end_function:metric_grace_active
 
 function:store_history(candidate, now, status, reason)
+@monitor:notification:history
+@monitor:storage:boundary
+@aws:dynamodb
+payload_text = json_encode(candidate)
+payload = clip_utf8(payload_text, 60_000)
 object:history
 pk = format("HISTORY#{}", string(now / 86400))
 sk = format("{}#{}", now, aws_uuid())
@@ -565,13 +594,48 @@ notification_type = candidate.notification_type
 resource_id = candidate.resource_id
 status = status
 suppression_reason = reason
-payload = json_encode(candidate)
+payload = payload
+payload_truncated = length(bytes_from_string(payload)) < length(bytes_from_string(payload_text))
 expires_at = now + number(aws_environment("HISTORY_DAYS", "30")) * 86400
 end_object:history
 aws_dynamodb_put(aws_environment("TABLE_NAME"), history)
 end_function:store_history
 
+function:normalized_dedup_message(candidate)
+@monitor:notification:deduplication
+kind = text_field(candidate, "notification_type")
+if kind == "A" || kind == "A2" :metric_identity
+return lower(trim(text_field(candidate, "title")))
+endif:metric_identity
+message = lower(trim(text_field(candidate, "message")))
+message = regex_replace(r"\s+", " ", message)
+return regex_replace(r"\b[0-9]{4}-[0-9]{2}-[0-9]{2}[t ][0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:z|[+-][0-9]{2}:[0-9]{2})?\b", "<timestamp>", message)
+end_function:normalized_dedup_message
+
+function:dedup_identity(candidate)
+@monitor:notification:deduplication
+rule_id = text_field(candidate, "rule_id")
+if rule_id == "" :dedup_rule_fallback
+rule_id = text_field(candidate, "title")
+endif:dedup_rule_fallback
+object:identity
+notification_type = text_field(candidate, "notification_type")
+resource_type = text_field(candidate, "resource_type")
+resource_id = text_field(candidate, "resource_id")
+state = text_field(candidate, "state")
+rule_id = rule_id
+windows_source = text_field(candidate, "windows_source")
+event_id = text_field(candidate, "event_id")
+message = normalized_dedup_message(candidate)
+end_object:identity
+return json_encode(identity)
+end_function:dedup_identity
+
 function:process_notification(candidate)
+@monitor:notification:decision
+@monitor:notification:suppression
+@monitor:notification:deduplication
+@aws:dynamodb
 now = aws_epoch_seconds()
 reason = ""
 if user_suppressed(candidate) :user_suppression
@@ -583,7 +647,7 @@ endif:check_holiday
 if reason == "" && metric_grace_active(candidate, now) :metric_grace
 reason = "STATE_TRANSITION_GRACE"
 endif:metric_grace
-digest = bytes_to_hexadecimal(sha256_hash(json_encode(candidate)))
+digest = bytes_to_hexadecimal(sha256_hash(dedup_identity(candidate)))
 reserved = false
 if reason == "" :reserve_duplicate
 expires_at = now + number(aws_environment("DEDUP_MINUTES", "30")) * 60
@@ -614,6 +678,8 @@ endif:deliver_candidate
 end_function:process_notification
 
 function:normalize_alarm(alarm)
+@monitor:notification:normalization
+@aws:cloudwatch
 description = text_field(alarm, "AlarmDescription")
 candidate = candidate_template
 if description != "" :alarm_description
@@ -627,11 +693,14 @@ endif:alarm_metadata
 endif:alarm_description
 candidate = object_set(candidate, "state", text_field(alarm, "NewStateValue"))
 candidate = object_set(candidate, "title", text_field(alarm, "AlarmName"))
+candidate = object_set(candidate, "rule_id", text_field(alarm, "AlarmName"))
 candidate = object_set(candidate, "message", text_field(alarm, "NewStateReason"))
 return object_set(candidate, "source", "CloudWatch Alarm")
 end_function:normalize_alarm
 
 function:notify_handler(event, context)
+@monitor:handler:notify
+@aws:lambda
 processed = 0
 for record in object_list_field(event, "Records") :each_notification_record
 sns = object_field(record, "Sns")
@@ -654,6 +723,9 @@ end_function:notify_handler
 ########################################
 
 function:config_handler(event, context)
+@monitor:handler:config
+@aws:lambda
+@aws:s3
 properties = object_field(event, "ResourceProperties")
 bucket = text_field(properties, "Bucket")
 try :seed_and_respond

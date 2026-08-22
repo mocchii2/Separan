@@ -116,6 +116,8 @@ class SeparanMonitorTemplateTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(archive)) as package:
             self.assertIn("application.sep", package.namelist())
             self.assertIn("separan/lambda_runtime.py", package.namelist())
+            self.assertEqual(SOURCE_PATH.read_bytes(), package.read("application.sep"))
+            self.assertIn(b"clip_utf8", package.read("separan/builtins.py"))
         self.assertLess(TEMPLATE_PATH.stat().st_size, 1_000_000)
         for name in ("NotifyFunction", "Log2Function", "StatusFunction", "ConfigBootstrapFunction"):
             self.assertEqual("RuntimeArtifact", self.resources[name]["DependsOn"])
@@ -125,6 +127,8 @@ class SeparanMonitorTemplateTests(unittest.TestCase):
         for handler in ("notify_handler", "log2_handler", "status_handler", "config_handler"):
             self.assertIn(f"function:{handler}(event, context)", application)
         self.assertNotIn("import boto3", application)
+        self.assertNotIn("重大", application)
+        self.assertNotIn("\\u91cd\\u5927", self.source)
         self.assertEqual(1, self.source.count("ZipFile: |"))
 
 
