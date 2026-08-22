@@ -17,8 +17,8 @@ from yaml.nodes import MappingNode, ScalarNode, SequenceNode
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMPLATE_PATH = ROOT / "examples" / "monitor" / "monitor-inline-python.yaml"
-NATIVE_TEMPLATE_PATH = ROOT / "examples" / "monitor" / "monitor.yaml"
+TEMPLATE_PATH = ROOT / "examples" / "monitor" / "cloudformation" / "monitor-inline-python.yaml"
+NATIVE_TEMPLATE_PATH = ROOT / "examples" / "monitor" / "cloudformation" / "monitor.yaml"
 NATIVE_SOURCE_PATH = ROOT / "examples" / "monitor" / "lambda" / "monitor.sep"
 
 

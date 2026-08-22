@@ -15,7 +15,7 @@ from separan.lambda_runtime import LambdaApplication
 
 class MonitorExampleTests(unittest.TestCase):
     def test_monitor_decision_model(self):
-        script = ROOT / "examples" / "monitor" / "main.sep"
+        script = ROOT / "examples" / "monitor" / "model" / "main.sep"
         source = script.read_text(encoding="utf-8")
         output = execute(
             source,

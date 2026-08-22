@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $exampleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$source = Join-Path $exampleRoot "lambda/monitor.sep"
+$source = Join-Path $exampleRoot "monitor.sep"
 $output = Join-Path ([IO.Path]::GetTempPath()) "separan-monitor-runtime.zip"
 
 separan lambda-package $source --output $output --architecture $Architecture

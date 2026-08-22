@@ -1,6 +1,6 @@
 # Separan Monitor — Separan native Lambda runtime
 
-[`monitor.yaml`](monitor.yaml)は、最大5台のEC2と最大5台のRDSを監視するための
+[`cloudformation/monitor.yaml`](cloudformation/monitor.yaml)は、最大5台のEC2と最大5台のRDSを監視するための
 CloudFormationテンプレートです。CloudWatch Alarm、EventBridge、SNS、DynamoDB、S3、IAMは
 CloudFormationで構築し、4本のLambdaは同じ[Separan application](lambda/monitor.sep)を実行します。
 Pythonは汎用reference-runtime adapterだけで、監視の判断処理は含みません。
@@ -15,14 +15,14 @@ application Lambdaを作成します。したがってCloudFormation consoleへ�
 full standard-library runtimeを個別に確認・deployする場合は、従来どおりLinux互換ZIPも作れます。
 
 ```powershell
-./examples/monitor/build-runtime.ps1 -Bucket my-deployment-artifacts
+./examples/monitor/lambda/build-runtime.ps1 -Bucket my-deployment-artifacts
 ```
 
 生成するfull ZIPは約7 MBで、`application.sep`、Separan interpreter、Linux wheel、1行だけの
 `index.handler` adapterを収録します。4関数は同じobjectを使い、`SEPARAN_HANDLER`で
 `notify_handler`／`log2_handler`／`status_handler`／`config_handler`を選びます。
 
-以前のPython inline一括版は[`monitor-inline-python.yaml`](monitor-inline-python.yaml)へ
+以前のPython inline一括版は[`cloudformation/monitor-inline-python.yaml`](cloudformation/monitor-inline-python.yaml)へ
 compatibility sampleとして残しています。今後の実装対象はSeparan native版です。
 
 ## 監視と通知の経路
@@ -60,7 +60,7 @@ S3 config/holidays.json ─────┴─ notify Lambdaの送信判定
 ## 5分でdeployする
 
 1. AWS CloudFormationコンソールで「スタックの作成」→「新しいリソースを使用」を開きます。
-2. 「テンプレートファイルのアップロード」で[`monitor.yaml`](monitor.yaml)を選びます。
+2. 「テンプレートファイルのアップロード」で[`cloudformation/monitor.yaml`](cloudformation/monitor.yaml)を選びます。
 3. EC2 instance ID、RDS DB instance identifier、通知先、しきい値をGUIで入力します。
    未使用の2〜5番slotは空のままで構いません。
 4. IAM resource作成への同意を選択してstackを作成します。
@@ -164,7 +164,7 @@ stack作成時に、設定bucketへ次の2ファイルが初回だけ作成さ�
 同じ抑制思想をAWSなしで確認する実行可能なreference modelとして残しています。
 
 ```console
-separan examples/monitor/main.sep
+separan examples/monitor/model/main.sep
 ```
 
-小さな設定モデルだけを見たい場合は[`model-config.yaml`](model-config.yaml)を参照してください。
+小さな設定モデルだけを見たい場合は[`model/model-config.yaml`](model/model-config.yaml)を参照してください。

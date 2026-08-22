@@ -1,6 +1,6 @@
 # Separan Monitor — Separan-native Lambda runtime
 
-[`monitor.yaml`](monitor.yaml) monitors up to five existing EC2 instances and
+[`cloudformation/monitor.yaml`](cloudformation/monitor.yaml) monitors up to five existing EC2 instances and
 five existing RDS DB instances. CloudWatch, EventBridge, SNS, DynamoDB, S3, and
 IAM remain CloudFormation resources. The four Lambda entrypoints execute the
 same [Separan application](lambda/monitor.sep); Python is only the generic
@@ -18,7 +18,7 @@ For inspecting or deploying the full standard-library runtime separately, a
 Linux-compatible ZIP can still be generated with:
 
 ```powershell
-./examples/monitor/build-runtime.ps1 -Bucket my-deployment-artifacts
+./examples/monitor/lambda/build-runtime.ps1 -Bucket my-deployment-artifacts
 ```
 
 The generated full ZIP is about 7 MB and contains
@@ -26,7 +26,7 @@ The generated full ZIP is about 7 MB and contains
 `index.handler` adapter. All four functions reuse that object and select their
 Separan entrypoint through `SEPARAN_HANDLER`.
 
-[`monitor-inline-python.yaml`](monitor-inline-python.yaml) is retained only as
+[`cloudformation/monitor-inline-python.yaml`](cloudformation/monitor-inline-python.yaml) is retained only as
 the previous one-file compatibility sample. New development targets the native
 Separan application.
 
@@ -65,7 +65,7 @@ configured post-start/stop/reboot grace period.
 ## Deploy from the CloudFormation console
 
 1. Choose **Create stack → With new resources**.
-2. Upload [`monitor.yaml`](monitor.yaml).
+2. Upload [`cloudformation/monitor.yaml`](cloudformation/monitor.yaml).
 3. Enter up to five EC2 instance IDs, five RDS identifiers, thresholds, and
    notification destinations. Leave unused slots empty.
 4. Acknowledge IAM resource creation and create the stack.
@@ -121,7 +121,7 @@ The production Lambda logic is [`lambda/monitor.sep`](lambda/monitor.sep). The
 older modular `.sep` files remain a runnable, AWS-free decision model:
 
 ```console
-separan examples/monitor/main.sep
+separan examples/monitor/model/main.sep
 ```
 
-[`model-config.yaml`](model-config.yaml) is the smaller configuration-only model.
+[`model/model-config.yaml`](model/model-config.yaml) is the smaller configuration-only model.
