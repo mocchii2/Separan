@@ -50,6 +50,8 @@ filenameはUTF-8です。address自体は、SMTPUTF8を実装しないSES等で�
 
 sender、subject、各bodyはそれぞれ1回だけ設定できます。recipientはTo／Cc／Bcc全体で一意、
 送信時にはsender、1件以上のrecipient、明示subject、textまたはHTML bodyが必須です。
+message組み立て関数は明示的な`mail_message` builderを変更してVOIDを返します。作成と送信APIは
+仕様で定めた値を返します。
 
 ## 添付
 

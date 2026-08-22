@@ -15,6 +15,7 @@ from ..errors import error
 from ..randomness import BytesValue
 from ..system_utilities import UtilityFunction
 from ..temporal import DurationValue
+from ..runtime_values import VOID
 
 
 MAX_RECIPIENTS = 50
@@ -126,7 +127,7 @@ def _create_message(arguments, named, position, runtime): return MailMessageValu
 def _set_sender(arguments, named, position, runtime):
     message = _message(arguments[0], "mail_set_sender", position, runtime)
     if message.sender is not None: raise error("E932", "mail_error", "Mail sender is already set.", position)
-    message.sender = _address_value(arguments[1], position, runtime); return None
+    message.sender = _address_value(arguments[1], position, runtime); return VOID
 
 
 def _add_recipient(kind):
@@ -136,7 +137,7 @@ def _add_recipient(kind):
         existing = {item.address.lower() for item in message.to + message.cc + message.bcc}
         if address.address.lower() in existing: raise error("E932", "mail_error", "Recipient address is already present in this message.", position, actual=address.address)
         if len(existing) >= MAX_RECIPIENTS: raise error("E936", "mail_error", f"A message cannot exceed {MAX_RECIPIENTS} recipients.", position)
-        getattr(message, kind).append(address); return None
+        getattr(message, kind).append(address); return VOID
     return implementation
 
 
@@ -145,7 +146,7 @@ def _set_subject(arguments, named, position, runtime):
     if message.subject is not None: raise error("E932", "mail_error", "Mail subject is already set.", position)
     subject = _safe_text(arguments[1], "subject", position, runtime)
     if len(subject) > MAX_SUBJECT_LENGTH: raise error("E936", "mail_error", "Mail subject is too long.", position, expected=f"at most {MAX_SUBJECT_LENGTH} characters", actual=str(len(subject)))
-    message.subject = subject; return None
+    message.subject = subject; return VOID
 
 
 def _set_body(kind):
@@ -157,7 +158,7 @@ def _set_body(kind):
         if type(body) is not str: runtime.type_error(position, "string", runtime.type_name(body), f"{function}() body must be a string.")
         size = len(body.encode("utf-8"))
         if size > MAX_BODY_BYTES: raise error("E936", "mail_error", f"Mail {kind} body is too large.", position, expected=f"at most {MAX_BODY_BYTES} UTF-8 bytes", actual=str(size))
-        setattr(message, attribute, body); return None
+        setattr(message, attribute, body); return VOID
     return implementation
 
 
@@ -179,7 +180,7 @@ def _add_attachment_value(message, filename, content, content_type, inline, cont
     if len(content) > MAX_ATTACHMENT_BYTES: raise error("E936", "mail_error", "Attachment exceeds the raw attachment limit.", position, expected=f"at most {MAX_ATTACHMENT_BYTES} bytes", actual=str(len(content)))
     if sum(len(item.content) for item in message.attachments) + len(content) > MAX_ATTACHMENT_BYTES:
         raise error("E936", "mail_error", "Combined attachments exceed the raw attachment limit.", position, expected=f"at most {MAX_ATTACHMENT_BYTES} bytes")
-    message.attachments.append(MailAttachmentValue(filename, content, content_type, inline, content_id)); return None
+    message.attachments.append(MailAttachmentValue(filename, content, content_type, inline, content_id)); return VOID
 
 
 def _attachment_from_path(inline=False):

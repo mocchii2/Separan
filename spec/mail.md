@@ -54,6 +54,8 @@ breaks are rejected before MIME construction.
 Each sender, subject, and body kind may be set only once. Recipient addresses
 must be unique across To, Cc, and Bcc. Sending requires a sender, at least one
 recipient, an explicitly set subject, and at least one text or HTML body.
+Message composition functions mutate the explicit `mail_message` builder and
+return VOID. Creation and send APIs produce their documented values.
 
 ## Attachments
 

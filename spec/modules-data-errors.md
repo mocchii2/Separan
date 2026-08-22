@@ -162,6 +162,7 @@ delete_file("archive/b.txt")
 - `create_directory` creates missing parents; `delete_directory` removes only an
   empty directory. Recursive deletion is deliberately absent.
 - `list_directory` returns entry names in deterministic Unicode order.
+- File and directory mutation functions return VOID.
 - `file_name`, `file_extension`, `parent_directory`, and `absolute_path` use the
   same capability-relative validation. Extensions omit the leading dot.
 

@@ -39,6 +39,13 @@ end_function:main
         self.assertIn(output[0], ("windows", "linux", "macos", "unknown"))
         self.assertNotEqual(output[1], "")
 
+    def test_pathless_source_uses_typed_empty_context_values(self):
+        source = '''print system.script_path is EMPTY
+print system.script_name is EMPTY
+print system.script_dir is EMPTY
+'''
+        self.assertEqual(execute(source)[1], "true\ntrue\ntrue\n")
+
     def test_system_cannot_be_shadowed_or_assigned(self):
         cases = (
             ("system = 1\n", "E215"),

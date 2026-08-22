@@ -5,6 +5,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from .ast_nodes import Assignment, CallExpr, ConstDeclaration, TypedDeclaration, FunctionDecl, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
 from .errors import error
 from .system_utilities import UtilityFunction
+from .runtime_values import VOID
 
 
 DIGITAL = ("digital_input", "digital_output")
@@ -315,14 +316,16 @@ def _gpio_set_mode(args, named, position, runtime):
     modes = {"input": "digital_input", "input_pull_up": "digital_input", "input_pull_down": "digital_input", "output": "digital_output"}
     if mode not in modes: raise error("E965", "Invalid GPIO mode", "GPIO mode must be input, input_pull_up, input_pull_down, or output.", position, actual=mode)
     value = _require_pin(runtime, pin, modes[mode], position)
-    return _context(runtime).perform("gpio_set_mode", {"pin": value, "mode": mode}, position, runtime)
+    _context(runtime).perform("gpio_set_mode", {"pin": value, "mode": mode}, position, runtime)
+    return VOID
 
 
 def _gpio_write(args, named, position, runtime):
     pin, value = args
     if type(value) is not bool: runtime.type_error(position, "boolean", runtime.type_name(value), "gpio_write() value must be boolean.")
     pin = _require_pin(runtime, pin, "digital_output", position)
-    return _context(runtime).perform("gpio_write", {"pin": pin, "value": value}, position, runtime)
+    _context(runtime).perform("gpio_write", {"pin": pin, "value": value}, position, runtime)
+    return VOID
 
 
 def _gpio_read(args, named, position, runtime):
@@ -344,7 +347,8 @@ def _analog_write(args, named, position, runtime):
     if type(value) not in (int, float) or type(value) is bool or not 0 <= value <= 1:
         raise error("E965", "Invalid analog output value", "analog_write() value must be a number from 0 through 1.", position, expected="0..1", actual=repr(value))
     pin = _require_pin(runtime, pin, "analog_output", position)
-    return _context(runtime).perform("analog_write", {"pin": pin, "value": value}, position, runtime)
+    _context(runtime).perform("analog_write", {"pin": pin, "value": value}, position, runtime)
+    return VOID
 
 
 def _pwm_write(args, named, position, runtime):
@@ -352,7 +356,8 @@ def _pwm_write(args, named, position, runtime):
     if type(value) not in (int, float) or type(value) is bool or not 0 <= value <= 1:
         raise error("E965", "Invalid PWM duty cycle", "pwm_write() duty cycle must be a number from 0 through 1.", position, expected="0..1", actual=repr(value))
     pin = _require_pin(runtime, pin, "pwm", position)
-    return _context(runtime).perform("pwm_write", {"pin": pin, "value": value}, position, runtime)
+    _context(runtime).perform("pwm_write", {"pin": pin, "value": value}, position, runtime)
+    return VOID
 
 
 BUS_ROLES = {
@@ -400,7 +405,8 @@ def _delay_milliseconds(args, named, position, runtime):
     if type(milliseconds) is not int or not 0 <= milliseconds <= MAX_DELAY_MILLISECONDS:
         raise error("E965", "Invalid embedded delay", f"delay_milliseconds() requires an integer from 0 through {MAX_DELAY_MILLISECONDS}.", position,
                     expected=f"0..{MAX_DELAY_MILLISECONDS}", actual=repr(milliseconds))
-    return _context(runtime).perform("delay_milliseconds", {"milliseconds": milliseconds}, position, runtime)
+    _context(runtime).perform("delay_milliseconds", {"milliseconds": milliseconds}, position, runtime)
+    return VOID
 
 
 def _i2c_probe(args, named, position, runtime):
@@ -418,7 +424,8 @@ def _uart_write(args, named, position, runtime):
     bus = _bus(runtime, args[0], "uart", position); value = args[1]
     if type(value) is not str:
         runtime.type_error(position, "string", runtime.type_name(value), "uart_write() data must be a string.")
-    return _context(runtime).perform("uart_write", {"bus": bus, "value": value}, position, runtime)
+    _context(runtime).perform("uart_write", {"bus": bus, "value": value}, position, runtime)
+    return VOID
 
 
 def _uart_read_line(args, named, position, runtime):

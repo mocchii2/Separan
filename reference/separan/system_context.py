@@ -7,6 +7,7 @@ import socket
 from dataclasses import dataclass
 
 from .objects import ObjectValue
+from .runtime_values import empty_of
 
 
 VERSION = "0.2.0-alpha.13"
@@ -39,9 +40,9 @@ def build_system_context(script_path, arguments):
     return SystemContextValue.create({
         "version": VERSION,
         "engine": ENGINE,
-        "script_path": None if script is None else str(script),
-        "script_name": None if script is None else script.name,
-        "script_dir": None if script is None else str(script.parent),
+        "script_path": empty_of("string") if script is None else str(script),
+        "script_name": empty_of("string") if script is None else script.name,
+        "script_dir": empty_of("string") if script is None else str(script.parent),
         "working_dir": str(Path.cwd().resolve()),
         "os": _os_name(),
         "arch": _architecture(),

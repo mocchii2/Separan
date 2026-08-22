@@ -12,9 +12,9 @@ an explicit diagnostic.
 |---|---|
 | `system.version` | Separan language/runtime release |
 | `system.engine` | implementation identifier (`python-reference`) |
-| `system.script_path` | absolute script path, or null for source without a path |
-| `system.script_name` | final script filename, or null |
-| `system.script_dir` | absolute containing directory, or null |
+| `system.script_path` | absolute script path, or typed EMPTY for source without a path |
+| `system.script_name` | final script filename, or typed EMPTY |
+| `system.script_dir` | absolute containing directory, or typed EMPTY |
 | `system.working_dir` | stable process working directory snapshot |
 | `system.args` | command arguments excluding the script path |
 | `system.arg_count` | number of entries in `system.args` |

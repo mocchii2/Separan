@@ -7,7 +7,7 @@ import shutil
 
 from .errors import error
 from .objects import ObjectValue
-from .runtime_values import EmptyValue
+from .runtime_values import EmptyValue, VOID
 from .randomness import BytesValue
 
 
@@ -47,7 +47,7 @@ def _atomic_write(path, data, position):
 def write_text(arguments, position, runtime):
     path = _path(arguments, "write_text", position, runtime, True); value = arguments[1]
     if type(value) is not str: runtime.type_error(position, "string", runtime.type_name(value), "write_text() value must be a string.")
-    _atomic_write(path, value.encode("utf-8"), position); return None
+    _atomic_write(path, value.encode("utf-8"), position); return VOID
 
 
 def append_text(arguments, position, runtime):
@@ -57,13 +57,13 @@ def append_text(arguments, position, runtime):
         previous = path.read_bytes() if path.exists() else b""
         previous.decode("utf-8")
     except (OSError, UnicodeError) as exc: raise error("E723", "I/O error", str(exc), position, actual=arguments[0])
-    _atomic_write(path, previous + value.encode("utf-8"), position); return None
+    _atomic_write(path, previous + value.encode("utf-8"), position); return VOID
 
 
 def write_bytes(arguments, position, runtime):
     path = _path(arguments, "write_bytes", position, runtime, True); value = arguments[1]
     if not isinstance(value, BytesValue): runtime.type_error(position, "bytes", runtime.type_name(value), "write_bytes() value must be bytes.")
-    _atomic_write(path, value.value, position); return None
+    _atomic_write(path, value.value, position); return VOID
 
 
 def _discover(arguments, name, position, runtime):
@@ -99,14 +99,14 @@ def copy_file(arguments, position, runtime):
     source, destination = _source_destination(arguments, "copy_file", position, runtime)
     try: destination.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(source, destination)
     except OSError as exc: raise error("E723", "I/O error", str(exc), position, actual=arguments[1])
-    return None
+    return VOID
 
 
 def move_file(arguments, position, runtime):
     source, destination = _source_destination(arguments, "move_file", position, runtime)
     try: destination.parent.mkdir(parents=True, exist_ok=True); shutil.move(source, destination)
     except OSError as exc: raise error("E723", "I/O error", str(exc), position, actual=arguments[1])
-    return None
+    return VOID
 
 
 def delete_file(arguments, position, runtime):
@@ -115,21 +115,21 @@ def delete_file(arguments, position, runtime):
         if not path.is_file(): raise OSError("path is not a regular file")
         path.unlink()
     except OSError as exc: raise error("E723", "I/O error", str(exc), position, actual=arguments[0])
-    return None
+    return VOID
 
 
 def create_directory(arguments, position, runtime):
     path = _path(arguments, "create_directory", position, runtime, True)
     try: path.mkdir(parents=True, exist_ok=False)
     except OSError as exc: raise error("E723", "I/O error", str(exc), position, actual=arguments[0])
-    return None
+    return VOID
 
 
 def delete_directory(arguments, position, runtime):
     path = _path(arguments, "delete_directory", position, runtime, True)
     try: path.rmdir()
     except OSError as exc: raise error("E723", "I/O error", "delete_directory() removes only an existing empty directory: " + str(exc), position, actual=arguments[0])
-    return None
+    return VOID
 
 
 def list_directory(arguments, position, runtime):

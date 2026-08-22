@@ -193,3 +193,6 @@ Profiles are derived from vendor documentation, not community pin tables:
 
 Profile changes that alter pin meaning are compatibility-significant and must
 include a conformance test.
+
+Hardware write, mode, delay, and UART write operations return VOID. Read and
+open operations return their documented typed values.

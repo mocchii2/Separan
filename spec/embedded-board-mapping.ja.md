@@ -179,3 +179,6 @@ community pin表ではなくvendor公式情報からprofileを作成します。
 - [Arduino Nano Every公式document](https://docs.arduino.cc/hardware/nano-every/)
 
 pinの意味を変えるprofile変更は互換性に影響するため、conformance testを必須とします。
+
+hardware write、mode設定、delay、UART write操作はVOIDを返します。readとopen操作だけが
+仕様で定めた型付き値を返します。

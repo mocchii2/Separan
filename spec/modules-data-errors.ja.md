@@ -140,6 +140,7 @@ write_bytes("copy.bin", data)
 - `write_text`／`write_bytes`はplatformで可能ならtemporary file経由の置換とし、
   partial writeを成功扱いしない。
 - string／bytesの暗黙変換は行わない。
+- file／directory変更関数はVOIDを返す。
 - 低level file handleは延期。
 
 埋め込みhostはfile I/Oを完全に無効化できます。権限なしはfile不在ではなく個別の

@@ -10,9 +10,9 @@ immutable objectモデルに含まれず、専用診断で拒否する。
 |---|---|
 | `system.version` | Separan language/runtime release |
 | `system.engine` | 実装識別子（`python-reference`） |
-| `system.script_path` | scriptの絶対path。pathなしsourceではnull |
-| `system.script_name` | script file名。pathなしではnull |
-| `system.script_dir` | script格納directoryの絶対path。pathなしではnull |
+| `system.script_path` | scriptの絶対path。pathなしsourceでは型付きEMPTY |
+| `system.script_name` | script file名。pathなしでは型付きEMPTY |
+| `system.script_dir` | script格納directoryの絶対path。pathなしでは型付きEMPTY |
 | `system.working_dir` | 起動時working directoryのsnapshot |
 | `system.args` | script pathを含まないcommand arguments |
 | `system.arg_count` | `system.args` の要素数 |
