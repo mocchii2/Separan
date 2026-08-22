@@ -12,19 +12,6 @@ custom resourceがversion固定archiveをstack内のprivate S3 bucketへ配置�
 application Lambdaを作成します。したがってCloudFormation consoleへ渡すのはこのYAML一枚だけで、
 事前ZIPやartifact bucket parameterは不要です。
 
-full standard-library runtimeを個別に確認・deployする場合は、従来どおりLinux互換ZIPも作れます。
-
-```powershell
-./examples/monitor/lambda/build-runtime.ps1 -Bucket my-deployment-artifacts
-```
-
-生成するfull ZIPは約7 MBで、`application.sep`、Separan interpreter、Linux wheel、1行だけの
-`index.handler` adapterを収録します。4関数は同じobjectを使い、`SEPARAN_HANDLER`で
-`notify_handler`／`log2_handler`／`status_handler`／`config_handler`を選びます。
-
-以前のPython inline一括版は[`cloudformation/monitor-inline-python.yaml`](cloudformation/monitor-inline-python.yaml)へ
-compatibility sampleとして残しています。今後の実装対象はSeparan native版です。
-
 ## 監視と通知の経路
 
 ```text
@@ -158,13 +145,7 @@ stack作成時に、設定bucketへ次の2ファイルが初回だけ作成さ�
 - SMS、CloudWatch、Lambda、SNS、DynamoDB、S3などの利用料金が発生し得ます。
 - DynamoDB TTL削除は期限直後の即時削除を保証する仕組みではありません。
 
-## Separan applicationを試す
+## Separanソース
 
-本番Lambdaの判断処理は[`lambda/monitor.sep`](lambda/monitor.sep)です。従来の`.sep` module群も、
-同じ抑制思想をAWSなしで確認する実行可能なreference modelとして残しています。
-
-```console
-separan examples/monitor/model/main.sep
-```
-
-小さな設定モデルだけを見たい場合は[`model/model-config.yaml`](model/model-config.yaml)を参照してください。
+本番Lambdaの判断処理は[`lambda/monitor.sep`](lambda/monitor.sep)で確認できます。
+配布用CloudFormation templateには、このapplicationと必要最小限のruntimeを埋め込んでいます。

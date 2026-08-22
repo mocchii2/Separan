@@ -496,7 +496,8 @@ now includes one upload-ready CloudFormation YAML for up to five EC2 instances
 and five RDS DB instances. Its inline `notify`, `log2`, `status`, and config-bootstrap
 Lambda programs connect CloudWatch alarms, Windows/RDS logs, EventBridge state
 events, Email/SMS/Teams delivery, S3 suppression schedules, and 30-day DynamoDB
-history. The `.sep` modules remain executable as an AWS-free decision-core model.
+history. The upload-ready YAML embeds the Separan application and its minimal
+Lambda runtime, while the readable `.sep` application source remains in the repository.
 
 ```console
 python -m pip install -e .

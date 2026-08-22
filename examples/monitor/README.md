@@ -14,22 +14,6 @@ private S3 bucket before the four application functions are created. Therefore
 the CloudFormation console needs only this YAML; no prebuilt ZIP or artifact
 bucket parameter is required.
 
-For inspecting or deploying the full standard-library runtime separately, a
-Linux-compatible ZIP can still be generated with:
-
-```powershell
-./examples/monitor/lambda/build-runtime.ps1 -Bucket my-deployment-artifacts
-```
-
-The generated full ZIP is about 7 MB and contains
-`application.sep`, the Separan interpreter, Linux wheels, and a one-line
-`index.handler` adapter. All four functions reuse that object and select their
-Separan entrypoint through `SEPARAN_HANDLER`.
-
-[`cloudformation/monitor-inline-python.yaml`](cloudformation/monitor-inline-python.yaml) is retained only as
-the previous one-file compatibility sample. New development targets the native
-Separan application.
-
 ## Pipeline
 
 ```text
@@ -115,13 +99,8 @@ not an immediate-deletion guarantee.
 - Windows events are requested as XML and parsed for provider, event ID, level, and message.
 - The SSM completion wait can make CloudFormation drift detection less accurate.
 
-## Local Separan applications
+## Separan source
 
-The production Lambda logic is [`lambda/monitor.sep`](lambda/monitor.sep). The
-older modular `.sep` files remain a runnable, AWS-free decision model:
-
-```console
-separan examples/monitor/model/main.sep
-```
-
-[`model/model-config.yaml`](model/model-config.yaml) is the smaller configuration-only model.
+The production Lambda logic is available as
+[`lambda/monitor.sep`](lambda/monitor.sep). The upload-ready CloudFormation
+template embeds this application together with its minimal runtime.
