@@ -13,12 +13,17 @@ from typing import Callable
 from .errors import error
 from .objects import ObjectValue
 from .randomness import BytesValue
+from .runtime_values import EmptyValue, VoidResult, empty_of
 from .cli import create_application
 
 
 def value_from_host(value):
     """Convert JSON-shaped host data to immutable Separan values."""
-    if value is None or type(value) in (bool, int, float, str):
+    if value is None:
+        return empty_of(external=True)
+    if isinstance(value, (EmptyValue, VoidResult)):
+        return value
+    if type(value) in (bool, int, float, str):
         return value
     if isinstance(value, bytes):
         return BytesValue(value)
@@ -31,6 +36,8 @@ def value_from_host(value):
 
 def value_to_host(value):
     """Convert a Separan value to a JSON-compatible host value."""
+    if isinstance(value, (EmptyValue, VoidResult)):
+        return None
     if value is None or type(value) in (bool, int, float, str):
         return value
     if isinstance(value, BytesValue):

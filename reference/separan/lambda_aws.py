@@ -15,6 +15,7 @@ import uuid
 import xml.etree.ElementTree as ElementTree
 
 from .lambda_runtime import HostFunction
+from .runtime_values import VOID
 
 
 def _dynamodb_encode(value):
@@ -143,7 +144,7 @@ class AwsLambdaAdapter:
     def dynamodb_put(self, arguments, named):
         table, item = arguments
         self.client("dynamodb").put_item(TableName=table, Item=_dynamodb_item(item))
-        return None
+        return VOID
 
     def dynamodb_delete(self, arguments, named):
         table, pk, sk = arguments
@@ -151,7 +152,7 @@ class AwsLambdaAdapter:
             TableName=table,
             Key={"pk": {"S": str(pk)}, "sk": {"S": str(sk)}},
         )
-        return None
+        return VOID
 
     def dynamodb_reserve_until(self, arguments, named):
         table, pk, sk, expires_at, now = arguments
@@ -237,7 +238,7 @@ class AwsLambdaAdapter:
             headers={"content-length": str(len(body)), "content-type": ""},
         )
         self.urlopen(request, timeout=10).read()
-        return None
+        return VOID
 
 
 def create_aws_host_functions(**options):

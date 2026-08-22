@@ -15,6 +15,7 @@ from argon2.low_level import Type
 from .errors import error
 from .objects import ObjectValue
 from .randomness import BytesValue
+from .runtime_values import EmptyValue, empty_of
 from .system_utilities import UtilityFunction
 
 
@@ -35,8 +36,8 @@ class HttpAuthValue:
 class OAuthTokenValue:
     access_token: SecretValue
     token_type: str
-    expires_in: int | None
-    scope: str | None
+    expires_in: int | EmptyValue
+    scope: str | EmptyValue
 
 
 PASSWORD_HASHER = PasswordHasher(
@@ -110,6 +111,7 @@ def _hmac_sha256(arguments, named, position, runtime):
 def _json_value(value, position):
     if isinstance(value, ObjectValue): return {key: _json_value(item, position) for key, item in value.fields.items()}
     if type(value) is list: return [_json_value(item, position) for item in value]
+    if isinstance(value, EmptyValue): return None
     if value is None or type(value) in (str, bool, int, float): return value
     raise error("E875", "Invalid JWT claim", "JWT claims must be JSON-compatible and cannot contain secrets or bytes.", position)
 
@@ -202,7 +204,7 @@ def _oauth_client_auth(client_id, client_secret, position, runtime):
 
 
 def _oauth_payload(response, position):
-    if response.text is None:
+    if isinstance(response.text, EmptyValue):
         raise error("E877", "oauth_error", f"OAuth token endpoint returned unusable status {response.status}.", position, actual=str(response.status))
     try: payload = json.loads(response.text)
     except json.JSONDecodeError:
@@ -239,7 +241,12 @@ def _oauth_client_credentials(arguments, named, position, runtime):
     if expires is not None and (type(expires) is not int or expires < 0): raise error("E877", "oauth_error", "OAuth expires_in must be a non-negative integer.", position)
     if returned_scope is not None and not _oauth_scope_is_valid(returned_scope): raise error("E877", "oauth_error", "OAuth response scope is invalid.", position)
     if "refresh_token" in payload: raise error("E877", "oauth_error", "OAuth client credentials response must not contain a refresh token.", position)
-    return OAuthTokenValue(SecretValue(token.encode("ascii")), "Bearer", expires, returned_scope)
+    return OAuthTokenValue(
+        SecretValue(token.encode("ascii")),
+        "Bearer",
+        empty_of("number", external=True) if expires is None else expires,
+        empty_of("string", external=True) if returned_scope is None else returned_scope,
+    )
 
 
 AUTH_BUILTINS = (

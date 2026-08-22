@@ -14,6 +14,7 @@ from separan.errors import SeparanError
 from separan.lambda_aws import AwsLambdaAdapter
 from separan.lambda_build import build_lambda_package
 from separan.lambda_runtime import HostFunction, LambdaApplication, value_from_host, value_to_host
+from separan.runtime_values import EmptyValue, VOID
 
 
 class Context:
@@ -66,7 +67,21 @@ end_function:handler
 
     def test_recursive_boundary_conversion(self):
         original = {"records": [{"ok": True, "count": 2}], "nothing": None}
-        self.assertEqual(original, value_to_host(value_from_host(original)))
+        converted = value_from_host(original)
+        self.assertIsInstance(converted.fields["nothing"], EmptyValue)
+        self.assertEqual(original, value_to_host(converted))
+
+    def test_host_empty_and_void_results_remain_distinct(self):
+        missing = HostFunction("host_missing", 0, 0, lambda arguments, named: None)
+        mutate = HostFunction("host_mutate", 0, 0, lambda arguments, named: VOID)
+        source = '''function:handler(event, context)
+string value = host_missing()
+host_mutate()
+return value is EMPTY
+end_function:handler
+'''
+        application = LambdaApplication(source, host_functions={"host_missing": missing, "host_mutate": mutate})
+        self.assertTrue(application.handle({}))
 
     def test_package_contains_source_entrypoint_and_runtime(self):
         with tempfile.TemporaryDirectory() as temporary:

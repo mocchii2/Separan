@@ -112,6 +112,14 @@ print bearer_auth(token.access_token)
         self.assertEqual(execute(source, capabilities=self.capability, http_transport=transport)[1], "Bearer\n")
         self.assertEqual(transport.requests[0]["headers"]["Authorization"], "Basic Y2xpZW50JTNBbmFtZTpwJTQwc3Mrd29yZA==")
 
+    def test_oauth_optional_fields_are_typed_empty(self):
+        transport = FakeTransport([HttpTransportResponse(200, "https://auth.test/token", {}, b'{"access_token":"abc123","token_type":"Bearer"}')])
+        source = '''token = oauth_client_credentials("https://auth.test/token", "client", "secret")
+print token.expires_in is EMPTY
+print token.scope is EMPTY
+'''
+        self.assertEqual(execute(source, capabilities=self.capability, http_transport=transport)[1], "true\ntrue\n")
+
     def test_oauth_requires_https_and_valid_scope(self):
         with self.assertRaises(SeparanError) as caught:
             execute('print oauth_client_credentials("http://auth.test/token", "client", "secret")\n', capabilities=self.capability, http_transport=FakeTransport([]))
