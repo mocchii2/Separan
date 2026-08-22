@@ -439,11 +439,14 @@ HTTP supports one-shot cookies and explicit stateful Cookie Jars. Cookie values,
 jar display, and received response cookies are redacted; domain, path, expiry,
 and Secure attributes control transmission.
 
-Lists are homogeneous and zero-based. Operations such as `list_append`,
-`list_remove`, `slice`, `reverse`, and every sort return new lists; v0.1 exposes
-no mutating collection API. Stable sorting includes descending, Unicode
-case-folded, natural-number, and object-field variants. See the
-[list specification](https://github.com/mocchii2/Separan/blob/main/spec/lists.md).
+Lists are homogeneous and zero-based. Value transforms such as `list_append`,
+the two-argument `list_remove`, `slice`, `reverse`, and every sort return new
+lists. The v0.2 preview separately exposes explicit mutating shape operations:
+`EMPTY` clears a value, `EMPTYS` preserves and clears a complete jagged shape,
+and `list_insert`/three-argument `list_remove` add or remove typed slots. See the
+[list specification](https://github.com/mocchii2/Separan/blob/main/spec/lists.md),
+[shape operations](https://github.com/mocchii2/Separan/blob/main/spec/list-shape-operations.md),
+and [runnable example](examples/list_shapes.sep).
 
 `length(value)` and `is_empty(value)` work consistently across strings, lists,
 and bytes. String search, repetition, and padding operate on Unicode code points;

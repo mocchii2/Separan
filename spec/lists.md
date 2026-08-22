@@ -1,4 +1,4 @@
-# Lists — Non-mutating Operations
+# Lists — Values and Explicit Shape Operations
 
 Status: **implemented in the reference interpreter**.
 
@@ -13,17 +13,25 @@ first_number = numbers[0]
 ```
 
 `[1, "a", true]` is a type error. An inferred empty list has an unknown element
-type; `list<number> values = []` records it explicitly.
+type; `list<number> values = []` records it explicitly. Type declarations may
+nest recursively, and nested lists may be jagged: `list<list<number>>` does not
+require equal row lengths.
 
 Typed slots may hold `EMPTY` without changing the homogeneous element type.
 `items[index] = EMPTY` clears one zero-based slot; assigning a concrete value
 later must match the retained element type. `items = EMPTYS` preserves length
 and clears all slots. Use `items is EMPTYS` for the explicit all-empty test.
 
-## Non-mutating API
+Explicit shape mutation is a separate v0.2 preview. `list_insert` and the
+three-argument `list_remove` change slot counts and return `VOID`; directional
+operations make horizontal deletion and vertical shifting distinct. See the
+[list shape specification](list-shape-operations.md).
 
-All list functions return values without modifying their input list. Indexed
-assignment is a separate, visibly mutating language statement.
+## Non-mutating value API
+
+The following value-transform functions return results without modifying their
+input list. Indexed assignment and the explicit shape APIs are visibly mutating
+language operations.
 
 | Function | Result |
 |---|---|

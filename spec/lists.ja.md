@@ -1,4 +1,4 @@
-# list — 非破壊操作
+# list — 値操作と明示的shape操作
 
 状態: **リファレンス実装へ実装済み。**
 
@@ -12,16 +12,21 @@ first_number = numbers[0]
 ```
 
 `[1, "a", true]`は型エラーです。推論された空listの要素型は未確定ですが、
-`list<number> values = []`なら明示的に保持します。
+`list<number> values = []`なら明示的に保持します。型宣言は再帰的にnestでき、
+`list<list<number>>`の各rowは同じ長さでなくてもよいjagged listです。
 
 型付きslotは同型element規則を変えずに`EMPTY`を保持できます。`items[index] = EMPTY`は
 0始まりの1 slotだけを消し、その後の実値代入では保持element型との一致が必要です。
 `items = EMPTYS`は長さを維持して全slotを消し、`items is EMPTYS`で全空状態を判定します。
 
-## 非破壊API
+明示的なshape変更はv0.2 previewとして分離しています。`list_insert`と3引数の
+`list_remove`はslot数を変更して`VOID`を返し、方向付きAPIは横方向のslot削除と縦方向の
+値shiftを区別します。詳細は[list shape仕様](list-shape-operations.ja.md)を参照してください。
 
-すべてのlist関数は入力listを変更せず、結果を返します。index代入はそれとは別の、
-副作用がソース上で見える言語statementです。
+## 非破壊value API
+
+以下のvalue変換関数は入力listを変更せず、結果を返します。index代入と明示的shape APIは
+副作用がソース上で見える別の言語操作です。
 
 | 関数 | 結果 |
 |---|---|

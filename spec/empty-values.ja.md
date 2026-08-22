@@ -80,7 +80,8 @@ print json_encode(optional_name)  # null
 全要素がnullのJSON arrayは、外部dataを失わず受け取るためelement型未確定のまま
 許可します。最初の実値をindex代入した時点でelement型を確定し、残るEMPTY slotも
 その型を保持します。この例外は外部JSONだけです。source literalの
-`[EMPTY, EMPTY]`には引き続き`list<type>`が必要です。
+`[EMPTY, EMPTY]`には引き続き`list<type>`が必要です。再帰的`EMPTYS`とslot数変更は
+[list shape操作](list-shape-operations.ja.md)で分離して定義します。
 
 source-levelの`null`と移行用`is_null()` aliasは削除済みです。`null`／`NULL`はどちらも
 `E135`となり、型宣言とEMPTYの使用を案内します。JSON `null`は外部JSON境界にだけ残ります。

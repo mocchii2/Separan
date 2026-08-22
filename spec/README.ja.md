@@ -185,7 +185,9 @@ objectを含む以下の拡張仕様は実験実装済みですが、安定仕�
   `duration`を分離して実装しています。安定版まではAPIが変更される可能性があります。
 - [乱数](randomness.ja.md): 再現可能なPCG32とOS由来のセキュア乱数を分離し、
   不変の`bytes`型とともに実装しています。
-- [list](lists.ja.md): 同型・0始まり・非破壊操作中心のlistを実装しています。
+- [list](lists.ja.md): 同型・0始まりの値操作と明示的shape変更を実装しています。
+- [list shape操作](list-shape-operations.ja.md): typed EMPTY slot、再帰的jagged shape、
+  原子的な横／縦方向削除を定義します。
 - [bytes](bytes.ja.md): stringと分離した不変binary値と明示的text／hex／Base64変換を実装しています。
 - [認証とsecret](authentication.ja.md): 自動redactされるsecretと用途固定のHTTP、HMAC、JWT、OAuth、password APIを実装しています。
 - [暗号](cryptography.ja.md): 読みやすいSHA-2／SHA-3、HMAC、encoding境界と、Argon2id、version付きAES-256-GCMの安全な一本道です。

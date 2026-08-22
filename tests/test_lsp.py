@@ -350,5 +350,31 @@ end_function:show
         self.assertIn("Type: `number`", hover(source, 5, 15)["contents"]["value"])
         self.assertIn("Type: `list`", hover(source, 5, 30)["contents"]["value"])
 
+    def test_recursive_list_types_and_shape_signatures_are_visible(self):
+        source = '''list<list<number>> matrix = [[1], [2, 3]]
+function:show(rows: list<list<string>>)
+print rows
+end_function:show
+'''
+        inferred = {item.name: item.type for item in variables(source)}
+        self.assertEqual(inferred, {"matrix": "list", "rows": "list"})
+        insert = signature_help("list_insert(matrix, ", 0, 20)
+        self.assertIn("front | number | back", insert["signatures"][0]["label"])
+        vertical = signature_help("list_remove_vertical(matrix, 0, ", 0, 32)
+        self.assertIn("list<list>", vertical["signatures"][0]["label"])
+
+    def test_position_selectors_have_semantic_tokens(self):
+        source = "list_insert(values, front, 2)\nlist_remove(values, back, 1)\n"
+        encoded = semantic_tokens(source)["data"]
+        decoded = []
+        line = start = 0
+        for index in range(0, len(encoded), 5):
+            delta_line, delta_start, length, token_type, _ = encoded[index:index + 5]
+            line += delta_line
+            start = start + delta_start if delta_line == 0 else delta_start
+            decoded.append((source.splitlines()[line][start:start + length], TOKEN_TYPES[token_type]))
+        self.assertIn(("front", "type"), decoded)
+        self.assertIn(("back", "type"), decoded)
+
 
 if __name__ == "__main__": unittest.main()

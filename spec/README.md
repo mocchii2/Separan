@@ -221,7 +221,9 @@ implemented experimentally but are not yet stable.
   `timezone`, and `duration` values. The API may change before a stable release.
 - [Randomness](randomness.md): reproducible PCG32 functions, operating-system-backed
   secure functions, and an immutable `bytes` type.
-- [Lists](lists.md): homogeneous, zero-based lists with non-mutating operations.
+- [Lists](lists.md): homogeneous, zero-based values with explicit shape mutation.
+- [List shape operations](list-shape-operations.md): typed EMPTY slots, recursive
+  jagged shapes, and atomic horizontal/vertical removal.
 - [Bytes](bytes.md): immutable binary values with explicit text, hex, and Base64 conversion.
 - [Authentication](authentication.md): redacted secrets and purpose-specific HTTP, HMAC, JWT, OAuth, and password APIs.
 - [Cryptography](cryptography.md): readable SHA-2/SHA-3, HMAC and encoding boundaries plus Argon2id and versioned AES-256-GCM safe paths.

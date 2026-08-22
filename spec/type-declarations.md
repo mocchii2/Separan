@@ -9,6 +9,7 @@ number count = 0
 string name = "Separan"
 boolean enabled = true
 list<number> values = []
+list<list<number>> matrix = [[1, 2], [3, 4, 5]]
 const string version = "0.2"
 ```
 
@@ -19,7 +20,9 @@ written as `string name = EMPTY`.
 
 The initializer must have exactly the declared type. Separan performs no
 conversion. Typed lists require an element type even when initialized with an
-empty list; later assignments retain that element type.
+empty list; later assignments retain that element type. List types are
+recursive, and nested rows may be jagged. `EMPTYS` retains every row length and
+the complete recursive element type.
 
 ```separan
 list<number> values = []

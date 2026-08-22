@@ -87,7 +87,9 @@ print json_encode(optional_name)  # null
 An all-null JSON array is accepted even though its element type is not yet
 known. Its first concrete index assignment fixes that type; all retained EMPTY
 slots then keep the adopted type. This exception exists only for external JSON.
-The source literal `[EMPTY, EMPTY]` still requires `list<type>`.
+The source literal `[EMPTY, EMPTY]` still requires `list<type>`. Recursive
+`EMPTYS` and slot-count changes are specified separately in
+[List Shape Operations](list-shape-operations.md).
 
 Source-level `null` and the transitional `is_null()` alias have been removed.
 Both `null` and `NULL` produce `E135` with guidance to declare a type and use

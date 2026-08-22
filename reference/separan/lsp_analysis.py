@@ -16,8 +16,11 @@ OPEN_RE = re.compile(r"^\s*(function|if|while|for|object|list|try|error|http_rou
 CLOSE_RE = re.compile(r"^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):(" + LABEL + r")\s*$")
 BRANCH_RE = re.compile(r"^\s*(elseif\b.*?|else|catch\b.*?|finally):(" + LABEL + r")\s*$")
 ASSIGN_RE = re.compile(r"^\s*(const\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$")
-DECLARABLE_TYPE_PATTERN = r"(?:number|string|boolean|object|bytes|datetime|local_datetime|timezone|duration|secret|regex_match_result|exec_result|http_profile|http_response|http_auth|oauth_token|cookie_jar|mail_address|mail_message|mail_sender|mail_send_result|xml_document|xml_element|db_connection|board|pin|embedded_bus|ip_address|network_interface|tcp_connection|udp_socket|dhcp_server|dns_server)"
-TYPED_ASSIGN_RE = re.compile(rf"^\s*(const\s+)?(list\s*<\s*({DECLARABLE_TYPE_PATTERN})\s*>|{DECLARABLE_TYPE_PATTERN})\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$")
+SCALAR_TYPE_PATTERN = r"(?:number|string|boolean|object|bytes|datetime|local_datetime|timezone|duration|secret|regex_match_result|exec_result|http_profile|http_response|http_auth|oauth_token|cookie_jar|mail_address|mail_message|mail_sender|mail_send_result|xml_document|xml_element|db_connection|board|pin|embedded_bus|ip_address|network_interface|tcp_connection|udp_socket|dhcp_server|dns_server)"
+DECLARABLE_TYPE_PATTERN = SCALAR_TYPE_PATTERN
+for _depth in range(4):
+    DECLARABLE_TYPE_PATTERN = rf"(?:{SCALAR_TYPE_PATTERN}|list\s*<\s*{DECLARABLE_TYPE_PATTERN}\s*>)"
+TYPED_ASSIGN_RE = re.compile(rf"^\s*(const\s+)?({DECLARABLE_TYPE_PATTERN})\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$")
 FUNCTION_RE = re.compile(r"^\s*function:([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?\s*$")
 FOR_RE = re.compile(r"^\s*for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\b")
 WORD_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -34,6 +37,10 @@ BUILTIN_SIGNATURES = {
     "sum": "sum(items: list<number>) -> number",
     "average": "average(items: list<number>) -> number",
     "count": "count(items: list, value: value) -> number",
+    "list_insert": "list_insert(values: list, position: front | number | back, count: number) -> VOID",
+    "list_remove": "list_remove(values: list, position: front | number | back, count: number) -> VOID",
+    "list_remove_horizontal": "list_remove_horizontal(values: list<list>, row: number, column: front | number | back, count: number) -> VOID",
+    "list_remove_vertical": "list_remove_vertical(values: list<list>, row: number, column: front | number | back, count: number) -> VOID",
     "length": "length(value: string | list | bytes) -> number",
     "string": "string(value: number | string | boolean) -> string",
     "number": "number(value: number | string) -> number",
@@ -355,7 +362,7 @@ def variables(source):
             scope_stack.append("function " + function.group(1))
             search_start = text.find("(") + 1
             for declaration in [item.strip() for item in (function.group(2) or "").split(",") if item.strip()]:
-                match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)(?:\s*:\s*(list\s*<[^>]+>|[A-Za-z_][A-Za-z0-9_]*))?", declaration)
+                match = re.fullmatch(rf"([A-Za-z_][A-Za-z0-9_]*)(?:\s*:\s*({DECLARABLE_TYPE_PATTERN}))?", declaration)
                 if match is None: continue
                 parameter, declared = match.groups()
                 start = text.find(parameter, search_start); search_start = start + len(declaration)
@@ -374,7 +381,7 @@ def variables(source):
             continue
         typed = TYPED_ASSIGN_RE.match(code)
         if typed:
-            const, declared, element, name, expression = typed.groups(); start = text.index(name)
+            const, declared, name, expression = typed.groups(); start = text.index(name)
             inferred = "list" if declared.startswith("list") else declared
             if object_stack:
                 object_stack[-1].members[name] = inferred

@@ -158,7 +158,7 @@ def semantic_tokens(source):
             word = found.group()
             if word in KEYWORDS: add(line_no, found.start(), len(word), "keyword")
             elif word in ("print", "print_error"): add(line_no, found.start(), len(word), "function")
-            elif word in ("true", "false", "EMPTY", "EMPTYS"): add(line_no, found.start(), len(word), "type")
+            elif word in ("true", "false", "EMPTY", "EMPTYS", "front", "back"): add(line_no, found.start(), len(word), "type")
             elif word in BUILTIN_SIGNATURES or re.match(r"\s*\(", text[found.end():]): add(line_no, found.start(), len(word), "function")
             elif found.start() > 0 and text[found.start() - 1] == ".": add(line_no, found.start(), len(word), "property")
         for found in re.finditer(r"\*\*|//|==|!=|>=|<=|&&|\|\||\?\?|[+\-*/%><!=]", text): add(line_no, found.start(), len(found.group()), "operator")

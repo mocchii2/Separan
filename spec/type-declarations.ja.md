@@ -8,6 +8,7 @@ number count = 0
 string name = "Separan"
 boolean enabled = true
 list<number> values = []
+list<list<number>> matrix = [[1, 2], [3, 4, 5]]
 const string version = "0.2"
 ```
 
@@ -16,7 +17,9 @@ const string version = "0.2"
 持たせない場合は`string name = EMPTY`と記述します。
 
 初期値は宣言型と完全に一致しなければならず、暗黙変換は行いません。型付きlistは
-空listで初期化する場合も要素型が必須で、その後の代入でも要素型を維持します。
+空listで初期化する場合も要素型が必須で、その後の代入でも要素型を維持します。list型は
+再帰的にnestでき、各rowの長さが異なるjagged listも有効です。`EMPTYS`は全row長と再帰的な
+element型を維持します。
 
 ```separan
 list<number> values = []

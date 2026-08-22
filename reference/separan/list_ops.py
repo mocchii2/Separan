@@ -1,4 +1,4 @@
-"""Non-mutating list operations for Separan."""
+"""List value operations and direct-shape dispatch guards for Separan."""
 
 import re
 

@@ -428,9 +428,11 @@ HTTP Cookieは単発objectと継続通信用Cookie Jarに分離しています�
 domain／path／expiry／Secureを送信時に検証します。詳細は
 [Cookie仕様](../spec/cookies.ja.md)を参照してください。
 
-listは同型・0始まりで、追加、削除、slice、reverse、sortをすべて非破壊操作として
-提供します。安定sortの降順、Unicode大文字小文字無視、自然順、object field指定を
-用途別の明示的な関数として利用できます。詳細は[list仕様](../spec/lists.ja.md)を参照してください。
+listは同型・0始まりです。2引数の`list_remove`、slice、reverse、sortなどのvalue変換は
+非破壊で、v0.2 previewのshape操作だけを明示的な副作用として分離しています。`EMPTY`は
+1値、`EMPTYS`はjagged shapeを保った全値を消し、`list_insert`／3引数`list_remove`は
+typed slotを増減します。詳細は[list仕様](../spec/lists.ja.md)、
+[list shape仕様](../spec/list-shape-operations.ja.md)、[実行例](../examples/list_shapes.sep)を参照してください。
 
 `length(value)`と`is_empty(value)`はstring、list、bytesで共通です。文字列検索、
 繰り返し、paddingはUnicodeコードポイント単位で、`index_of`／`last_index_of`の
