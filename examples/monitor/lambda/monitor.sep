@@ -87,7 +87,7 @@ end_function:send_candidate
 
 function:contains_alert_keyword(message)
 text = lower(message)
-return contains(text, "error") || contains(text, "critical") || contains(message, "重大")
+return contains(text, "error") || contains(text, "critical") || contains(message, "\u91cd\u5927")
 end_function:contains_alert_keyword
 
 ########################################

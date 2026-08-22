@@ -7,25 +7,25 @@ Description: >-
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
-      - Label: {default: "1. 基本設定 / General"}
+      - Label: {default: "1. General settings"}
         Parameters: [ProjectName, NotificationTimezone, HistoryRetentionDays, DuplicateSuppressionMinutes, StatusCheckSchedule]
-      - Label: {default: "2. EC2監視対象（最大5台）"}
+      - Label: {default: "2. EC2 targets (up to 5)"}
         Parameters: [Ec2Instance1, Ec2Name1, Ec2Instance2, Ec2Name2, Ec2Instance3, Ec2Name3, Ec2Instance4, Ec2Name4, Ec2Instance5, Ec2Name5]
-      - Label: {default: "3. RDS監視対象（最大5台）"}
+      - Label: {default: "3. RDS targets (up to 5)"}
         Parameters: [RdsInstance1, RdsName1, RdsLogGroup1, RdsInstance2, RdsName2, RdsLogGroup2, RdsInstance3, RdsName3, RdsLogGroup3, RdsInstance4, RdsName4, RdsLogGroup4, RdsInstance5, RdsName5, RdsLogGroup5]
-      - Label: {default: "4. Metricしきい値"}
+      - Label: {default: "4. Metric thresholds"}
         Parameters: [AlarmPeriodSeconds, AlarmEvaluationPeriods, Ec2CpuThresholdPercent, Ec2DiskFreeThresholdPercent, RdsCpuThresholdPercent, RdsFreeStorageThresholdBytes]
-      - Label: {default: "5. 状態変化後のMetric通知抑制"}
+      - Label: {default: "5. Post-transition metric suppression"}
         Parameters: [StartupSuppressionMinutes, ShutdownSuppressionMinutes, RebootSuppressionMinutes]
-      - Label: {default: "6. 通知先"}
+      - Label: {default: "6. Notification destinations"}
         Parameters: [EmailAddress, SmsPhoneNumber, EnableTeams, TeamsTenantId, TeamsTeamId, TeamsChannelId]
-      - Label: {default: "7. 通知種別ごとの経路"}
+      - Label: {default: "7. Routes by notification type"}
         Parameters: [NotificationAChannels, NotificationA2Channels, NotificationBChannels, NotificationCChannels, NotificationDChannels, NotificationEChannels, NotificationFChannels]
-      - Label: {default: "8. Windows CloudWatch Agent（任意）"}
+      - Label: {default: "8. Windows CloudWatch Agent (optional)"}
         Parameters: [ConfigureWindowsAgents, Ec2IamRoleName]
     ParameterLabels:
-      RdsFreeStorageThresholdBytes: {default: "RDS空き容量しきい値（bytes、20GiB=21474836480）"}
-      Ec2IamRoleName: {default: "対象EC2が共通で使用するIAM role名"}
+      RdsFreeStorageThresholdBytes: {default: "RDS free-storage threshold (bytes; 20 GiB = 21474836480)"}
+      Ec2IamRoleName: {default: "IAM role name shared by the target EC2 instances"}
 
 Parameters:
   ProjectName: {Type: String, Default: separan-monitor, AllowedPattern: "^[A-Za-z][A-Za-z0-9-]{2,31}$"}
@@ -47,7 +47,7 @@ Parameters:
 
   RdsInstance1: {Type: String, Default: "", AllowedPattern: "^$|^[A-Za-z][A-Za-z0-9-]{0,62}$"}
   RdsName1: {Type: String, Default: RDS-1}
-  RdsLogGroup1: {Type: String, Default: "", Description: "既存のRDS CloudWatch Logs log group名（例 /aws/rds/instance/db/error）"}
+  RdsLogGroup1: {Type: String, Default: "", Description: "Existing RDS CloudWatch Logs log group (for example, /aws/rds/instance/db/error)."}
   RdsInstance2: {Type: String, Default: "", AllowedPattern: "^$|^[A-Za-z][A-Za-z0-9-]{0,62}$"}
   RdsName2: {Type: String, Default: RDS-2}
   RdsLogGroup2: {Type: String, Default: ""}
@@ -71,13 +71,13 @@ Parameters:
   ShutdownSuppressionMinutes: {Type: Number, Default: 5, MinValue: 0, MaxValue: 1440}
   RebootSuppressionMinutes: {Type: Number, Default: 15, MinValue: 0, MaxValue: 1440}
 
-  EmailAddress: {Type: String, Default: "", Description: "空ならEmail通知を作成しません。SNS確認メールの承認が必要です。"}
-  SmsPhoneNumber: {Type: String, Default: "", AllowedPattern: "^$|^\\+[1-9][0-9]{7,14}$", Description: "E.164形式。空ならSMS通知を作成しません。"}
+  EmailAddress: {Type: String, Default: "", Description: "Leave empty to disable email. SNS subscription confirmation is required."}
+  SmsPhoneNumber: {Type: String, Default: "", AllowedPattern: "^$|^\\+[1-9][0-9]{7,14}$", Description: "E.164 format. Leave empty to disable SMS."}
   EnableTeams: {Type: String, Default: "false", AllowedValues: ["true", "false"]}
-  TeamsTenantId: {Type: String, Default: "", AllowedPattern: "^$|^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$", Description: "Teams無効時は空。Microsoft Entra tenant GUID。"}
-  TeamsTeamId: {Type: String, Default: "", AllowedPattern: "^$|^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$", Description: "Teams無効時は空。Microsoft Teams team GUID。"}
-  TeamsChannelId: {Type: String, Default: "", AllowedPattern: "^$|^([a-zA-Z0-9-_=+/.,])*%3[aA]([a-zA-Z0-9-_=+/.,])*%40([a-zA-Z0-9-_=+/.,])*$", Description: "Teams無効時は空。Amazon Qに表示されるURL encode済みchannel ID。"}
-  NotificationAChannels: {Type: String, Default: "email,teams", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$", Description: "email,sms,teams のcomma区切り"}
+  TeamsTenantId: {Type: String, Default: "", AllowedPattern: "^$|^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$", Description: "Leave empty when Teams is disabled. Microsoft Entra tenant GUID."}
+  TeamsTeamId: {Type: String, Default: "", AllowedPattern: "^$|^[0-9A-Fa-f]{8}(-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$", Description: "Leave empty when Teams is disabled. Microsoft Teams team GUID."}
+  TeamsChannelId: {Type: String, Default: "", AllowedPattern: "^$|^([a-zA-Z0-9-_=+/.,])*%3[aA]([a-zA-Z0-9-_=+/.,])*%40([a-zA-Z0-9-_=+/.,])*$", Description: "Leave empty when Teams is disabled. URL-encoded channel ID shown by Amazon Q."}
+  NotificationAChannels: {Type: String, Default: "email,teams", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$", Description: "Comma-separated list containing email, sms, or teams."}
   NotificationA2Channels: {Type: String, Default: "email,teams", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$"}
   NotificationBChannels: {Type: String, Default: "email,teams", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$"}
   NotificationCChannels: {Type: String, Default: "email", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$"}
@@ -85,7 +85,7 @@ Parameters:
   NotificationEChannels: {Type: String, Default: "email", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$"}
   NotificationFChannels: {Type: String, Default: "email,sms,teams", AllowedPattern: "^$|^(email|sms|teams)(,(email|sms|teams))*$"}
   ConfigureWindowsAgents: {Type: String, Default: "false", AllowedValues: ["true", "false"]}
-  Ec2IamRoleName: {Type: String, Default: "", Description: "ConfigureWindowsAgents=true時に必須。対象EC2へattach済みのrole名。"}
+  Ec2IamRoleName: {Type: String, Default: "", Description: "Required when ConfigureWindowsAgents=true. The role must already be attached to every target EC2 instance."}
 
 Rules:
   WindowsAgentRoleRequired:
@@ -422,7 +422,7 @@ Resources:
       Environment:
         Variables:
           INGRESS_TOPIC: !Ref NotifyIngressTopic
-          KEYWORDS: ERROR,CRITICAL,重大
+          KEYWORDS: "ERROR,CRITICAL,\u91cd\u5927"
           EC2_IDS: !Join [",", [!Ref Ec2Instance1, !Ref Ec2Instance2, !Ref Ec2Instance3, !Ref Ec2Instance4, !Ref Ec2Instance5]]
           EC2_NAMES: !Join [",", [!Ref Ec2Name1, !Ref Ec2Name2, !Ref Ec2Name3, !Ref Ec2Name4, !Ref Ec2Name5]]
           RDS_IDS: !Join [",", [!Ref RdsInstance1, !Ref RdsInstance2, !Ref RdsInstance3, !Ref RdsInstance4, !Ref RdsInstance5]]

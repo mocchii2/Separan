@@ -1,6 +1,6 @@
 import "notify.sep" as notification
 
-const include_keywords = ["error", "critical", "ora-", "重大"]
+const include_keywords = ["error", "critical", "ora-", "\u91cd\u5927"]
 const exclude_keywords = ["ora-00001", "known harmless error"]
 
 function:contains_any(text, keywords)

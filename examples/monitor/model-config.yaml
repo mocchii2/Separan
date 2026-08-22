@@ -23,7 +23,7 @@ resources:
       log_group: /aws/rds/instance/appdb01/error
 
 log_rules:
-  include: [ERROR, CRITICAL, 重大]
+  include: [ERROR, CRITICAL, "\u91cd\u5927"]
   exclude: [known harmless error]
 
 transition_suppression:
