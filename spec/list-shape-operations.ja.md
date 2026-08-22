@@ -70,17 +70,32 @@ values = EMPTYS
 ## 方向付き削除
 
 ```separan
-list_remove_horizontal(values, row, column, count) -> VOID
-list_remove_vertical(values, row, column, count) -> VOID
+list_remove_horizontal(values, fixed_row, position, count) -> VOID
+list_remove_vertical(values, fixed_column, position, count) -> VOID
 ```
 
-horizontal removeは一つのrowからslotを削除して後続値を左へ詰めます。1次元removeを
-rowへ直接適用する操作と同じ効果ですが、方向を明示します。
+`position`は常に操作軸上で解釈し、`front`は軸の先頭、`back`は末尾です。horizontal
+removeは一つのrowを固定し、左端、数値column位置、または右端からslotを削除して後続値を
+左へ詰めます。1次元removeをrowへ直接適用する操作と同じ効果ですが、方向を明示します。
 
-vertical removeは`row`以降の一つのcolumnだけを上へshiftし、空いた下端cellをtyped
-`EMPTY`で埋めます。outer／inner slot数は維持され、row削除ではありません。jagged listでは
-影響する全rowに対象columnが必要です。操作全体を先に検証するため、shape error後に
-部分変更が残ることはありません。
+```separan
+list_remove_horizontal(values, 1, front, 2)
+list_remove_horizontal(values, 1, 2, 2)
+list_remove_horizontal(values, 1, back, 2)
+```
+
+vertical removeは数値columnを固定し、上端、数値row位置、または下端から開始します。
+そのcolumnだけを上へshiftし、空いた下端cellをtyped `EMPTY`で埋めます。
+
+```separan
+list_remove_vertical(values, 1, front, 2)
+list_remove_vertical(values, 1, 1, 1)
+list_remove_vertical(values, 1, back, 1)
+```
+
+outer／inner slot数は維持され、row削除ではありません。jagged listでは影響する全rowに
+固定columnが必要です。操作全体を先に検証するため、shape error後に部分変更が残ることは
+ありません。
 
 vertical insertはjagged listの拡張規則が確定するまで保留します。矩形を推測してpadding
 することはありません。
@@ -94,4 +109,3 @@ vertical insertはjagged listの拡張規則が確定するまで保留します
 | `E211` | `const` bindingの変更 |
 | `E603` | position、count、row、column、rangeが不正 |
 | `E605` | 直接の可変listでない、またはjagged検証失敗 |
-

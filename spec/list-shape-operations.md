@@ -75,20 +75,36 @@ The final `EMPTYS` retains three rows with lengths 2, 3, and 1. Applying
 ## Directional removal
 
 ```separan
-list_remove_horizontal(values, row, column, count) -> VOID
-list_remove_vertical(values, row, column, count) -> VOID
+list_remove_horizontal(values, fixed_row, position, count) -> VOID
+list_remove_vertical(values, fixed_column, position, count) -> VOID
 ```
 
-Horizontal removal deletes slots from one row and shifts later values left.
-It is equivalent in effect to applying the one-dimensional removal to that
-row, while making the intended direction explicit.
+`position` is always measured on the operation axis: `front` is the axis start
+and `back` is its end. Horizontal removal fixes one row, then deletes slots
+from the left, a numeric column position, or the right. It is equivalent in
+effect to applying the one-dimensional removal to that row, while making the
+intended direction explicit.
 
-Vertical removal shifts only one column upward from `row`, then fills the
-vacated bottom cells with typed `EMPTY`. It preserves the outer and inner slot
-counts; it is a column value-slot shift, not a row deletion. Every affected
-row of a jagged list must contain the selected column. Separan validates the
-complete operation first, so a shape error never leaves a partially modified
-list.
+```separan
+list_remove_horizontal(values, 1, front, 2)
+list_remove_horizontal(values, 1, 2, 2)
+list_remove_horizontal(values, 1, back, 2)
+```
+
+Vertical removal fixes one numeric column, then starts at the top, a numeric
+row position, or the bottom. It shifts that column upward and fills the vacated
+bottom cells with typed `EMPTY`.
+
+```separan
+list_remove_vertical(values, 1, front, 2)
+list_remove_vertical(values, 1, 1, 1)
+list_remove_vertical(values, 1, back, 1)
+```
+
+It preserves the outer and inner slot counts; it is a column value-slot shift,
+not a row deletion. Every affected row of a jagged list must contain the fixed
+column. Separan validates the complete operation first, so a shape error never
+leaves a partially modified list.
 
 Vertical insertion is deferred until its jagged-list growth semantics are
 fixed. Separan does not infer or pad a rectangle.
@@ -102,4 +118,3 @@ fixed. Separan does not infer or pad a rectangle.
 | `E211` | attempted mutation of a `const` binding |
 | `E603` | invalid position, count, row, column, or range |
 | `E605` | target is not a direct mutable list, or jagged validation failed |
-

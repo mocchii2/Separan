@@ -361,7 +361,10 @@ end_function:show
         insert = signature_help("list_insert(matrix, ", 0, 20)
         self.assertIn("front | number | back", insert["signatures"][0]["label"])
         vertical = signature_help("list_remove_vertical(matrix, 0, ", 0, 32)
-        self.assertIn("list<list>", vertical["signatures"][0]["label"])
+        self.assertIn("fixed_column: number", vertical["signatures"][0]["label"])
+        self.assertIn("position: front | number | back", vertical["signatures"][0]["label"])
+        horizontal = signature_help("list_remove_horizontal(matrix, 0, ", 0, 34)
+        self.assertIn("fixed_row: number", horizontal["signatures"][0]["label"])
 
     def test_position_selectors_have_semantic_tokens(self):
         source = "list_insert(values, front, 2)\nlist_remove(values, back, 1)\n"

@@ -13,8 +13,8 @@ print values
 
 list<list<number>> matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 matrix[1][1] = EMPTY
-list_remove_horizontal(matrix, 0, 1, 1)
-list_remove_vertical(matrix, 0, 0, 1)
+list_remove_horizontal(matrix, 0, back, 1)
+list_remove_vertical(matrix, 0, front, 1)
 print matrix
 
 end_function:main
