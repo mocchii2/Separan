@@ -87,7 +87,7 @@ def type_name(value):
 class Binding:
     value: object
     declared_type: str
-    element_type: str | None = None
+    element_type: object = None
     constant: bool = False
     declaration_position: object = None
 
@@ -112,11 +112,14 @@ class Environment:
             element_type = list_element_type(value, position) if value_type == "list" else None
             if old.declared_type != value_type:
                 raise error("E201", "Type error", f"Variable '{name}' has fixed type {old.declared_type} and cannot receive {value_type}.", position, expected=old.declared_type, actual=value_type)
-            if value_type == "list" and old.element_type and element_type and old.element_type != element_type:
-                raise error("E201", "Type error", f"List variable '{name}' has fixed element type {old.element_type}.", position, expected=old.element_type, actual=element_type)
-            if value_type == "list": value = normalize_list_values(value, old.element_type or element_type, position)
+            if value_type == "list" and not type_specs_compatible(old.element_type, element_type):
+                raise error("E201", "Type error", f"List variable '{name}' has fixed element type {type_spec_text(old.element_type)}.", position,
+                            expected=type_spec_text(old.element_type), actual=type_spec_text(element_type))
+            if value_type == "list":
+                element_type = merge_type_specs(old.element_type, element_type)
+                value = normalize_list_values(value, element_type, position)
             old.value = value
-            if old.element_type is None: old.element_type = element_type
+            old.element_type = merge_type_specs(old.element_type, element_type)
         else:
             if isinstance(value, EmptysValue):
                 raise error("E133", "EMPTYS container required", f"Variable '{name}' has no declared container to clear.", position,
@@ -167,7 +170,7 @@ class Environment:
         if name in self.values: return self.values[name]
         if self.parent: return self.parent.binding(name, position)
         raise error("E202", "Undefined variable", f"Variable '{name}' is not defined.", position, actual=name)
-    def assign_index(self, name, index, value, position):
+    def assign_indexes(self, name, indexes, value, position):
         binding = self.binding(name, position)
         if binding.constant:
             raise error("E211", "Constant reassignment", f"Constant '{name}' cannot be changed through an index.", position,
@@ -175,25 +178,104 @@ class Environment:
         if binding.declared_type != "list" or type(binding.value) is not list:
             raise error("E201", "Type error", f"Indexed assignment requires a present list variable, but '{name}' is {binding.declared_type}.", position,
                         expected="list", actual=binding.declared_type)
-        if type(index) is not int or index < 0:
-            raise error("E201", "Type error", "List indexes must be non-negative integers.", position,
-                        expected="non-negative integer", actual=repr(index))
-        if index >= len(binding.value):
-            raise error("E302", "Index out of range", f"Index {index} is outside a list of length {len(binding.value)}.", position,
-                        expected=f"0..{len(binding.value)-1}", actual=str(index))
-        if isinstance(value, EmptysValue):
-            raise error("E133", "EMPTYS scalar slot", "EMPTYS clears a container, not one list slot. Use EMPTY for a slot.", position,
-                        expected="EMPTY or a list element value", actual="EMPTYS")
-        expected = binding.element_type
-        if isinstance(value, EmptyValue): value = EmptyValue(expected)
-        elif expected is None:
-            expected = type_name(value)
-            binding.element_type = expected
-            binding.value = normalize_list_values(binding.value, expected, position)
-        elif type_name(value) != expected:
-            raise error("E201", "Type error", f"List variable '{name}' requires elements of type {expected}.", position,
-                        expected=expected, actual=type_name(value))
-        updated = list(binding.value); updated[index] = value; binding.value = updated
+        if not indexes:
+            raise error("E302", "Index required", "Indexed assignment requires at least one list index.", position)
+
+        def update(container, depth, expected):
+            index = indexes[depth]
+            if type(index) is not int or index < 0:
+                raise error("E201", "Type error", "List indexes must be non-negative integers.", position,
+                            expected="non-negative integer", actual=repr(index))
+            if index >= len(container):
+                raise error("E302", "Index out of range", f"Index {index} is outside a list of length {len(container)}.", position,
+                            expected=f"0..{len(container)-1}", actual=str(index))
+            current = container[index]
+            if depth + 1 < len(indexes):
+                if isinstance(current, EmptyValue):
+                    raise error("E131", "EMPTY value use", "An EMPTY list slot has no nested shape to index.", position,
+                                expected="a present nested list", actual="EMPTY")
+                if type(current) is not list:
+                    raise error("E201", "Type error", "Nested indexed assignment requires a list at every level.", position,
+                                expected="list", actual=type_name(current))
+                child_expected = expected[1] if is_list_type_spec(expected) else list_element_type(current, position)
+                replacement, adopted_child = update(current, depth + 1, child_expected)
+                adopted = ("list", adopted_child)
+            else:
+                if isinstance(value, EmptysValue):
+                    if not isinstance(current, (list, ObjectValue)):
+                        raise error("E133", "EMPTYS container required", "EMPTYS can clear only a container-valued list slot.", position,
+                                    expected="list or object slot", actual=type_name(current))
+                    current_element = expected[1] if is_list_type_spec(expected) else None
+                    replacement = clear_container_value(current, type_name(current), current_element, position)
+                    adopted = expected
+                elif isinstance(value, EmptyValue):
+                    slot_type = expected or value_type_spec(current, position)
+                    replacement = empty_for_type_spec(slot_type)
+                    adopted = slot_type
+                else:
+                    actual = value_type_spec(value, position)
+                    if expected is not None and not type_specs_compatible(expected, actual):
+                        raise error("E201", "Type error", f"List variable '{name}' requires elements of type {type_spec_text(expected)}.", position,
+                                    expected=type_spec_text(expected), actual=type_spec_text(actual))
+                    adopted = merge_type_specs(expected, actual)
+                    replacement = normalize_value_for_type_spec(value, adopted, position)
+            updated = list(container); updated[index] = replacement; return updated, merge_type_specs(expected, adopted)
+
+        binding.value, binding.element_type = update(binding.value, 0, binding.element_type)
+        binding.value = normalize_list_values(binding.value, binding.element_type, position)
+
+
+def is_list_type_spec(value):
+    return isinstance(value, tuple) and len(value) == 2 and value[0] == "list"
+
+
+def type_spec_text(value):
+    if is_list_type_spec(value): return f"list<{type_spec_text(value[1])}>"
+    return value or "unknown"
+
+
+def retained_empty_type(value):
+    if value.declared_type is None: return None
+    return ("list", value.element_type) if value.declared_type == "list" else value.declared_type
+
+
+def value_type_spec(value, position):
+    if isinstance(value, EmptyValue): return retained_empty_type(value)
+    if type(value) is list: return ("list", list_element_type(value, position))
+    return type_name(value)
+
+
+def type_specs_compatible(expected, actual):
+    if expected is None or actual is None: return True
+    if is_list_type_spec(expected) and is_list_type_spec(actual):
+        return type_specs_compatible(expected[1], actual[1])
+    return expected == actual
+
+
+def merge_type_specs(left, right):
+    if left is None: return right
+    if right is None: return left
+    if is_list_type_spec(left) and is_list_type_spec(right):
+        return ("list", merge_type_specs(left[1], right[1]))
+    return left
+
+
+def empty_for_type_spec(spec, *, external=False):
+    if is_list_type_spec(spec): return EmptyValue("list", spec[1], external)
+    return EmptyValue(spec, external=external)
+
+
+def normalize_value_for_type_spec(value, spec, position):
+    if isinstance(value, EmptyValue): return empty_for_type_spec(spec, external=value.external)
+    if is_list_type_spec(spec):
+        if type(value) is not list:
+            raise error("E201", "Type error", "Nested list element has an incompatible type.", position,
+                        expected=type_spec_text(spec), actual=type_name(value))
+        return normalize_list_values(value, spec[1], position)
+    if type_name(value) != spec:
+        raise error("E203", "Heterogeneous list", "All list elements must have the same type.", position,
+                    expected=type_spec_text(spec), actual=type_name(value))
+    return value
 
 
 def list_element_type(value, position):
@@ -206,12 +288,12 @@ def list_element_type(value, position):
                     expected="EMPTY or a concrete element", actual="EMPTYS")
     found = None
     for item in value:
-        actual = item.declared_type if isinstance(item, EmptyValue) else type_name(item)
+        actual = value_type_spec(item, position)
         if actual is None: continue
-        if found is not None and actual != found:
+        if found is not None and not type_specs_compatible(found, actual):
             raise error("E203", "Heterogeneous list", "All list elements must have the same type, including retained EMPTY types.", position,
-                        expected=found, actual=actual)
-        found = actual
+                        expected=type_spec_text(found), actual=type_spec_text(actual))
+        found = merge_type_specs(found, actual)
     return found
 
 
@@ -222,11 +304,7 @@ def normalize_list_values(values, element_type, position):
                     expected="list<type>", actual="list[EMPTY]")
     result = []
     for item in values:
-        if isinstance(item, EmptyValue): result.append(EmptyValue(element_type))
-        elif type_name(item) != element_type:
-            raise error("E203", "Heterogeneous list", "All list elements must have the same type, including retained EMPTY types.", position,
-                        expected=element_type, actual=type_name(item))
-        else: result.append(item)
+        result.append(normalize_value_for_type_spec(item, element_type, position))
     return result
 
 
@@ -246,8 +324,11 @@ def clear_container_value(value, declared_type, element_type, position):
                         expected="list", actual=type_name(value))
         result = []
         for item in value:
-            if isinstance(item, (list, ObjectValue)): result.append(clear_container_value(item, type_name(item), None, position))
-            else: result.append(EmptyValue(element_type or type_name(item)))
+            if isinstance(item, (list, ObjectValue)):
+                nested_element = element_type[1] if is_list_type_spec(element_type) and type(item) is list else None
+                result.append(clear_container_value(item, type_name(item), nested_element, position))
+            else:
+                result.append(empty_for_type_spec(element_type or value_type_spec(item, position)))
         return result
     if declared_type == "object":
         if not isinstance(value, ObjectValue):
@@ -258,7 +339,9 @@ def clear_container_value(value, declared_type, element_type, position):
             expected = field_types.get(key, (type_name(item), None))
             field_types[key] = expected
             if isinstance(item, (list, ObjectValue)): fields[key] = clear_container_value(item, type_name(item), expected[1], position)
-            else: fields[key] = EmptyValue(expected[0], expected[1])
+            else:
+                field_spec = ("list", expected[1]) if expected[0] == "list" else expected[0]
+                fields[key] = empty_for_type_spec(field_spec)
         return ObjectValue.create(fields, field_types)
     raise error("E133", "EMPTYS scalar", "EMPTYS can only be assigned to a list or object.", position,
                 expected="list or object", actual=declared_type)
@@ -279,9 +362,9 @@ def prepare_typed_value(name, declared_type, declared_element_type, value, posit
         raise error("E201", "Type error", f"'{name}' is declared as {declared_type} and cannot receive {value_type}.", position,
                     expected=declared_type, actual=value_type)
     element_type = list_element_type(value, position) if value_type == "list" else None
-    if declared_type == "list" and element_type is not None and element_type != declared_element_type:
-        raise error("E201", "Type error", f"List '{name}' requires elements of type {declared_element_type}.", position,
-                    expected=declared_element_type, actual=element_type)
+    if declared_type == "list" and not type_specs_compatible(declared_element_type, element_type):
+        raise error("E201", "Type error", f"List '{name}' requires elements of type {type_spec_text(declared_element_type)}.", position,
+                    expected=type_spec_text(declared_element_type), actual=type_spec_text(element_type))
     if declared_type == "list": return normalize_list_values(value, declared_element_type, position)
     return value
 
@@ -382,7 +465,7 @@ class Interpreter:
     def _execute(self, stmt):
         if isinstance(stmt, ImportStmt): self._import(stmt)
         elif isinstance(stmt, Assignment): self.environment.assign(stmt.name, self._eval(stmt.value), stmt.position)
-        elif isinstance(stmt, IndexAssignment): self.environment.assign_index(stmt.name, self._eval(stmt.index), self._eval(stmt.value), stmt.position)
+        elif isinstance(stmt, IndexAssignment): self.environment.assign_indexes(stmt.name, [self._eval(index) for index in stmt.indexes], self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, ConstDeclaration): self.environment.define_const(stmt.name, self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, TypedDeclaration): self.environment.define_typed(stmt.name, stmt.declared_type, stmt.element_type, self._eval(stmt.value), stmt.constant, stmt.position)
         elif isinstance(stmt, PrintStmt): self.output.write(self._display_value(self._eval(stmt.value), stmt.position) + "\n")
@@ -677,8 +760,8 @@ class Interpreter:
                 return BytesValue(left.value + right.value)
             if op == "+" and type(left) is list and type(right) is list:
                 left_type = list_element_type(left, expr.position); right_type = list_element_type(right, expr.position)
-                if left_type and right_type and left_type != right_type:
-                    self._type_error(expr.position, f"list[{left_type}]", f"list[{right_type}]", "List concatenation requires matching element types.")
+                if not type_specs_compatible(left_type, right_type):
+                    self._type_error(expr.position, f"list[{type_spec_text(left_type)}]", f"list[{type_spec_text(right_type)}]", "List concatenation requires matching element types.")
                 return left + right
             if op in ("+", "-", "*", "/", "//", "%", "**", ">", "<", ">=", "<="):
                 if not self._numbers(left, right): self._type_error(expr.position, "number + number" if op == "+" else "number operands", f"{type_name(left)}, {type_name(right)}", f"Operator '{op}' received incompatible values.")
@@ -735,9 +818,9 @@ class Interpreter:
         else:
             updated = list(inferred)
             for index, (parameter, expected_type, actual_type) in enumerate(zip(function.parameters, inferred, signature)):
-                if expected_type[0] != actual_type[0] or (expected_type[1] and actual_type[1] and expected_type[1] != actual_type[1]):
-                    expected = expected_type[0] + (f"[{expected_type[1]}]" if expected_type[1] else "")
-                    actual = actual_type[0] + (f"[{actual_type[1]}]" if actual_type[1] else "")
+                if expected_type[0] != actual_type[0] or not type_specs_compatible(expected_type[1], actual_type[1]):
+                    expected = expected_type[0] + (f"[{type_spec_text(expected_type[1])}]" if expected_type[1] else "")
+                    actual = actual_type[0] + (f"[{type_spec_text(actual_type[1])}]" if actual_type[1] else "")
                     raise error("E208", "Function parameter type mismatch", f"Parameter '{parameter}' of function '{name}' was inferred as {expected} by its first call.", position, expected=expected, actual=actual)
                 if expected_type[0] == "list" and expected_type[1] is None and actual_type[1] is not None:
                     updated[index] = actual_type

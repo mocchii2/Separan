@@ -27,6 +27,9 @@ class EmptysTests(unittest.TestCase):
         self.assertIsInstance(statement, IndexAssignment)
         self.assertEqual(statement.name, "values")
 
+        nested = parse("values[1][2] = EMPTY\n").statements[0]
+        self.assertEqual(len(nested.indexes), 2)
+
     def test_list_slots_retain_element_type_while_empty(self):
         source = '''list<number> values = [1, 2, 3]
 values[1] = EMPTY
@@ -60,6 +63,26 @@ values[0] = 0
 print values is not EMPTYS
 '''
         self.assertEqual(execute(source)[1], "true\n3\n[EMPTY, EMPTY, EMPTY]\ntrue\n")
+
+    def test_nested_empty_and_emptys_preserve_jagged_shape(self):
+        source = '''list<list<number>> values = [[1, 2], [3, 4, 5], [6]]
+values[1][1] = EMPTY
+print values
+values[1] = EMPTYS
+print values
+values = EMPTYS
+print values
+'''
+        self.assertEqual(
+            execute(source)[1],
+            "[[1, 2], [3, EMPTY, 5], [6]]\n"
+            "[[1, 2], [EMPTY, EMPTY, EMPTY], [6]]\n"
+            "[[EMPTY, EMPTY], [EMPTY, EMPTY, EMPTY], [EMPTY]]\n",
+        )
+
+    def test_nested_index_assignment_is_atomic_and_const_safe(self):
+        self.assert_error("values = [[1], [2]]\nvalues[0][1] = EMPTY\n", "E302")
+        self.assert_error("const values = [[1], [2]]\nvalues[0][0] = EMPTY\n", "E211")
 
     def test_empty_list_is_emptys_and_typed_emptys_can_initialize_it(self):
         statement = parse("print values is EMPTYS\n").statements[0]

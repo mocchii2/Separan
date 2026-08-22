@@ -41,14 +41,22 @@ class Stmt(Node): pass
 @dataclass
 class Assignment(Stmt): name: str; value: Expr
 @dataclass
-class IndexAssignment(Stmt): name: str; index: Expr; value: Expr
+class IndexAssignment(Stmt):
+    name: str
+    indexes: list[Expr]
+    value: Expr
+
+    @property
+    def index(self):
+        """Compatibility accessor for existing single-index AST consumers."""
+        return self.indexes[0]
 @dataclass
 class ConstDeclaration(Stmt): name: str; value: Expr
 @dataclass
 class TypedDeclaration(Stmt):
     name: str
     declared_type: str
-    element_type: str | None
+    element_type: object
     value: Expr
     constant: bool = False
 @dataclass
@@ -60,7 +68,7 @@ class ReturnStmt(Stmt): value: Expr | None
 @dataclass
 class ExpressionStmt(Stmt): expression: Expr
 @dataclass
-class ObjectField(Node): name: str; value: Expr; declared_type: str | None = None; element_type: str | None = None
+class ObjectField(Node): name: str; value: Expr; declared_type: str | None = None; element_type: object = None
 @dataclass
 class ObjectBlock(Stmt): name: str; entries: list[Node]; label_position: SourcePosition
 @dataclass

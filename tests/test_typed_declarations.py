@@ -50,6 +50,20 @@ print active
         self.assert_error('list<number> values = []\nvalues = ["x"]\n', "E201")
         self.assert_error('list<number> values = ["x"]\n', "E201")
 
+    def test_recursive_typed_lists_support_jagged_rows(self):
+        source = '''list<list<number>> values = [[1, 2], [3, 4, 5], [6]]
+print values
+'''
+        self.assertEqual(execute(source)[1], "[[1, 2], [3, 4, 5], [6]]\n")
+        self.assert_error('list<list<number>> values = [[1], ["x"]]\n', "E203")
+
+    def test_recursive_type_is_preserved_for_all_empty_rows(self):
+        source = '''list<list<number>> values = [[EMPTY, EMPTY], [EMPTY]]
+values[0][1] = 7
+print values
+'''
+        self.assertEqual(execute(source)[1], "[[EMPTY, 7], [EMPTY]]\n")
+
     def test_typed_list_requires_element_type(self):
         self.assert_error("list values = []\n", "E124")
 

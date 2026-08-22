@@ -111,11 +111,13 @@ class Parser:
             value = self._expression(); self._line_end(); return ConstDeclaration(token.position, name.lexeme, value)
         if self._is_index_assignment():
             name = self._binding(self._advance())
-            self._consume(T.LBRACKET, "Expected '[' after list variable name.")
-            index = self._expression(); self._consume(T.RBRACKET, "Expected ']' after list index.")
+            indexes = []
+            while self._match(T.LBRACKET):
+                indexes.append(self._expression())
+                self._consume(T.RBRACKET, "Expected ']' after list index.")
             self._consume(T.EQUAL, "Expected '=' after indexed target.")
             value = self._expression(); self._line_end()
-            return IndexAssignment(name.position, name.lexeme, index, value)
+            return IndexAssignment(name.position, name.lexeme, indexes, value)
         if token.type == T.IDENTIFIER and self._peek(1).type in self.ASSIGNMENTS:
             name = self._binding(self._advance()); assignment = self._advance(); value = self._expression(); self._line_end()
             operator = self.ASSIGNMENTS[assignment.type]
@@ -148,14 +150,10 @@ class Parser:
         element_type = None
         if declared_type == "list":
             self._consume(T.LESS, "Typed lists require an element type, for example list<number>.")
-            if not self._at(T.IDENTIFIER, T.OBJECT):
+            if not self._at(T.IDENTIFIER, T.OBJECT, T.LIST):
                 self._consume(T.IDENTIFIER, "Expected list element type after '<'.")
-            element = self._advance()
-            element_name = self._type_name(element)
-            if element_name not in self.DECLARABLE_TYPES or element_name == "list":
-                raise error("E123", "Unknown declared type", f"'{element.lexeme}' is not a supported list element type.", element.position,
-                            expected="a concrete Separan type", actual=element.lexeme)
-            element_type = element_name
+            element_name, nested_element = self._declared_type()
+            element_type = ("list", nested_element) if element_name == "list" else element_name
             self._consume(T.GREATER, "Expected '>' after list element type.")
         return declared_type, element_type
 
@@ -169,15 +167,21 @@ class Parser:
 
     def _is_index_assignment(self):
         if not self._at(T.IDENTIFIER) or self._peek(1).type != T.LBRACKET: return False
-        depth, offset = 0, 1
-        while self._peek(offset).type not in (T.NEWLINE, T.EOF):
-            kind = self._peek(offset).type
-            if kind == T.LBRACKET: depth += 1
-            elif kind == T.RBRACKET:
-                depth -= 1
-                if depth == 0: return self._peek(offset + 1).type == T.EQUAL
-            offset += 1
-        return False
+        offset = 1
+        while self._peek(offset).type == T.LBRACKET:
+            depth = 0
+            while self._peek(offset).type not in (T.NEWLINE, T.EOF):
+                kind = self._peek(offset).type
+                if kind == T.LBRACKET: depth += 1
+                elif kind == T.RBRACKET:
+                    depth -= 1
+                    if depth == 0:
+                        offset += 1
+                        break
+                offset += 1
+            else:
+                return False
+        return self._peek(offset).type == T.EQUAL
 
     def _looks_like_uninitialized_typed_declaration(self):
         token = self._peek()
@@ -189,7 +193,9 @@ class Parser:
 
     @staticmethod
     def _format_type(declared_type, element_type):
-        return f"list<{element_type}>" if declared_type == "list" else declared_type
+        if declared_type != "list": return declared_type
+        nested = Parser._format_type(element_type[0], element_type[1]) if isinstance(element_type, tuple) else element_type
+        return f"list<{nested}>"
 
     def _function(self):
         start = self._advance(); self._consume(T.COLON, "Expected ':' after function.")
