@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, fields, is_dataclass
 
-from .ast_nodes import Assignment, CallExpr, ConstDeclaration, FunctionDecl, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
+from .ast_nodes import Assignment, CallExpr, ConstDeclaration, TypedDeclaration, FunctionDecl, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
 from .errors import error
 from .system_utilities import UtilityFunction
 
@@ -485,7 +485,7 @@ def validate_embedded_program(program, board_id):
             for parameter in value.parameters: local.pop(parameter, None)
             for statement in value.body: walk(statement, local)
             return
-        if isinstance(value, (Assignment, ConstDeclaration)):
+        if isinstance(value, (Assignment, ConstDeclaration, TypedDeclaration)):
             walk(value.value, bindings)
             pin = direct_pin(value.value, bindings)
             if pin is None: bindings.pop(value.name, None)
@@ -552,7 +552,7 @@ def validate_embedded_program(program, board_id):
             for item in value.values(): walk(item, bindings)
     global_pins = {}
     for statement in program.statements:
-        if isinstance(statement, (Assignment, ConstDeclaration)):
+        if isinstance(statement, (Assignment, ConstDeclaration, TypedDeclaration)):
             pin = direct_pin(statement.value, global_pins)
             if pin is None: global_pins.pop(statement.name, None)
             else: global_pins[statement.name] = pin

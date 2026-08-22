@@ -26,7 +26,8 @@ share one namespace and must be unique. Closed labels may be reused.
   multiline-comment labels, and function tags may instead be NFC-normalized Unicode identifiers. They are
   case-sensitive; emoji, spaces, punctuation, and non-normalized labels are invalid.
 - Types are `number`, `string`, `boolean`, `list`, and `null`.
-- Variables keep the type inferred by their first assignment.
+- Variables keep the type inferred by their first assignment. Explicit declarations use
+  `type name = value`; an initializer is always required.
 - Function parameter types are fixed by the function's first call.
 - Lists are homogeneous. Indexes are zero-based, non-negative integers.
 - Conditions require booleans; there is no truthy/falsy conversion.
@@ -35,6 +36,9 @@ share one namespace and must be unique. Closed labels may be reused.
 - `main()` is invoked automatically and must have no parameters.
 - Without `main`, top-level assignments and `print` statements execute in order.
 - `const name = value` creates a non-reassignable binding in the current scope.
+- `const type name = value` creates a non-reassignable explicitly typed binding.
+
+The complete rules are in [Explicit Type Declarations](type-declarations.md).
 
 ## Operators
 

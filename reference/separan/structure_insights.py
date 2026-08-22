@@ -6,7 +6,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 from .ast_nodes import (
-    Assignment, CallExpr, ConstDeclaration, ForStmt, FunctionDecl, IndexExpr,
+    Assignment, CallExpr, ConstDeclaration, TypedDeclaration, ForStmt, FunctionDecl, IndexExpr,
     ListBlock, MemberCallExpr, MemberExpr, ObjectBlock, Program, VariableExpr,
 )
 from .lexer import Lexer
@@ -56,6 +56,8 @@ def summarize_block(node: Any) -> BlockInsights:
         if isinstance(value, Assignment):
             writes.add(value.name); visit(value.value); return
         if isinstance(value, ConstDeclaration):
+            writes.add(value.name); visit(value.value); return
+        if isinstance(value, TypedDeclaration):
             writes.add(value.name); visit(value.value); return
         if isinstance(value, VariableExpr):
             reads.add(value.name); return

@@ -26,7 +26,8 @@ endif:label
   NFC正規化済みUnicode identifierも使用できる。どちらも大文字小文字を区別し、絵文字、
   空白、句読点、非正規化labelは使用できない。
 - 型は`number`、`string`、`boolean`、`list`、`null`。
-- 変数は最初の代入で推論した型を維持する。
+- 変数は最初の代入で推論した型を維持する。明示的型宣言は`type name = value`で、
+  初期値を必須とする。
 - 関数引数は、その関数への最初の呼び出しで型を固定する。
 - リスト要素は同一型。インデックスは0始まりの非負整数。
 - 条件はboolean必須。truthy/falsy変換は行わない。
@@ -35,6 +36,9 @@ endif:label
 - `main()`は自動実行し、引数を持てない。
 - `main`がなければトップレベルの代入と`print`を順に実行する。
 - `const name = value`は現在のscopeに再代入不能bindingを作る。
+- `const type name = value`は明示型を持つ再代入不能bindingを作る。
+
+完全な規則は[明示的型宣言](type-declarations.ja.md)で定義します。
 
 ## 演算子
 

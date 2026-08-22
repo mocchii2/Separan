@@ -90,6 +90,15 @@ Separanは、人間・AI・開発ツールがブロックの終わりを推測�
 すべてのブロックは明示的な識別子を持ち、開始側と終了側が一致しなければ
 構文エラーになります。
 
+変数は推論型と明示的な固定型のどちらでも記述できます。明示的型宣言では必ず
+初期値を書くため、初期化忘れが未設定変数として黙って残りません。
+
+```separan
+number retry_count = 0
+string service_name = "api"
+list<number> samples = []
+```
+
 ```separan
 function:main
 name = "Separan"

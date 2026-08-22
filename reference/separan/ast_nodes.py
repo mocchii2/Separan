@@ -39,6 +39,13 @@ class Assignment(Stmt): name: str; value: Expr
 @dataclass
 class ConstDeclaration(Stmt): name: str; value: Expr
 @dataclass
+class TypedDeclaration(Stmt):
+    name: str
+    declared_type: str
+    element_type: str | None
+    value: Expr
+    constant: bool = False
+@dataclass
 class PrintStmt(Stmt): value: Expr
 @dataclass
 class PrintErrorStmt(Stmt): value: Expr

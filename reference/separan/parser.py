@@ -19,6 +19,16 @@ class Parser:
         T.SLASH_EQUAL: "/", T.FLOOR_DIV_EQUAL: "//", T.PERCENT_EQUAL: "%",
         T.POWER_EQUAL: "**",
     }
+    DECLARABLE_TYPES = {
+        "number", "string", "boolean", "list", "object", "bytes",
+        "datetime", "local_datetime", "timezone", "duration", "secret",
+        "regex_match_result", "exec_result", "http_profile", "http_response",
+        "http_auth", "oauth_token", "cookie_jar", "mail_address",
+        "mail_message", "mail_sender", "mail_send_result", "xml_document",
+        "xml_element", "db_connection", "board", "pin", "embedded_bus",
+        "ip_address", "network_interface", "tcp_connection", "udp_socket",
+        "dhcp_server", "dns_server",
+    }
 
     def __init__(self, tokens: list[Token]):
         self.tokens, self.current, self.stack = tokens, 0, []
@@ -58,6 +68,13 @@ class Parser:
             if not top_level:
                 raise error("E110", "Invalid nested function", "Functions may only be defined at top level in v0.1.", token.position, actual=token.lexeme)
             return self._function()
+        if self._starts_typed_declaration():
+            return self._typed_declaration(token)
+        if self._looks_like_uninitialized_typed_declaration():
+            declared_type = self._type_name(self._peek())
+            name = self._peek(1)
+            raise error("E124", "Initializer required", f"Typed variable '{name.lexeme}' requires an initial value.", name.position,
+                        expected=f"{declared_type} {name.lexeme} = value", actual=f"{declared_type} {name.lexeme}")
         if token.type == T.OBJECT: return self._object()
         if token.type == T.LIST: return self._block_list()
         if token.type == T.TRY:
@@ -87,6 +104,8 @@ class Parser:
             self._advance(); value = None if self._at(T.NEWLINE, T.EOF) else self._expression(); self._line_end(); return ReturnStmt(token.position, value)
         if token.type == T.CONST:
             self._advance()
+            if self._starts_typed_declaration():
+                return self._typed_declaration(token, constant=True)
             name = self._binding(self._consume(T.IDENTIFIER, "Expected constant name after 'const'."))
             self._consume(T.EQUAL, "Expected '=' after constant name.")
             value = self._expression(); self._line_end(); return ConstDeclaration(token.position, name.lexeme, value)
@@ -102,6 +121,46 @@ class Parser:
         if top_level:
             self._top_error(token)
         expr = self._expression(); self._line_end(); return ExpressionStmt(token.position, expr)
+
+    def _typed_declaration(self, start, constant=False):
+        type_token = self._advance()
+        declared_type = self._type_name(type_token)
+        element_type = None
+        if declared_type == "list":
+            self._consume(T.LESS, "Typed lists require an element type, for example list<number>.")
+            element = self._consume(T.IDENTIFIER, "Expected list element type after '<'.")
+            if element.lexeme not in self.DECLARABLE_TYPES or element.lexeme == "list":
+                raise error("E123", "Unknown declared type", f"'{element.lexeme}' is not a supported list element type.", element.position,
+                            expected="a concrete Separan type", actual=element.lexeme)
+            element_type = element.lexeme
+            self._consume(T.GREATER, "Expected '>' after list element type.")
+        name = self._binding(self._consume(T.IDENTIFIER, "Expected variable name after declared type."))
+        if not self._match(T.EQUAL):
+            raise error("E124", "Initializer required", f"Typed variable '{name.lexeme}' requires an initial value.", name.position,
+                        expected=f"{self._format_type(declared_type, element_type)} {name.lexeme} = value",
+                        actual=f"{self._format_type(declared_type, element_type)} {name.lexeme}")
+        value = self._expression(); self._line_end()
+        return TypedDeclaration(start.position, name.lexeme, declared_type, element_type, value, constant)
+
+    def _starts_typed_declaration(self):
+        token = self._peek()
+        declared_type = self._type_name(token)
+        if declared_type not in self.DECLARABLE_TYPES: return False
+        if declared_type == "list":
+            return self._peek(1).type == T.LESS
+        return self._peek(1).type == T.IDENTIFIER
+
+    def _looks_like_uninitialized_typed_declaration(self):
+        token = self._peek()
+        return self._type_name(token) in self.DECLARABLE_TYPES and self._peek(1).type == T.IDENTIFIER
+
+    @staticmethod
+    def _type_name(token):
+        return "list" if token.type == T.LIST else token.lexeme if token.type == T.IDENTIFIER else ""
+
+    @staticmethod
+    def _format_type(declared_type, element_type):
+        return f"list<{element_type}>" if declared_type == "list" else declared_type
 
     def _function(self):
         start = self._advance(); self._consume(T.COLON, "Expected ':' after function.")

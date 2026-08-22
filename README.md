@@ -93,6 +93,16 @@ AI systems, and development tools can inspect without guessing where a block
 ends. Indentation is decoration. Every block carries an explicit identity, and
 its opener and closer must agree.
 
+Variables may use inferred or explicit fixed types. Explicit declarations always
+include an initializer, so a forgotten value cannot silently become an
+uninitialized binding:
+
+```separan
+number retry_count = 0
+string service_name = "api"
+list<number> samples = []
+```
+
 ```separan
 function:main
 name = "Separan"

@@ -111,6 +111,20 @@ class Environment:
         value_type = type_name(value)
         element_type = list_element_type(value, position) if value_type == "list" else None
         self.values[name] = Binding(value, value_type, element_type, True, position)
+    def define_typed(self, name, declared_type, declared_element_type, value, constant, position):
+        if name in self.values:
+            previous = self.values[name]
+            raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position,
+                        expected="a unique variable name", actual=name, related=previous.declaration_position)
+        value_type = type_name(value)
+        if value_type != declared_type:
+            raise error("E201", "Type error", f"Variable '{name}' is declared as {declared_type} and cannot receive {value_type}.", position,
+                        expected=declared_type, actual=value_type)
+        element_type = list_element_type(value, position) if value_type == "list" else None
+        if declared_type == "list" and element_type is not None and element_type != declared_element_type:
+            raise error("E201", "Type error", f"List variable '{name}' requires elements of type {declared_element_type}.", position,
+                        expected=declared_element_type, actual=element_type)
+        self.values[name] = Binding(value, declared_type, declared_element_type, constant, position)
     def get(self, name, position):
         if name in self.values: return self.values[name].value
         if self.parent: return self.parent.get(name, position)
@@ -225,6 +239,7 @@ class Interpreter:
         if isinstance(stmt, ImportStmt): self._import(stmt)
         elif isinstance(stmt, Assignment): self.environment.assign(stmt.name, self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, ConstDeclaration): self.environment.define_const(stmt.name, self._eval(stmt.value), stmt.position)
+        elif isinstance(stmt, TypedDeclaration): self.environment.define_typed(stmt.name, stmt.declared_type, stmt.element_type, self._eval(stmt.value), stmt.constant, stmt.position)
         elif isinstance(stmt, PrintStmt): self.output.write(self._display(self._eval(stmt.value)) + "\n")
         elif isinstance(stmt, PrintErrorStmt): self.error_output.write(self._display(self._eval(stmt.value)) + "\n")
         elif isinstance(stmt, ExpressionStmt): self._eval(stmt.expression)
@@ -361,7 +376,7 @@ class Interpreter:
                                  self.embedded_context, network_adapter=self.network_adapter)
             try: module.run(program, invoke_main=False)
             finally: self.import_stack.pop()
-            exports = frozenset([item.name for item in program.statements if isinstance(item, (FunctionDecl, ConstDeclaration, ErrorDecl))])
+            exports = frozenset([item.name for item in program.statements if isinstance(item, (FunctionDecl, ConstDeclaration, TypedDeclaration, ErrorDecl))])
             namespace = NamespaceValue(module, exports); self.module_cache[key] = namespace
         self.environment.define_const(stmt.alias, namespace, stmt.position)
 

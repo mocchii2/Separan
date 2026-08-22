@@ -16,6 +16,7 @@ from .ast_nodes import (
     BinaryExpr,
     CallExpr,
     ConstDeclaration,
+    TypedDeclaration,
     ExpressionStmt,
     ForStmt,
     FunctionDecl,
@@ -360,10 +361,10 @@ class _PicoCppEmitter:
         for statement in global_statements:
             if self._is_board_selection(statement):
                 continue
-            if isinstance(statement, (Assignment, ConstDeclaration)):
+            if isinstance(statement, (Assignment, ConstDeclaration, TypedDeclaration)):
                 value = self._expression(statement.value)
                 name = self._declare(statement.name)
-                qualifier = "const " if isinstance(statement, ConstDeclaration) else ""
+                qualifier = "const " if isinstance(statement, ConstDeclaration) or getattr(statement, "constant", False) else ""
                 self._line(f"{qualifier}auto {name} = {value};")
             else:
                 self._unsupported(statement, "Only constant global values and board_select() are supported in Pico firmware.")
@@ -442,14 +443,14 @@ class _PicoCppEmitter:
         self.scopes.pop()
 
     def _statement(self, statement, *, in_main=False):
-        if isinstance(statement, (Assignment, ConstDeclaration)):
+        if isinstance(statement, (Assignment, ConstDeclaration, TypedDeclaration)):
             value = self._expression(statement.value)
             existing = self._lookup(statement.name)
             if existing is None:
                 name = self._declare(statement.name)
-                qualifier = "const " if isinstance(statement, ConstDeclaration) else ""
+                qualifier = "const " if isinstance(statement, ConstDeclaration) or getattr(statement, "constant", False) else ""
                 self._line(f"{qualifier}auto {name} = {value};")
-            elif isinstance(statement, ConstDeclaration):
+            elif isinstance(statement, ConstDeclaration) or getattr(statement, "constant", False):
                 self._unsupported(statement, "A generated constant cannot shadow another local value.")
             else:
                 self._line(f"{existing} = {value};")
@@ -687,7 +688,7 @@ class _PicoCppEmitter:
         return expression.value
 
     def _is_board_selection(self, statement):
-        return isinstance(statement, (Assignment, ConstDeclaration)) and isinstance(statement.value, CallExpr) and statement.value.callee == "board_select"
+        return isinstance(statement, (Assignment, ConstDeclaration, TypedDeclaration)) and isinstance(statement.value, CallExpr) and statement.value.callee == "board_select"
 
     def _contains_return(self, value):
         if isinstance(value, ReturnStmt):
