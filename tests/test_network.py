@@ -152,6 +152,22 @@ print network_hostname() == system.hostname
         output = execute(source, capabilities=self.inspect, network_adapter=self.adapter)[1]
         self.assertEqual(output, "2\nnetwork_interface\nwifi0\nwifi\ntrue\n198.51.100.20\n[2001:db8::10, 198.51.100.20]\n198.51.100.1\n255.255.255.0\n[1.1.1.1, 2606:4700:4700::1111]\naa:bb:cc:dd:ee:ff\nwifi0\nobject\ntrue\n")
 
+    def test_missing_interface_and_lease_fields_are_typed_empty(self):
+        class MissingAdapter(FakeNetworkAdapter):
+            def interfaces(self):
+                values = super().interfaces()
+                values[0].update({"addresses": [], "prefixes": [], "gateways": [], "mac_address": None})
+                return values
+        adapter = MissingAdapter()
+        source = '''lan = ethernet_open()
+print network_ip_address(lan) is EMPTY
+print network_gateway(lan) is EMPTY
+print network_subnet_mask(lan) is EMPTY
+print network_mac_address(lan) is EMPTY
+print network_dhcp_lease(lan) is EMPTY
+'''
+        self.assertEqual(execute(source, capabilities=self.inspect, network_adapter=adapter)[1], "true\ntrue\ntrue\ntrue\ntrue\n")
+
     def test_inspection_requires_explicit_capability(self):
         caught = self.assert_error("print network_interfaces()\n", "E720", RuntimeCapabilities.none(ROOT), self.adapter)
         self.assertIn("inspect network interfaces", str(caught))
@@ -222,11 +238,11 @@ print lease.address
 network_refresh_address(lan)
 network_release_address(lan)
 print network_dhcp_status(lan)
-print network_ip_address(lan)
+print network_ip_address(lan) is EMPTY
 end_function:main
 '''
         self.assertEqual(execute(source, capabilities=self.configure, network_adapter=self.adapter)[1],
-                         "dhcp\nbound\ntrue\n192.0.2.20\ndisabled\nnull\n")
+                         "dhcp\nbound\ntrue\n192.0.2.20\ndisabled\ntrue\n")
         self.assertEqual([operation[0] for operation in self.adapter.operations],
                          ["use_dhcp", "refresh_address", "release_address"])
 
@@ -249,12 +265,21 @@ end_function:main
         configuration = self.adapter.operations[0][2]
         self.assertEqual(configuration, {"address": "10.0.0.10", "prefix": 24, "gateway": "10.0.0.1", "dns_servers": ["1.1.1.1"]})
 
+        no_gateway = '''function:main
+lan = ethernet_open()
+network_set_static_address(lan, "10.0.0.20", 24, EMPTY, [])
+print network_gateway(lan) is EMPTY
+end_function:main
+'''
+        self.assertEqual(execute(no_gateway, capabilities=self.configure, network_adapter=self.adapter)[1], "true\n")
+        self.assertIsNone(self.adapter.operations[-1][2]["gateway"])
+
     def test_address_configuration_has_separate_capability_and_validation(self):
         source = 'function:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nend_function:main\n'
         self.assert_error(source, "E720", self.inspect, self.adapter)
         self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 33, "10.0.0.1", [])\nend_function:main\n', "E980", self.configure, self.adapter)
         self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 24, "2001:db8::1", [])\nend_function:main\n', "E980", self.configure, self.adapter)
-        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "169.254.1.2", 16, null, [])\nend_function:main\n', "E980", self.configure, self.adapter)
+        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "169.254.1.2", 16, EMPTY, [])\nend_function:main\n', "E980", self.configure, self.adapter)
 
     def test_adapter_unavailable_and_failed_wait_are_explicit(self):
         class UnavailableAdapter(FakeNetworkAdapter):
@@ -305,11 +330,11 @@ end_function:main
             output = execute('values = dns_resolve("example.test")\nprint values\nprint type(first(values))\n', capabilities=capability)[1]
         self.assertEqual(output, "[192.0.2.2, 2001:db8::2]\nip_address\n")
 
-    def test_dns_reverse_absence_is_null(self):
+    def test_dns_reverse_absence_is_empty(self):
         capability = replace(RuntimeCapabilities.local(ROOT), network=True,
                              network_hosts=frozenset({"192.0.2.2"}), allow_private_network=True)
         with patch("separan.network.socket.gethostbyaddr", side_effect=socket.herror()):
-            self.assertEqual(execute('print dns_reverse_lookup(ip_address("192.0.2.2"))\n', capabilities=capability)[1], "null\n")
+            self.assertEqual(execute('print dns_reverse_lookup(ip_address("192.0.2.2")) is EMPTY\n', capabilities=capability)[1], "true\n")
 
     def test_tcp_round_trip_uses_bytes_and_explicit_close(self):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

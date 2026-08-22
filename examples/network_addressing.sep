@@ -17,9 +17,9 @@ if network_wait_until_addressed(lan, duration("10s")) :address_ready
 print "Address mode: " + network_address_mode(lan)
 print network_ip_address(lan)
 
-lease = network_dhcp_lease(lan)
+object lease = network_dhcp_lease(lan)
 
-if lease != null :lease_available
+if lease is not EMPTY :lease_available
 print lease.gateway
 print lease.dns_servers
 endif:lease_available

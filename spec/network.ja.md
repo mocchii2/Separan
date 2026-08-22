@@ -56,7 +56,7 @@ print network_hostname()
 
 `network_ip_address`は非loopback IPv4を優先し、なければ最初のaddressを返します。
 複数IPv4／IPv6を隠さないため、完全なsnapshotは`network_ip_addresses`で取得します。
-単一値の不在はnull、collectionの不在は空listです。
+単一値の不在は型付きEMPTY、collectionの不在は空listです。
 
 `network_status(interface)`は`name`、`kind`、`connected`、`ip_address`、
 `gateway`、`subnet_mask`、`dns_servers`、`mac_address`を持つ不変objectです。
@@ -69,7 +69,7 @@ network_set_preferred_interfaces(["Ethernet", "Wi-Fi"])
 active = network_preferred_interface()
 ```
 
-指定順で最初のconnected interfaceを返し、なければnullです。
+指定順で最初のconnected interfaceを返し、なければ型付きEMPTYです。
 
 ## Ethernet／Wi-Fi view
 
@@ -191,7 +191,7 @@ end_function:main
   `network_disable_link_local_fallback(interface)`
 
 固定addressとgatewayは同じIP versionでなければならず、prefix範囲もversionに合わせて
-検証します。gatewayはnull、DNSは重複のない明示listにできます。固定link-local addressは
+検証します。gatewayはEMPTY、DNSは重複のない明示listにできます。固定link-local addressは
 拒否し、意図が名前に出る`network_use_link_local`を使用します。
 
 `network_address_mode(interface)`は`disabled`、`dhcp`、`static`、`link_local`、`unknown`
@@ -200,12 +200,12 @@ Separanが推測で補うことはありません。
 
 `network_dhcp_status(interface)`は`disabled`、`discovering`、`requesting`、`bound`、
 `renewing`、`rebinding`、`failed`のいずれかです。
-`network_dhcp_lease(interface)`はlease不在ならnull、存在すれば次の不変objectを返します。
+`network_dhcp_lease(interface)`はlease不在なら型付きEMPTY、存在すれば次の不変objectを返します。
 
 - `address`、`prefix`、`gateway`、`dns_servers`
 - `server_address`
-- null許容durationの`lease_duration`、`renew_after`、`rebind_after`
-- null許容UTC datetimeの`expires_at`
+- EMPTY許容durationの`lease_duration`、`renew_after`、`rebind_after`
+- EMPTY許容UTC datetimeの`expires_at`
 
 adapter由来dataも型、範囲、時間順序を検証します。不正leaseを部分的に信用せず、
 `E980 network_address_error`で停止します。
@@ -247,7 +247,9 @@ name = dns_reverse_lookup(ip_address("203.0.113.10"))
 
 `dns_resolve`は任意の1件を選ばず、重複除去・決定的sort済みの
 `list<ip_address>`を返します。名前解決失敗は`network_dns_error`、逆引き不在は
-正常なnullです。どちらもhost allowlistとprivate-address規則を適用します。
+正常な型付きEMPTYです。どちらもhost allowlistとprivate-address規則を適用します。
+
+network設定、service停止、socket close操作はVOIDを返します。
 
 ## TCP
 

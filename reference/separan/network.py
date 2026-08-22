@@ -17,6 +17,7 @@ from .objects import ObjectValue
 from .randomness import BytesValue
 from .system_utilities import UtilityFunction
 from .temporal import DurationValue, TimezoneValue, UTC, from_unix_milliseconds
+from .runtime_values import EmptyValue, VOID, empty_of
 
 
 DEFAULT_TIMEOUT = DurationValue(30_000)
@@ -460,14 +461,16 @@ def _interface_value(item):
         "name": str(item.get("name") or ""), "index": int(item.get("index") or 0),
         "description": str(item.get("description") or item.get("name") or ""),
         "kind": str(item.get("kind") or "other"), "connected": bool(item.get("connected")),
-        "addresses": addresses, "ip_address": primary,
-        "gateway": gateways[0] if gateways else None,
-        "subnet_mask": _prefix_mask(None if primary is None else primary.value, prefix),
-        "dns_servers": dns, "mac_address": mac,
-        "ssid": item.get("ssid"), "bssid": item.get("bssid"),
-        "channel": item.get("channel"), "signal_strength": item.get("signal_strength"),
+        "addresses": addresses, "ip_address": primary if primary is not None else empty_of("ip_address", external=True),
+        "gateway": gateways[0] if gateways else empty_of("ip_address", external=True),
+        "subnet_mask": _prefix_mask(None if primary is None else primary.value, prefix) or empty_of("ip_address", external=True),
+        "dns_servers": dns, "mac_address": mac if mac is not None else empty_of("string", external=True),
+        "ssid": item.get("ssid") if item.get("ssid") is not None else empty_of("string", external=True),
+        "bssid": item.get("bssid") if item.get("bssid") is not None else empty_of("string", external=True),
+        "channel": item.get("channel") if item.get("channel") is not None else empty_of("number", external=True),
+        "signal_strength": item.get("signal_strength") if item.get("signal_strength") is not None else empty_of("number", external=True),
         "address_mode": address_mode, "dhcp_status": dhcp_status,
-        "dhcp_lease": item.get("dhcp_lease"),
+        "dhcp_lease": item.get("dhcp_lease") if item.get("dhcp_lease") is not None else empty_of("object", external=True),
         "link_local_fallback": item.get("link_local_fallback", False),
     })
 
@@ -582,11 +585,12 @@ def _wifi_scan(args, named, position, runtime):
         if type(ssid) is not str or not ssid:
             continue
         result.append(ObjectValue.create({
-            "ssid": ssid, "signal_strength": record.get("signal_strength"),
-            "channel": record.get("channel"), "bssid": record.get("bssid"),
+            "ssid": ssid, "signal_strength": record.get("signal_strength") if record.get("signal_strength") is not None else empty_of("number", external=True),
+            "channel": record.get("channel") if record.get("channel") is not None else empty_of("number", external=True),
+            "bssid": record.get("bssid") if record.get("bssid") is not None else empty_of("string", external=True),
             "security": record.get("security") or "unknown",
         }))
-    return sorted(result, key=lambda value: (-int(value.fields["signal_strength"] or -1), value.fields["ssid"].casefold()))
+    return sorted(result, key=lambda value: (-int(-1 if isinstance(value.fields["signal_strength"], EmptyValue) else value.fields["signal_strength"]), value.fields["ssid"].casefold()))
 
 
 def _wifi_wait(args, named, position, runtime):
@@ -614,14 +618,14 @@ def _network_set_preferred(args, named, position, runtime):
     if missing:
         raise error("E972", "network_interface_error", "A preferred interface does not exist.", position, actual=missing[0])
     runtime.network_preferred_interfaces = list(names)
-    return None
+    return VOID
 
 
 def _network_preferred(args, named, position, runtime):
     values = _interfaces(runtime, position)
     by_name = {value.fields["name"]: value for value in values}
     order = runtime.network_preferred_interfaces or [value.fields["name"] for value in values]
-    return next((by_name[name] for name in order if name in by_name and by_name[name].fields["connected"]), None)
+    return next((by_name[name] for name in order if name in by_name and by_name[name].fields["connected"]), empty_of("network_interface"))
 
 
 def _configuration_interface(value, function_name, position, runtime):
@@ -648,7 +652,7 @@ def _adapter_call(runtime, method_name, interface, position, *arguments, error_c
 
 def _adapter_configuration(runtime, method_name, interface, position, *arguments):
     _adapter_call(runtime, method_name, interface, position, *arguments)
-    return None
+    return VOID
 
 
 def _network_use_dhcp(args, named, position, runtime):
@@ -664,7 +668,7 @@ def _prefix(value, version, position):
 
 
 def _unicast_address(value, name, position, runtime, optional=False):
-    if value is None and optional:
+    if (value is None or isinstance(value, EmptyValue)) and optional:
         return None
     address = _ip(value, name, position, runtime)
     if address.value.is_unspecified or address.value.is_multicast:
@@ -755,8 +759,8 @@ def _lease_duration(raw, key, position):
 def _network_dhcp_lease(args, named, position, runtime):
     interface = _validate_address_metadata(_require_interface(args[0], "network_dhcp_lease", position, runtime), position)
     raw = interface.fields["dhcp_lease"]
-    if raw is None:
-        return None
+    if raw is None or isinstance(raw, EmptyValue):
+        return empty_of("object")
     if type(raw) is not dict:
         raise error("E980", "network_address_error", "DHCP adapter lease must be an object-shaped record.", position)
     address = _unicast_address(raw.get("address"), "DHCP lease address", position, runtime)
@@ -779,10 +783,13 @@ def _network_dhcp_lease(args, named, position, runtime):
             raise error("E980", "network_address_error", "DHCP lease expiration must be integer Unix milliseconds or null.", position)
         expires = from_unix_milliseconds(expires, TimezoneValue("UTC", UTC), position)
     return ObjectValue.create({
-        "address": address, "prefix": prefix, "gateway": gateway,
+        "address": address, "prefix": prefix, "gateway": gateway if gateway is not None else empty_of("ip_address", external=True),
         "dns_servers": [IpAddressValue(ipaddress.ip_address(value)) for value in dns],
-        "server_address": server, "lease_duration": lease_duration,
-        "renew_after": renew_after, "rebind_after": rebind_after, "expires_at": expires,
+        "server_address": server if server is not None else empty_of("ip_address", external=True),
+        "lease_duration": lease_duration if lease_duration is not None else empty_of("duration", external=True),
+        "renew_after": renew_after if renew_after is not None else empty_of("duration", external=True),
+        "rebind_after": rebind_after if rebind_after is not None else empty_of("duration", external=True),
+        "expires_at": expires if expires is not None else empty_of("datetime", external=True),
     })
 
 
@@ -794,7 +801,7 @@ def _network_wait_addressed(args, named, position, runtime):
     deadline = time.monotonic() + timeout.milliseconds / 1000
     while True:
         current = _validate_address_metadata(_require_interface(interface, "network_wait_until_addressed", position, runtime), position)
-        if current.fields["ip_address"] is not None:
+        if not isinstance(current.fields["ip_address"], EmptyValue):
             return True
         if current.fields["dhcp_status"] == "failed" or time.monotonic() >= deadline:
             return False
@@ -877,7 +884,7 @@ def _dns_reverse(args, named, position, runtime):
     try:
         return socket.gethostbyaddr(str(value.value))[0]
     except (socket.herror, socket.gaierror):
-        return None
+        return empty_of("string")
 
 
 def _timeout(value, position, runtime):
@@ -969,7 +976,7 @@ def _tcp_close(args, named, position, runtime):
             value.native.close()
         finally:
             value.closed = True
-    return None
+    return VOID
 
 
 def _udp(args, name, position, runtime):
@@ -1051,7 +1058,7 @@ def _udp_close(args, named, position, runtime):
             value.native.close()
         finally:
             value.closed = True
-    return None
+    return VOID
 
 
 NETWORK_BUILTINS = (

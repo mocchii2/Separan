@@ -10,6 +10,7 @@ from .network import IpAddressValue, _adapter_call, _require_interface
 from .objects import ObjectValue
 from .system_utilities import UtilityFunction
 from .temporal import DurationValue, TimezoneValue, UTC, from_unix_milliseconds
+from .runtime_values import VOID, empty_of
 
 
 SERVICE_STATES = frozenset({"starting", "running", "stopping", "stopped", "failed"})
@@ -161,7 +162,7 @@ def _wifi_start_access_point(args, named, position, runtime):
     configuration = {"ssid": ssid, "password": password.value, "channel": channel, "security": "wpa2_personal"}
     _service_adapter(runtime, "wifi_start_access_point", interface, position, configuration, category="wifi_access_point_error")
     runtime.network_resources.append(WifiAccessPointResource(runtime.network_adapter, interface.fields["name"]))
-    return None
+    return VOID
 
 
 def _wifi_stop_access_point(args, named, position, runtime):
@@ -170,7 +171,7 @@ def _wifi_stop_access_point(args, named, position, runtime):
     for resource in runtime.network_resources:
         if isinstance(resource, WifiAccessPointResource) and resource.interface_name == interface.fields["name"]:
             resource.closed = True
-    return None
+    return VOID
 
 
 def _wifi_access_point_status(args, named, position, runtime):
@@ -186,7 +187,12 @@ def _wifi_access_point_status(args, named, position, runtime):
             (ssid is not None and type(ssid) is not str) or
             (channel is not None and (type(channel) is not int or not 1 <= channel <= 14))):
         raise error("E984", "wifi_access_point_error", "Wi-Fi AP adapter returned invalid status metadata.", position)
-    return ObjectValue.create({"state": state, "ssid": ssid, "channel": channel, "client_count": client_count})
+    return ObjectValue.create({
+        "state": state,
+        "ssid": ssid if ssid is not None else empty_of("string", external=True),
+        "channel": channel if channel is not None else empty_of("number", external=True),
+        "client_count": client_count,
+    })
 
 
 def _dhcp_start(args, named, position, runtime):
@@ -260,7 +266,7 @@ def _dhcp_stop(args, named, position, runtime):
         raise error("E978", "network_operation_unavailable", str(exc), position, actual="dhcp_server_stop")
     except Exception as exc:
         raise error("E982", "dhcp_server_error", str(exc), position, actual="dhcp_server_stop")
-    return None
+    return VOID
 
 
 def _dhcp_status(args, named, position, runtime):
@@ -307,8 +313,12 @@ def _dhcp_leases(args, named, position, runtime):
         if address_text in addresses or mac in mac_addresses:
             raise error("E982", "dhcp_server_error", "DHCP adapter returned duplicate lease address or MAC identity.", position)
         addresses.add(address_text); mac_addresses.add(mac)
-        expires_at = None if expires is None else from_unix_milliseconds(expires, TimezoneValue("UTC", UTC), position)
-        result.append(ObjectValue.create({"address": IpAddressValue(address), "mac_address": mac, "hostname": hostname, "expires_at": expires_at}))
+        expires_at = empty_of("datetime", external=True) if expires is None else from_unix_milliseconds(expires, TimezoneValue("UTC", UTC), position)
+        result.append(ObjectValue.create({
+            "address": IpAddressValue(address), "mac_address": mac,
+            "hostname": hostname if hostname is not None else empty_of("string", external=True),
+            "expires_at": expires_at,
+        }))
     return sorted(result, key=lambda item: (int(item.fields["address"].value), item.fields["mac_address"]))
 
 
@@ -363,7 +373,7 @@ def _dns_stop(args, named, position, runtime):
         raise error("E978", "network_operation_unavailable", str(exc), position, actual="dns_server_stop")
     except Exception as exc:
         raise error("E983", "dns_server_error", str(exc), position, actual="dns_server_stop")
-    return None
+    return VOID
 
 
 def _dns_status(args, named, position, runtime):

@@ -703,7 +703,7 @@ class Interpreter:
             return ErrorValue(name, args[0])
         builtin = BUILTINS.get(name)
         if builtin is not None:
-            empty_safe = {"type", "type_of", "is_null", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set", "json_encode", "object_to_yaml"}
+            empty_safe = {"type", "type_of", "is_null", "is_number", "is_string", "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret", "object_set", "json_encode", "object_to_yaml", "network_set_static_address"}
             if name not in empty_safe and any(isinstance(value, EmptyValue) for value in (*args, *named.values())):
                 raise error("E131", "EMPTY value use", f"{name}() cannot use EMPTY as a concrete value.", position,
                             expected="a present value", actual="EMPTY")

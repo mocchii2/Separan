@@ -60,7 +60,7 @@ print network_hostname()
 `network_ip_address` is the preferred non-loopback IPv4 address when one is
 available, then the first address. `network_ip_addresses` exposes the complete
 snapshot so the singular function never hides the existence of additional
-IPv4 or IPv6 addresses. Missing singular values are `null`; missing collections
+IPv4 or IPv6 addresses. Missing singular values are typed EMPTY; missing collections
 are empty lists.
 
 `network_status(interface)` returns an immutable object containing `name`,
@@ -74,7 +74,7 @@ network_set_preferred_interfaces(["Ethernet", "Wi-Fi"])
 active = network_preferred_interface()
 ```
 
-The result is the first currently connected interface in that order, or null.
+The result is the first currently connected interface in that order, or typed EMPTY.
 
 ## Ethernet and Wi-Fi views
 
@@ -201,7 +201,7 @@ The public configuration operations are:
   `network_disable_link_local_fallback(interface)`.
 
 Static addresses and gateways must use the same IP version. Prefix length is
-validated against that version. The gateway may be null and DNS is an explicit,
+validated against that version. The gateway may be EMPTY and DNS is an explicit,
 duplicate-free list. A static link-local address is rejected because
 `network_use_link_local` names that policy directly.
 
@@ -211,13 +211,13 @@ cannot prove how the observed address was configured; Separan does not guess.
 
 `network_dhcp_status(interface)` returns one of `disabled`, `discovering`,
 `requesting`, `bound`, `renewing`, `rebinding`, or `failed`.
-`network_dhcp_lease(interface)` returns null when no lease is available, or an
+`network_dhcp_lease(interface)` returns typed EMPTY when no lease is available, or an
 immutable object containing:
 
 - `address`, `prefix`, `gateway`, and `dns_servers`;
 - `server_address`;
-- nullable `lease_duration`, `renew_after`, and `rebind_after` durations;
-- nullable UTC `expires_at` datetime.
+- EMPTY-capable `lease_duration`, `renew_after`, and `rebind_after` durations;
+- EMPTY-capable UTC `expires_at` datetime.
 
 Adapter data is type-, range-, and ordering-validated. An invalid lease is
 `E980 network_address_error`, never a partially trusted object.
@@ -261,7 +261,9 @@ name = dns_reverse_lookup(ip_address("203.0.113.10"))
 
 `dns_resolve` returns a deterministic, duplicate-free `list<ip_address>` rather
 than selecting an arbitrary DNS answer. Failure to resolve is
-`network_dns_error`. Reverse lookup absence is a normal `null`.
+`network_dns_error`. Reverse lookup absence is a normal typed EMPTY.
+
+Network configuration, service stop, and socket close operations return VOID.
 
 Both operations enforce the network host allowlist and private-address rule.
 
