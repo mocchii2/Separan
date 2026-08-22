@@ -67,10 +67,11 @@ print values
 
     def test_horizontal_remove_changes_only_selected_row_shape(self):
         body = '''list<list<number>> values = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
-list_remove_horizontal(values, 1, 1, 1)
+list_remove_horizontal(values, 1, front, 1)
+list_remove_horizontal(values, 1, back, 1)
 print values
 '''
-        self.assertEqual(execute(program(body))[1], "[[1, 2, 3, 4], [5, 7, 8], [9, 10, 11, 12]]\n")
+        self.assertEqual(execute(program(body))[1], "[[1, 2, 3, 4], [6, 7], [9, 10, 11, 12]]\n")
 
     def test_vertical_remove_shifts_one_column_and_preserves_outer_shape(self):
         body = '''list<list<number>> values = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
@@ -80,15 +81,21 @@ print values
         self.assertEqual(execute(program(body))[1], "[[1, 2, 3, 4], [5, 10, 7, 8], [9, EMPTY, 11, 12]]\n")
 
         body = '''list<list<number>> values = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
-list_remove_vertical(values, 0, 1, 2)
+list_remove_vertical(values, 1, front, 2)
 print values
 '''
         self.assertEqual(execute(program(body))[1], "[[1, 10, 3, 4], [5, EMPTY, 7, 8], [9, EMPTY, 11, 12]]\n")
 
+        body = '''list<list<number>> values = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
+list_remove_vertical(values, 1, back, 1)
+print values
+'''
+        self.assertEqual(execute(program(body))[1], "[[1, 2, 3, 4], [5, 6, 7, 8], [9, EMPTY, 11, 12]]\n")
+
     def test_jagged_vertical_validation_is_atomic(self):
         source = '''list<list<number>> values = [[1, 2, 3], [4], [5, 6, 7]]
 function:main
-list_remove_vertical(values, 0, 2, 2)
+list_remove_vertical(values, 2, front, 2)
 end_function:main
 '''
         runtime = Interpreter()
@@ -103,6 +110,8 @@ end_function:main
         self.assert_error("print back\n", "E136")
         self.assert_error("list<number> values = [1]\nlist_insert(values, front, 0)\n", "E201")
         self.assert_error("list<number> values = [1]\nlist_remove(values, 1, 1)\n", "E603")
+        self.assert_error("list<list<number>> values = [[1]]\nlist_remove_horizontal(values, 0, back, 2)\n", "E603")
+        self.assert_error("list<list<number>> values = [[1]]\nlist_remove_vertical(values, 0, back, 2)\n", "E603")
         self.assert_error("const values = [1]\nlist_insert(values, back, 1)\n", "E211")
         self.assert_error("values = []\nlist_insert(values, front, 1)\n", "E134")
 

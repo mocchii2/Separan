@@ -862,26 +862,28 @@ class Interpreter:
                 del values[index:index + count]
             return VOID
 
-        row_index = self._shape_integer(expression.arguments[1], f"{name} row", expression.arguments[1].position)
-        column = self._shape_integer(expression.arguments[2], f"{name} column", expression.arguments[2].position)
         count = self._shape_integer(expression.arguments[3], f"{name} count", expression.arguments[3].position, positive=True)
-        if row_index >= len(values):
-            raise error("E603", "Invalid list shape range", f"{name} row is outside the outer list.", expression.arguments[1].position,
-                        expected=f"0..{len(values)-1}", actual=str(row_index))
 
         if name == "list_remove_horizontal":
+            row_index = self._shape_integer(expression.arguments[1], f"{name} fixed row", expression.arguments[1].position)
+            if row_index >= len(values):
+                raise error("E603", "Invalid list shape range", f"{name} fixed row is outside the outer list.", expression.arguments[1].position,
+                            expected=f"0..{len(values)-1}", actual=str(row_index))
             row = values[row_index]
             if isinstance(row, EmptyValue) or type(row) is not list:
                 self._type_error(expression.position, "present nested list row", type_name(row), "Horizontal removal requires a present list row.")
-            if column + count > len(row):
-                raise error("E603", "Invalid list shape range", "Horizontal removal exceeds the selected row shape.", expression.arguments[2].position,
-                            expected=f"column + count <= {len(row)}", actual=f"{column} + {count}")
-            del row[column:column + count]
+            if count > len(row):
+                raise error("E603", "Invalid list shape range", "Horizontal removal count exceeds the selected row shape.", expression.arguments[3].position,
+                            expected=f"1..{len(row)}", actual=str(count))
+            position = self._shape_position(expression.arguments[2], row, count, name, expression.arguments[2].position, insert=False)
+            del row[position:position + count]
             return VOID
 
-        if row_index + count > len(values):
-            raise error("E603", "Invalid list shape range", "Vertical removal count exceeds the remaining rows.", expression.arguments[3].position,
-                        expected=f"row + count <= {len(values)}", actual=f"{row_index} + {count}")
+        column = self._shape_integer(expression.arguments[1], f"{name} fixed column", expression.arguments[1].position)
+        if count > len(values):
+            raise error("E603", "Invalid list shape range", "Vertical removal count exceeds the outer list shape.", expression.arguments[3].position,
+                        expected=f"1..{len(values)}", actual=str(count))
+        row_index = self._shape_position(expression.arguments[2], values, count, name, expression.arguments[2].position, insert=False)
         affected = values[row_index:]
         for offset, row in enumerate(affected, row_index):
             if isinstance(row, EmptyValue) or type(row) is not list or column >= len(row):
