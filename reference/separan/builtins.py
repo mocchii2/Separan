@@ -49,6 +49,7 @@ from .structured_data import STRUCTURED_DATA_BUILTINS
 from .embedded import EMBEDDED_BUILTINS
 from .network import NETWORK_BUILTINS
 from .network_services import NETWORK_SERVICE_BUILTINS
+from .runtime_values import EmptyValue, VOID, empty_of
 
 
 MAX_TEXT_LENGTH = 1_048_576
@@ -108,7 +109,10 @@ def _type(arguments, position, runtime):
     return runtime.type_name(arguments[0])
 
 
-def _is_null(arguments, position, runtime): return arguments[0] is None
+def _is_null(arguments, position, runtime):
+    # Transitional compatibility only. Source-level null and is_null() are
+    # removed in the final EMPTY migration stage.
+    return arguments[0] is None or isinstance(arguments[0], EmptyValue)
 
 
 def _is_type(expected):
@@ -357,7 +361,7 @@ def _search_part(after):
         _require_strings(name, arguments, position, runtime); value, search = arguments
         if search == "": raise error("E305", "Empty search string", f"{name}() search string cannot be empty.", position, expected="non-empty string", actual='""')
         found = value.find(search)
-        if found < 0: return None
+        if found < 0: return empty_of("string")
         return value[found + len(search):] if after else value[:found]
     return implementation
 
@@ -393,7 +397,7 @@ def _index_of(arguments, position, runtime):
     if arguments[1] == "":
         raise error("E305", "Empty search string", "index_of() search string cannot be empty.", position, expected="non-empty string", actual='""')
     found = arguments[0].find(arguments[1])
-    return found if found >= 0 else None
+    return found if found >= 0 else empty_of("number")
 
 
 def _last_index_of(arguments, position, runtime):
@@ -403,7 +407,7 @@ def _last_index_of(arguments, position, runtime):
     if arguments[1] == "":
         raise error("E305", "Empty search string", "last_index_of() search string cannot be empty.", position, expected="non-empty string", actual='""')
     found = arguments[0].rfind(arguments[1])
-    return found if found >= 0 else None
+    return found if found >= 0 else empty_of("number")
 
 
 def _repeat(arguments, position, runtime):
@@ -577,7 +581,7 @@ def _random_seed(arguments, position, runtime):
     seed = arguments[0]
     require_integer(seed, "random_seed", position, runtime)
     runtime.random.seed(seed)
-    return None
+    return VOID
 
 
 def _random_number(arguments, position, runtime): return runtime.random.number()

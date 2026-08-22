@@ -639,6 +639,8 @@ class Interpreter:
             if isinstance(left, EmptysValue):
                 raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot participate in an operator.", expr.left.position,
                             expected="a present value", actual="EMPTYS")
+            if expr.operator == "??":
+                return self._eval(expr.right) if isinstance(left, EmptyValue) or left is None else left
             if isinstance(left, EmptyValue):
                 raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator; use 'is EMPTY'.", expr.left.position,
                             expected="a present value", actual="EMPTY")
@@ -647,7 +649,6 @@ class Interpreter:
                             expected="a value", actual="VOID")
             if expr.operator == "&&": return self._boolean(left, expr.left.position) and self._boolean(self._eval(expr.right), expr.right.position)
             if expr.operator == "||": return self._boolean(left, expr.left.position) or self._boolean(self._eval(expr.right), expr.right.position)
-            if expr.operator == "??": return left if left is not None else self._eval(expr.right)
             right = self._eval(expr.right); op = expr.operator
             if isinstance(right, EmptysValue):
                 raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot participate in an operator.", expr.right.position,

@@ -1,8 +1,8 @@
 function:main
 print regex_match("^[0-9]+$", "12345")
 
-match = regex_find("([0-9]+)-([A-Z]+)", "ticket 42-SEP")
-if match != null :match_found
+regex_match_result match = regex_find("([0-9]+)-([A-Z]+)", "ticket 42-SEP")
+if match is not EMPTY :match_found
 print regex_text(match)
 print regex_group(match, 1)
 print regex_group(match, 2)

@@ -10,7 +10,7 @@ regex engineの厳密なwork limitは、
 
 共通原則は次のとおりです。
 
-> 検索対象が存在しないことが正常なら`null`または空listを返す。pattern、option、
+> 検索対象が存在しないことが正常なら型付きEMPTYまたは空listを返す。pattern、option、
 > capabilityなど要求自体が不正な場合だけerrorにする。
 
 ## regex
@@ -28,13 +28,13 @@ parts = regex_split("[,;]", source)
 |---|---|
 | `regex_match(pattern, value[, options])` | string全体が一致したかをbooleanで返す |
 | `regex_search(pattern, value[, options])` | 部分一致が存在するかをbooleanで返す |
-| `regex_find(pattern, value[, options])` | 最初の`regex_match_result`またはnull |
+| `regex_find(pattern, value[, options])` | 最初の`regex_match_result`または型付きEMPTY |
 | `regex_find_all(pattern, value[, options])` | 重ならないmatch resultのlist |
 | `regex_replace(pattern, replacement, value[, options])` | 全一致箇所を置換したstring |
 | `regex_split(pattern, value[, options])` | 区切ったstringのlist |
 
 `regex_match_result`は不変の固定shape値で、`text`、`start`、`end`と
-`group(index)`を持ちます。index 0は一致全体、存在するが不参加のgroupはnull、範囲外の
+`group(index)`を持ちます。index 0は一致全体、存在するが不参加のgroupは型付きEMPTY、範囲外の
 group番号はerrorです。位置はUnicodeコードポイント単位です。
 
 初期flagはnamed argumentの`ignore_case`、`multiline`、`dot_all`だけです。flag文字列や
@@ -43,7 +43,7 @@ literal `$`です。存在しないcapture参照はerrorです。
 
 patternはUnicode対応のSeparan regex subsetとしてversion管理し、host言語固有の拡張を
 そのまま公開しません。lookbehind、backreference、再帰patternは初期subset外です。
-不正patternはfalseやnullではなく`regex_error`です。実装は入力長、pattern長、実行量に
+不正patternはfalseやEMPTYではなく`regex_error`です。実装は入力長、pattern長、実行量に
 上限を持ち、過大な処理も`regex_error`にして停止できなければなりません。
 
 ## file glob
@@ -78,7 +78,7 @@ env_set("MODE", "test")
 env_remove("MODE")
 ```
 
-- `env_get`の不在結果はnull。defaultが明示された場合だけそのstringを返す。
+- `env_get`の不在結果は型付きEMPTY。defaultが明示された場合だけそのstringを返す。
 - 名前と値はstringのみ。null、number、booleanへの暗黙変換は行わない。
 - `env_set`／`env_remove`は現在のSeparan process環境と、その後起動する子processだけに
   影響する。OS全体、親process、永続user設定は変更しない。
@@ -100,11 +100,11 @@ count = number(arg_value("--count", default = "1"))
 
 - `command_args()`はscript名を含まない新しい`list<string>`を返す。
 - `script_path()`はhostが解決したcanonical script pathを返す。stdin／埋め込み実行では
-  nullを返す。
+  型付きEMPTYを返す。
 - `arg_exists(names...)`は、`--`より前に完全一致するoptionがあればtrue。
 - `arg_value(name[, default])`は`--name value`と`--name=value`を認識する。
-- option不在はnull、default指定時はdefault。optionがあるのに値がない場合は
-  `argument_error`でありnullではない。
+- option不在は型付きEMPTY、default指定時はdefault。optionがあるのに値がない場合は
+  `argument_error`でありEMPTYではない。
 - 同じvalue optionが複数回あれば、黙って最後を選ばず`argument_error`。
 - `--`以降はすべてposition引数で、option helperの検索対象外。
 - 値は常にstring。型変換は`number()`、`boolean()`などで明示する。

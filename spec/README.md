@@ -46,7 +46,7 @@ The staged absence model is defined in [EMPTY, EMPTYS, and VOID](empty-values.md
 Operators never perform implicit conversion. Precedence from low to high is
 `??`, `||`, `&&`, equality, ordered/membership comparison, `+ -`,
 `* / // %`, unary `! not -`, and `**`. Power is right-associative; `??` is
-right-associative and evaluates its right operand only when the left is null.
+right-associative and evaluates its right operand only when the left is EMPTY.
 
 | Operators | Rule |
 |---|---|
@@ -55,14 +55,14 @@ right-associative and evaluates its right operand only when the left is null.
 | `**` | real, finite numeric power |
 | `== != < <= > >=` | strict comparison without conversion; comparisons cannot chain |
 | `&& || ! not` | boolean-only logic with short-circuiting for `&&` and `||` |
-| `??` | null-only fallback with short-circuiting; false, zero, and empty values are retained |
+| `??` | EMPTY-only fallback with short-circuiting; false, zero, empty strings, and empty containers are retained |
 | `in`, `not in` | strict containment for string, list, object field names, and bytes |
 
 Compound assignment supports `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, and `**=`.
 It is exactly the corresponding operation followed by assignment, so constants
 remain immutable and the binding's fixed type still applies. `??=` is
-intentionally absent because changing a null-typed binding to another type would
-violate fixed first-assignment typing. `++` and `--` are not defined.
+intentionally absent; clearing and replacing a typed value are deliberately
+separate operations. `++` and `--` are not defined.
 
 For membership, string search requires string operands. List search must match
 the homogeneous element type. Object membership checks a string field name.
@@ -81,7 +81,7 @@ Built-in names are reserved and cannot be redefined by source programs.
 | `len(value)` | string, list, or bytes | compatibility alias for `length` |
 | `type(value)` | any value | public type name as a string |
 | `type_of(value)` | any value | readable alias returning the public type name |
-| `is_null(value)` | any value | whether the value is exactly null |
+| `is_null(value)` | any value | deprecated migration alias; use `value is EMPTY` |
 | `is_number/string/boolean/list/object(value)` | any value | exact public-type test |
 | `is_bytes/datetime/duration/secret(value)` | any value | exact public-type test |
 | `abs(value)` | number | absolute numeric value |
@@ -143,12 +143,12 @@ non-string arguments implicitly.
 | `find_all(value, search)` | non-overlapping literal-match indexes; empty list when absent |
 | `compare(left, right)` | exactly `-1`, `0`, or `1` by Unicode code-point order |
 | `compare_ignore_case(left, right)` | case-folded comparison returning exactly `-1`, `0`, or `1` |
-| `substring_before(value, search)` | text before the first match, or null |
-| `substring_after(value, search)` | text after the first match, or null |
+| `substring_before(value, search)` | text before the first match, or typed EMPTY |
+| `substring_after(value, search)` | text after the first match, or typed EMPTY |
 | `count_occurrences(value, search)` | number of non-overlapping matches |
 | `format(template, values...)` | positional `{}` formatting; `{{` and `}}` escape braces |
-| `index_of(value, search)` | first code-point index, or null |
-| `last_index_of(value, search)` | last code-point index, or null |
+| `index_of(value, search)` | first code-point index, or typed EMPTY |
+| `last_index_of(value, search)` | last code-point index, or typed EMPTY |
 | `repeat(value, count)` | string repeated a non-negative integer count |
 | `pad_left(value, length[, fill])` | left-padded string of at least target length |
 | `pad_right(value, length[, fill])` | right-padded string of at least target length |
@@ -159,7 +159,7 @@ and empty replacement search strings produce `E305`; invalid substring ranges
 produce `E306`.
 
 String search indexes are Unicode code-point indexes. Missing singular searches
-return null rather than `-1`; `find_all` returns an empty list. Empty search
+return typed EMPTY rather than `-1`; `find_all` returns an empty list. Empty search
 strings are rejected with `E305`. Padding
 uses a one-code-point fill string, defaulting to a space. Repeat and padding
 results are limited to 1,048,576 code points and report `E607` rather than

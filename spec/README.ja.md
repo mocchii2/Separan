@@ -76,7 +76,7 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 | `len(value)` | string、list、bytes | `length`の互換alias |
 | `type(value)` | 任意の値 | ユーザー向け型名のstring |
 | `type_of(value)` | 任意の値 | ユーザー向け型名の読みやすいalias |
-| `is_null(value)` | 任意の値 | nullとの完全一致判定 |
+| `is_null(value)` | 任意の値 | 移行用の非推奨alias。`value is EMPTY`を使用 |
 | `is_number/string/boolean/list/object(value)` | 任意の値 | 公開型との完全一致判定 |
 | `is_bytes/datetime/duration/secret(value)` | 任意の値 | 公開型との完全一致判定 |
 | `abs(value)` | number | 数値の絶対値 |
@@ -136,8 +136,8 @@ booleanを拒否します。
 | `reverse(value)` | Unicodeコードポイント単位の逆順。listにも共通 |
 | `char_at(value, index)` | 有効な0始まりindexの1コードポイントstring |
 | `find_all(value, search)` | 非重複literal一致のindex list。不在なら空list |
-| `index_of(value, search)` | 最初のコードポイントindex。不在ならnull |
-| `last_index_of(value, search)` | 最後のコードポイントindex。不在ならnull |
+| `index_of(value, search)` | 最初のコードポイントindex。不在なら型付きEMPTY |
+| `last_index_of(value, search)` | 最後のコードポイントindex。不在なら型付きEMPTY |
 | `repeat(value, count)` | 非負整数回繰り返したstring |
 | `pad_left(value, length[, fill])` | 最低target長まで左padding |
 | `pad_right(value, length[, fill])` | 最低target長まで右padding |
@@ -146,7 +146,7 @@ substringのインデックスは`0 <= start <= end <= len(value)`を満たす�
 負数、小数、逆転、範囲外はエラーです。空の区切り文字と空の置換検索文字列は
 `E305`、不正なsubstring範囲は`E306`になります。
 
-string検索位置はUnicodeコードポイント単位です。単一検索の不在時は`-1`ではなくnull、
+string検索位置はUnicodeコードポイント単位です。単一検索の不在時は`-1`ではなく型付きEMPTY、
 `find_all`は空listを返します。空の検索文字列は`E305`で拒否します。paddingのfillは1コードポイントで、省略時は
 半角空白です。repeatとpaddingの結果は1,048,576コードポイント以下に制限し、
 無制限にメモリを確保せず`E607`を返します。

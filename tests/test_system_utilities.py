@@ -41,10 +41,11 @@ print regex_replace("([0-9]+)", "<$1>", "a12b3")
 print regex_split("[,;]", "a,b;c")
 '''
         self.assertEqual(execute(source)[1], "12-ABC\n3\n9\n12-ABC\n12\nABC\n12-ABC\n3\n9\n12\n2\na<12>b<3>\n[a, b, c]\n")
-        self.assertEqual(execute('print regex_find("x", "abc")\n')[1], "null\n")
+        self.assertEqual(execute('print regex_find("x", "abc") is EMPTY\n')[1], "true\n")
         self.assert_error('print regex_group(regex_find("(a)", "a"), 2)\n', "E834")
         self.assert_error('print regex_find("(a)", "a").group(2)\n', "E834")
         self.assert_error('print regex_find("a", "a").unknown()\n', "E213")
+        self.assertEqual(execute('print regex_group(regex_find("(a)?b", "b"), 1) is EMPTY\n')[1], "true\n")
 
     def test_glob_is_relative_sorted_recursive_and_empty(self):
         root = Path(__file__).resolve().parents[1]
@@ -55,7 +56,7 @@ print regex_split("[,;]", "a,b;c")
 
     def test_environment_is_explicit_and_mutable_in_runtime(self):
         source = '''function:main
-print env_get("MISSING")
+print env_get("MISSING") is EMPTY
 print env_get("MISSING", default = "production")
 print env_exists("MODE")
 env_set("MODE", "test")
@@ -64,7 +65,7 @@ env_remove("MODE")
 print env_exists("MODE")
 end_function:main
 '''
-        self.assertEqual(execute(source, environment_variables={})[1], "null\nproduction\nfalse\ntest\nfalse\n")
+        self.assertEqual(execute(source, environment_variables={})[1], "true\nproduction\nfalse\ntest\nfalse\n")
 
     def test_command_line_separates_script_and_arguments(self):
         source = '''print script_path()
@@ -83,6 +84,12 @@ print arg_value("--count", default = "1")
         with self.assertRaises(SeparanError) as caught:
             execute('print arg_value("--x")\n', command_arguments=["--x", "a", "--x=b"])
         self.assertEqual(caught.exception.code, "E861")
+
+    def test_missing_script_path_and_option_are_empty(self):
+        source = '''print script_path() is EMPTY
+print arg_value("--missing") is EMPTY
+'''
+        self.assertEqual(execute(source)[1], "true\ntrue\n")
 
 
 if __name__ == "__main__": unittest.main()

@@ -4,7 +4,7 @@ import re
 
 from .errors import error
 from .objects import ObjectValue
-from .runtime_values import EmptyValue
+from .runtime_values import EmptyValue, empty_of
 
 
 ORDERED_TYPES = frozenset(("number", "string", "datetime", "local_datetime", "duration"))
@@ -109,7 +109,7 @@ def index_of(arguments, position, runtime):
     try:
         return values.index(value)
     except ValueError:
-        return None
+        return empty_of("number")
 
 
 def last_index_of(arguments, position, runtime):
@@ -119,7 +119,7 @@ def last_index_of(arguments, position, runtime):
     for index in range(len(values) - 1, -1, -1):
         if values[index] == value:
             return index
-    return None
+    return empty_of("number")
 
 
 def slice_list(arguments, position, runtime):

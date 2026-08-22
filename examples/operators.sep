@@ -5,7 +5,8 @@ floor_division = -7 // 3
 print power
 print floor_division
 
-display_name = null ?? "anonymous"
+string display_name = EMPTY
+display_name = display_name ?? "anonymous"
 print display_name
 
 items = [10, 20]

@@ -83,8 +83,8 @@ print clip_utf8("日本", 0)
                 self.assertEqual(caught.exception.code, "E209")
 
     def test_string_indexes_return_number_or_null(self):
-        source = 'print index_of("日本語日本", "日本")\nprint last_index_of("日本語日本", "日本")\nprint index_of("abc", "x")\nprint last_index_of("abc", "x")\n'
-        self.assertEqual(execute(source)[1], "0\n3\nnull\nnull\n")
+        source = 'print index_of("日本語日本", "日本")\nprint last_index_of("日本語日本", "日本")\nprint index_of("abc", "x") is EMPTY\nprint last_index_of("abc", "x") is EMPTY\n'
+        self.assertEqual(execute(source)[1], "0\n3\ntrue\ntrue\n")
         self.assert_error('index_of("abc", "")', "E305")
         self.assert_error('last_index_of("abc", "")', "E305")
 
@@ -117,10 +117,10 @@ print compare("z", "a")
 print compare_ignore_case("Straße", "STRASSE")
 print substring_before("abc:def", ":")
 print substring_after("abc:def", ":")
-print substring_after("abc", "x")
+print substring_after("abc", "x") is EMPTY
 print count_occurrences("aaaa", "aa")
 '''
-        self.assertEqual(execute(source)[1], "-1\n0\n1\n0\nabc\ndef\nnull\n2\n")
+        self.assertEqual(execute(source)[1], "-1\n0\n1\n0\nabc\ndef\ntrue\n2\n")
         for call in ('substring_before("abc", "")', 'substring_after("abc", "")', 'count_occurrences("abc", "")'):
             with self.subTest(call=call): self.assert_error(call, "E305")
 

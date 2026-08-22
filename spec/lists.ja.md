@@ -33,8 +33,8 @@ first_number = numbers[0]
 | `first(items)` | 最初の要素 |
 | `last(items)` | 最後の要素 |
 | `contains(items, value)` | 一致する値が存在するか |
-| `index_of(items, value)` | 最初に一致する0始まりindex。不在ならnull |
-| `last_index_of(items, value)` | 最後に一致する0始まりindex。不在ならnull |
+| `index_of(items, value)` | 最初に一致する0始まりindex。不在なら型付きEMPTY |
+| `last_index_of(items, value)` | 最後に一致する0始まりindex。不在なら型付きEMPTY |
 | `slice(items, start, end)` | 半開区間`[start, end)`の新しいlist |
 | `reverse(items)` | 逆順の新しいlist |
 | `sort(items)` | 昇順・安定sort済みの新しいlist |
@@ -57,15 +57,14 @@ first_number = numbers[0]
 
 `list_append`の新しい値は確定済み要素型と一致する必要があります。
 `list_remove`は最初の一致だけを削除し、不在ならエラーにします。変更されていないlistを
-黙って返しません。検索値は要素型と一致する必要がありますが、一般のnull比較規則に
-従いnullの検索は許可します。
+黙って返しません。検索値は要素型と一致する必要があります。
 
 `first`と`last`は空listを拒否します。`index_of`と`last_index_of`では不在が通常の
-検索結果なのでnullを返し、制御フロー上で明示できます。
+検索結果なので型付きEMPTYを返し、制御フロー上で明示できます。
 
 ```separan
-index = index_of(items, target)
-if index != null :target_found
+number index = index_of(items, target)
+if index is not EMPTY :target_found
 print index
 endif:target_found
 ```

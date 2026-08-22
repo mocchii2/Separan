@@ -48,9 +48,9 @@ print removed
         self.assertEqual(execute(source)[1], "true\nfalse\nfalse\ntrue\n")
         self.assert_error('print contains([1, 2], "1")\n', "E201")
 
-    def test_index_of_returns_number_or_null(self):
-        source = 'print index_of(["a", "b", "a"], "a")\nprint last_index_of(["a", "b", "a"], "a")\nprint index_of(["a", "b"], "x")\nprint last_index_of(["a"], "x")\nprint index_of([], 10)\n'
-        self.assertEqual(execute(source)[1], "0\n2\nnull\nnull\nnull\n")
+    def test_index_of_returns_number_or_empty(self):
+        source = 'print index_of(["a", "b", "a"], "a")\nprint last_index_of(["a", "b", "a"], "a")\nprint index_of(["a", "b"], "x") is EMPTY\nprint last_index_of(["a"], "x") is EMPTY\nprint index_of([], 10) is EMPTY\n'
+        self.assertEqual(execute(source)[1], "0\n2\ntrue\ntrue\ntrue\n")
 
     def test_slice_is_half_open_and_non_destructive(self):
         source = 'items = [10, 20, 30, 40]\npart = slice(items, 1, 3)\nprint items\nprint part\nprint slice(items, 2, 2)\n'

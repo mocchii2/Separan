@@ -35,8 +35,8 @@ assignment is a separate, visibly mutating language statement.
 | `first(items)` | first element |
 | `last(items)` | last element |
 | `contains(items, value)` | whether a matching value exists |
-| `index_of(items, value)` | first matching zero-based index, or null |
-| `last_index_of(items, value)` | last matching zero-based index, or null |
+| `index_of(items, value)` | first matching zero-based index, or typed EMPTY |
+| `last_index_of(items, value)` | last matching zero-based index, or typed EMPTY |
 | `slice(items, start, end)` | new list for half-open range `[start, end)` |
 | `reverse(items)` | new list in reverse order |
 | `sort(items)` | new ascending, stable sorted list |
@@ -60,15 +60,14 @@ assignment is a separate, visibly mutating language statement.
 `list_append` requires the new value to match the known element type.
 `list_remove` removes only the first match and reports an error when no match
 exists; it never silently returns an unchanged list. Search arguments must match
-the element type, except that null may be searched under the general null
-comparison rule.
+the element type.
 
-`first` and `last` reject empty lists. `index_of` and `last_index_of` return null
+`first` and `last` reject empty lists. `index_of` and `last_index_of` return typed EMPTY
 when absence is a normal query result, allowing explicit control flow:
 
 ```separan
-index = index_of(items, target)
-if index != null :target_found
+number index = index_of(items, target)
+if index is not EMPTY :target_found
 print index
 endif:target_found
 ```

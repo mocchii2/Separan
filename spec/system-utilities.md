@@ -8,7 +8,7 @@ Matches provide `m.text`, `m.start`, `m.end`, and `m.group(index)`; the earlier
 `regex_*` accessors remain available for compatibility. A strict regex-engine
 work budget remains v0.2 stabilization work.
 
-The shared rule is simple: absence returns `null` or an empty list when absence
+The shared rule is simple: absence returns typed EMPTY or an empty list when absence
 is a normal search result. Invalid syntax, options, or capabilities produce an
 error instead.
 
@@ -25,12 +25,12 @@ parts = regex_split("[,;]", source)
 
 `regex_match` requires a full-string match. `regex_search` reports whether a
 partial match exists. `regex_find` returns the first immutable
-`regex_match_result` or null; `regex_find_all` returns non-overlapping match
+`regex_match_result` or typed EMPTY; `regex_find_all` returns non-overlapping match
 results. `regex_replace` replaces every match and `regex_split` returns strings.
 
 A match result exposes `text`, Unicode-code-point `start` and `end`, and
 `group(index)`. Group zero is the whole match, a valid nonparticipating group is
-null, and an out-of-range group is an error.
+typed EMPTY, and an out-of-range group is an error.
 
 Initial named flags are only `ignore_case`, `multiline`, and `dot_all`. There is
 no magic flag string or locale-dependent mode. Replacement `$0` means the full
@@ -40,7 +40,7 @@ capture references are errors.
 The Unicode-aware Separan regex subset is versioned independently of the host
 engine. Lookbehind, backreferences, and recursive patterns are initially out of
 scope. Invalid syntax and bounded-work exhaustion raise `regex_error`; they
-never become false or null.
+never become false or EMPTY.
 
 ## File globbing
 
@@ -64,7 +64,7 @@ empty results.
 ## Environment variables
 
 `env_get`, `env_exists`, `env_set`, and `env_remove` operate only on strings.
-Missing `env_get` returns null unless an explicit named `default` is provided.
+Missing `env_get` returns typed EMPTY unless an explicit named `default` is provided.
 Mutations affect this Separan process and subsequently launched children only;
 they never modify the parent process, operating-system-wide state, or persistent
 user settings.
@@ -85,9 +85,9 @@ count = number(arg_value("--count", default = "1"))
 ```
 
 `command_args` excludes the script name. `script_path` returns the canonical
-path, or null for stdin and embedded execution. `arg_exists` checks exact option
+path, or typed EMPTY for stdin and embedded execution. `arg_exists` checks exact option
 names before `--`. `arg_value` accepts `--name value` and `--name=value`.
-Absence returns null or the explicit default; a present option without a value,
+Absence returns typed EMPTY or the explicit default; a present option without a value,
 or a repeated value option, raises `argument_error`. Values always remain
 strings until explicitly converted.
 

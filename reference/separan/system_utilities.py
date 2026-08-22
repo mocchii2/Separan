@@ -6,6 +6,7 @@ import os
 import re
 
 from .errors import error
+from .runtime_values import VOID, empty_of
 
 
 MAX_REGEX_PATTERN = 4096
@@ -63,7 +64,8 @@ def _compile(pattern, value, named, position, runtime):
 
 
 def _match_value(match):
-    return RegexMatchValue(match.group(0), match.start(), match.end(), tuple(match.groups()))
+    groups = tuple(empty_of("string") if value is None else value for value in match.groups())
+    return RegexMatchValue(match.group(0), match.start(), match.end(), groups)
 
 
 def _regex_boolean(full):
@@ -75,7 +77,7 @@ def _regex_boolean(full):
 
 def _regex_find(args, named, position, runtime):
     pattern, value = args; found = _compile(pattern, value, named, position, runtime).search(value)
-    return None if found is None else _match_value(found)
+    return empty_of("regex_match_result") if found is None else _match_value(found)
 
 
 def _regex_find_all(args, named, position, runtime):
@@ -157,15 +159,17 @@ def _env_get(args, named, position, runtime):
     runtime.capabilities.environment(name, False, position)
     if "default" in named and type(named["default"]) is not str:
         runtime.type_error(position, "string default", runtime.type_name(named["default"]), "env_get() default must be a string.")
-    return runtime.environment_variables.get(_environment_key(runtime.environment_variables, name), named.get("default"))
+    key = _environment_key(runtime.environment_variables, name)
+    if key in runtime.environment_variables: return runtime.environment_variables[key]
+    return named["default"] if "default" in named else empty_of("string")
 
 
 def _env_exists(args, named, position, runtime): _strings("env_exists", args, position, runtime); runtime.capabilities.environment(args[0], False, position); return _environment_key(runtime.environment_variables, args[0]) in runtime.environment_variables
 def _env_set(args, named, position, runtime):
-    _strings("env_set", args, position, runtime); runtime.capabilities.environment(args[0], True, position); key = _environment_key(runtime.environment_variables, args[0]); runtime.environment_variables[key] = args[1]; return None
-def _env_remove(args, named, position, runtime): _strings("env_remove", args, position, runtime); runtime.capabilities.environment(args[0], True, position); runtime.environment_variables.pop(_environment_key(runtime.environment_variables, args[0]), None); return None
+    _strings("env_set", args, position, runtime); runtime.capabilities.environment(args[0], True, position); key = _environment_key(runtime.environment_variables, args[0]); runtime.environment_variables[key] = args[1]; return VOID
+def _env_remove(args, named, position, runtime): _strings("env_remove", args, position, runtime); runtime.capabilities.environment(args[0], True, position); runtime.environment_variables.pop(_environment_key(runtime.environment_variables, args[0]), None); return VOID
 def _command_args(args, named, position, runtime): return list(runtime.command_arguments)
-def _script_path(args, named, position, runtime): return runtime.script_path
+def _script_path(args, named, position, runtime): return runtime.script_path if runtime.script_path is not None else empty_of("string")
 
 
 def _arg_exists(args, named, position, runtime):
@@ -186,7 +190,8 @@ def _arg_value(args, named, position, runtime):
             found.append(before[index + 1])
         elif value.startswith(name + "="): found.append(value[len(name) + 1:])
     if len(found) > 1: raise error("E861", "Repeated option", f"Option '{name}' may appear only once.", position, actual=name)
-    return found[0] if found else named.get("default")
+    if found: return found[0]
+    return named["default"] if "default" in named else empty_of("string")
 
 
 FLAGS = ("ignore_case", "multiline", "dot_all")

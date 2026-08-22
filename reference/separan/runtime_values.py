@@ -30,3 +30,9 @@ class EmptysValue:
 EMPTY = EmptyValue()
 EMPTYS = EmptysValue()
 VOID = VoidResult()
+
+
+def empty_of(declared_type=None, element_type=None, *, external=False):
+    """Create an EMPTY value that retains the API's documented result type."""
+
+    return EmptyValue(declared_type, element_type, external)

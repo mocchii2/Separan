@@ -40,6 +40,14 @@ end_function:main
         self.assertEqual(execute(source)[1], "1\n3\n")
         self.assertEqual(self.output('print false ?? true\nprint 0 ?? 2\nprint "" ?? "fallback"\n'), "false\n0\n\n")
 
+    def test_coalescing_uses_empty_without_treating_empty_values_as_missing(self):
+        source = '''string name = EMPTY
+print name ?? "anonymous"
+name = ""
+print name ?? "anonymous"
+'''
+        self.assertEqual(self.output(source), "anonymous\n\n")
+
     def test_compound_assignments_and_type_rules(self):
         body = '''value = 2
 value **= 3
