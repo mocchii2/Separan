@@ -11,6 +11,7 @@ from .errors import error
 from .objects import ObjectValue
 from .randomness import BytesValue
 from .system_utilities import UtilityFunction
+from .runtime_values import VOID, empty_of
 
 
 @dataclass(frozen=True)
@@ -46,19 +47,21 @@ def _request_path(args, named, position, runtime): return _context(runtime, posi
 def _request_header(args, named, position, runtime):
     name = args[0]
     if type(name) is not str: runtime.type_error(position, "string", runtime.type_name(name), "request_header() name must be a string.")
-    return _context(runtime, position)["request"].headers.get(name.lower())
+    headers = _context(runtime, position)["request"].headers
+    return headers[name.lower()] if name.lower() in headers else empty_of("string")
 
 
 def _request_param(args, named, position, runtime):
     name = args[0]
     if type(name) is not str: runtime.type_error(position, "string", runtime.type_name(name), "request_param() name must be a string.")
-    return _context(runtime, position)["params"].get(name)
+    params = _context(runtime, position)["params"]
+    return params[name] if name in params else empty_of("string")
 
 
 def _request_query(args, named, position, runtime):
     name = args[0]
     if type(name) is not str: runtime.type_error(position, "string", runtime.type_name(name), "request_query() name must be a string.")
-    values = _context(runtime, position)["request"].query.get(name); return None if not values else values[0]
+    values = _context(runtime, position)["request"].query.get(name); return empty_of("string") if not values else values[0]
 
 
 def _request_body(args, named, position, runtime):
@@ -72,7 +75,7 @@ def _request_cookie(args, named, position, runtime):
     for part in header.split(";"):
         key, separator, value = part.strip().partition("=")
         if separator and key == name: return SecretValue(value.encode("ascii"))
-    return None
+    return empty_of("secret")
 
 
 def _response(args, named, position, runtime):
@@ -112,7 +115,7 @@ def _set_cookie(args, named, position, runtime):
     if named.get("secure", False): parts.append("Secure")
     if named.get("http_only", True): parts.append("HttpOnly")
     if same_site: parts.append("SameSite=" + same_site)
-    _context(runtime, position)["response_cookies"].append("; ".join(parts)); return None
+    _context(runtime, position)["response_cookies"].append("; ".join(parts)); return VOID
 
 
 def _http_host(args, named, position, runtime):
@@ -148,7 +151,7 @@ def _http_static(args, named, position, runtime):
     if any(prefix == url for prefix, _ in runtime.http_static_mounts):
         raise error("E899", "Duplicate static mount", "Static URL prefixes must be unique.", position, actual=url)
     runtime.http_static_mounts.append((url, root.resolve()))
-    return None
+    return VOID
 
 
 SERVER_BUILTINS = (

@@ -14,6 +14,8 @@ http_host(host = "127.0.0.1", port = 8080)
 The preview supports `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, and `DELETE` routes.
 `request_method`, `request_path`, `request_header`, `request_param`,
 `request_query`, `request_body`, and `request_cookie` inspect the active request.
+Missing singular header, parameter, query, and cookie values return typed EMPTY.
+Cookie values remain `secret`. Response and route-registration mutations return VOID.
 `return_http` completes it, `redirect_http` returns an explicit redirect, and
 `http_set_cookie` adds a response cookie. A route without either return function
 produces status 204; an unmatched route produces 404.

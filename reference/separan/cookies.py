@@ -10,6 +10,7 @@ from .auth import SecretValue, secret_bytes
 from .errors import error
 from .objects import ObjectValue
 from .system_utilities import UtilityFunction
+from .runtime_values import VOID, empty_of
 
 
 @dataclass
@@ -65,21 +66,21 @@ def _cookie_set(arguments, named, position, runtime):
     if type(secure) is not bool or type(http_only) is not bool: runtime.type_error(position, "boolean cookie flags", "non-boolean", "secure and http_only must be boolean.")
     if same_site not in ("Strict", "Lax", "None", None): raise error("E880", "Invalid SameSite", "same_site must be Strict, Lax, None, or null.", position, actual=repr(same_site))
     if same_site == "None" and not secure: raise error("E880", "Unsafe SameSite=None", "SameSite=None cookies must be Secure.", position)
-    jar.counter += 1; _store(jar, CookieRecord(name, raw, domain.lower().lstrip(".") if domain else None, path, None, secure, http_only, same_site, domain is None, jar.counter)); return None
+    jar.counter += 1; _store(jar, CookieRecord(name, raw, domain.lower().lstrip(".") if domain else None, path, None, secure, http_only, same_site, domain is None, jar.counter)); return VOID
 
 
 def _cookie_get(arguments, named, position, runtime):
     jar = _jar(arguments[0], "cookie_get", position, runtime); name = arguments[1]; _safe_name(name, position)
     live = _live(jar); matches = [item for item in live if item.name == name]
-    return None if not matches else SecretValue(max(matches, key=lambda item: item.order).value)
+    return empty_of("secret") if not matches else SecretValue(max(matches, key=lambda item: item.order).value)
 
 
 def _cookie_remove(arguments, named, position, runtime):
     jar = _jar(arguments[0], "cookie_remove", position, runtime); name = arguments[1]; _safe_name(name, position)
-    jar.cookies[:] = [item for item in jar.cookies if item.name != name]; return None
+    jar.cookies[:] = [item for item in jar.cookies if item.name != name]; return VOID
 
 
-def _cookie_clear(arguments, named, position, runtime): _jar(arguments[0], "cookie_clear", position, runtime).cookies.clear(); return None
+def _cookie_clear(arguments, named, position, runtime): _jar(arguments[0], "cookie_clear", position, runtime).cookies.clear(); return VOID
 
 
 def _cookie_all(arguments, named, position, runtime):

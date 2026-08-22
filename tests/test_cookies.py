@@ -57,13 +57,13 @@ cookie_set(jar, "session", "abc")
 print cookie_get(jar, "session")
 print object_has(cookie_all(jar), "session")
 cookie_remove(jar, "session")
-print cookie_get(jar, "session")
+print cookie_get(jar, "session") is EMPTY
 cookie_set(jar, "a", "1")
 cookie_clear(jar)
 print length(object_keys(cookie_all(jar)))
 end_function:main
 '''
-        self.assertEqual(execute(source)[1], "[REDACTED]\ntrue\nnull\n0\n")
+        self.assertEqual(execute(source)[1], "[REDACTED]\ntrue\ntrue\n0\n")
 
     def test_domain_path_secure_and_expiry_rules(self):
         transport = FakeTransport([

@@ -12,6 +12,7 @@ from .auth import SecretValue, secret_bytes
 from .cookies import CookieJarValue, CookieRecord, _jar
 from .errors import error
 from .system_utilities import UtilityFunction
+from .runtime_values import VOID
 
 
 MAGIC = b"SEPARAN-COOKIE-STORE\0"
@@ -73,7 +74,7 @@ def _save(arguments, named, position, runtime):
     header = MAGIC + bytes((VERSION, mode, len(salt))) + salt + nonce
     ciphertext = AESGCM(key).encrypt(nonce, _serialize(jar), header)
     from .io_json import _atomic_write
-    _atomic_write(path, header + ciphertext, position); return None
+    _atomic_write(path, header + ciphertext, position); return VOID
 
 
 def _load(arguments, named, position, runtime):

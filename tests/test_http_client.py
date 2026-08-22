@@ -35,6 +35,16 @@ print http_get("https://example.test/", profile = profile)
         output = execute('response = http_request("https://example.test/missing")\nprint response.status\nprint response.text\nprint object_get(response.headers, "content-type")\nprint length(response.bytes)\n', capabilities=self.capability, http_transport=FakeTransport([response]))[1]
         self.assertEqual(output, '404\n{"error":true}\napplication/json\n14\n')
 
+    def test_head_and_decode_failure_expose_typed_empty_fields(self):
+        head = HttpTransportResponse(200, "https://example.test/", {}, b"")
+        source = '''response = http_request("https://example.test/", method = "HEAD")
+print response.text is EMPTY
+print response.encoding is EMPTY
+'''
+        self.assertEqual(execute(source, capabilities=self.capability, http_transport=FakeTransport([head]))[1], "true\ntrue\n")
+        invalid = HttpTransportResponse(200, "https://example.test/", {}, b"\xff")
+        self.assertEqual(execute('response = http_request("https://example.test/")\nprint response.text is EMPTY\n', capabilities=self.capability, http_transport=FakeTransport([invalid]))[1], "true\n")
+
     def test_http_get_rejects_error_status(self):
         source = '''function:main
 try :request

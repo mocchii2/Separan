@@ -57,15 +57,15 @@ immutable `exec_result`:
 | Field | Type | Meaning |
 |---|---|---|
 | `exit_code` | number | integer exit code |
-| `stdout` | string or null | decoded standard output, or null on decode failure |
-| `stderr` | string or null | decoded standard error, or null on decode failure |
+| `stdout` | string or EMPTY | decoded standard output, or typed EMPTY on decode failure |
+| `stderr` | string or EMPTY | decoded standard error, or typed EMPTY on decode failure |
 | `stdout_bytes` | bytes | exact captured standard output |
 | `stderr_bytes` | bytes | exact captured standard error |
 | `timed_out` | boolean | whether timeout termination was required |
 | `duration` | duration | elapsed monotonic time |
 | `command` | string | resolved executable path, sanitized for display |
 
-`stdout` and `stderr` are null rather than string when byte decoding fails under
+`stdout` and `stderr` are typed EMPTY rather than string when byte decoding fails under
 the selected encoding. The raw bytes remain available. Output streams are kept
 separate and their cross-stream write order is not promised.
 
@@ -101,7 +101,7 @@ no process result exists.
 | `timeout` | `duration("30s")` | positive duration, maximum capability limit |
 | `env` | empty object | explicit string-to-string additions/replacements |
 | `inherit_env` | false | requires separate capability permission when true |
-| `input` | null | string, bytes, or null |
+| `input` | omitted | string or bytes when specified |
 | `encoding` | `"utf-8"` | output text decoding; no locale fallback |
 | `max_stdout_bytes` | 1,048,576 | bounded by capability |
 | `max_stderr_bytes` | 1,048,576 | bounded by capability |
@@ -181,7 +181,7 @@ process tree and raises `command_limit_error`; output is never silently
 truncated. A future streaming API will use a separate name and capability.
 
 Text decoding is strict. Invalid byte sequences leave the corresponding text
-field null in `exec`; `exec_checked` follows the same rule and does not fail only
+field EMPTY in `exec`; `exec_checked` follows the same rule and does not fail only
 because output is binary. Callers requiring text can use a future explicit
 `require_stdout_text(result)` helper or inspect bytes.
 

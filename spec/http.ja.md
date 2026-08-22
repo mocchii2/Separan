@@ -57,8 +57,8 @@ print response.headers
 | `url` | string | redirect後の最終URL |
 | `headers` | `object` | 正規化済みresponse header。任意keyはobject key APIでaccess |
 | `bytes` | bytes | transfer decode後のraw body |
-| `text` | stringまたはnull | decode成功時のtext |
-| `encoding` | stringまたはnull | 選択された文字encoding |
+| `text` | stringまたはEMPTY | decode成功時のtext |
+| `encoding` | stringまたはEMPTY | 選択された文字encoding |
 | `redirects` | list[string] | 初期URLを除くredirect URL列 |
 
 member accessは`http_response`など固定shape値に導入します。任意header keyは
@@ -78,11 +78,11 @@ member accessは`http_response`など固定shape値に導入します。任意he
 | `encoding` | `"auto"` | `auto`、`utf-8`、または明示対応encoding |
 | `profile` | `http_profile("separan")` | 明示的`http_profile`値 |
 | `headers` | 空object | string-to-string object |
-| `body` | null | string、bytes、null |
+| `body` | 省略 | 指定する場合はstringまたはbytes |
 | `max_bytes` | 10,485,760 | decompress後の整数`0..67,108,864` |
 
 methodとbodyの組み合わせは厳密です。初期APIでは`GET`と`HEAD`はbodyを拒否します。
-`HEAD`のbytesは空でtextはnullです。暗黙JSON／form変換は行いません。将来helperは
+`HEAD`のbytesは空でtext／encodingはEMPTYです。暗黙JSON／form変換は行いません。将来helperは
 `http_post_json`のようにserializationを名前へ含めます。
 
 header名と値はcontrol文字・改行を拒否します。callerは`Host`、`Content-Length`、

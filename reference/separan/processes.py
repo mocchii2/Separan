@@ -11,13 +11,14 @@ from .objects import ObjectValue
 from .randomness import BytesValue
 from .system_utilities import UtilityFunction
 from .temporal import DurationValue
+from .runtime_values import EmptyValue, empty_of
 
 
 @dataclass(frozen=True)
 class ExecResultValue:
     exit_code: int
-    stdout: str | None
-    stderr: str | None
+    stdout: str | EmptyValue
+    stderr: str | EmptyValue
     stdout_bytes: BytesValue
     stderr_bytes: BytesValue
     timed_out: bool
@@ -83,9 +84,9 @@ def _run(command, argv, named, position, runtime, shell=False):
     if len(stdout) > stdout_limit or len(stderr) > stderr_limit: raise error("E805", "Command limit error", "Captured process output exceeded its byte limit.", position)
     elapsed = int((time.monotonic() - started) * 1000)
     try: stdout_text = stdout.decode(encoding)
-    except (UnicodeError, LookupError): stdout_text = None
+    except (UnicodeError, LookupError): stdout_text = empty_of("string", external=True)
     try: stderr_text = stderr.decode(encoding)
-    except (UnicodeError, LookupError): stderr_text = None
+    except (UnicodeError, LookupError): stderr_text = empty_of("string", external=True)
     return ExecResultValue(process.returncode, stdout_text, stderr_text, BytesValue(stdout), BytesValue(stderr), timed_out, DurationValue(elapsed), command)
 
 

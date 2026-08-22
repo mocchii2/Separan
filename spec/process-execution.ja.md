@@ -54,15 +54,15 @@ commandと全引数はstringです。空command名とNULを含むstringはエラ
 | field | 型 | 意味 |
 |---|---|---|
 | `exit_code` | number | 整数exit code |
-| `stdout` | stringまたはnull | decode済み標準出力。decode失敗時null |
-| `stderr` | stringまたはnull | decode済み標準error。decode失敗時null |
+| `stdout` | stringまたはEMPTY | decode済み標準出力。decode失敗時は型付きEMPTY |
+| `stderr` | stringまたはEMPTY | decode済み標準error。decode失敗時は型付きEMPTY |
 | `stdout_bytes` | bytes | 正確な標準出力byte |
 | `stderr_bytes` | bytes | 正確な標準error byte |
 | `timed_out` | boolean | timeout終了が必要だったか |
 | `duration` | duration | monotonic clockによる経過時間 |
 | `command` | string | 表示用にsanitizeした解決済み実行path |
 
-指定encodingでdecodeできない場合、`stdout`／`stderr`はstringではなくnullです。raw bytesは
+指定encodingでdecodeできない場合、`stdout`／`stderr`はstringではなく型付きEMPTYです。raw bytesは
 利用できます。両streamは分離し、stream間の書き込み順序は保証しません。
 
 signalやplatform固有異常終了は、adapterごとに文書化する負の`exit_code`へ対応させます。
@@ -93,7 +93,7 @@ endtry:run_git
 | `timeout` | `duration("30s")` | 正のduration、capability上限以下 |
 | `env` | 空object | 明示的string-to-string追加／置換 |
 | `inherit_env` | false | trueには別capability許可が必要 |
-| `input` | null | string、bytes、null |
+| `input` | 省略 | 指定する場合はstringまたはbytes |
 | `encoding` | `"utf-8"` | 出力text decode。locale fallbackなし |
 | `max_stdout_bytes` | 1,048,576 | capability上限以下 |
 | `max_stderr_bytes` | 1,048,576 | capability上限以下 |
@@ -161,7 +161,7 @@ pipe deadlock防止のためstdout／stderrを並行消費します。上限はt
 どちらかが上限を超えたらprocess treeを終了し`command_limit_error`にします。黙ってtruncate
 しません。将来のstreaming APIは別名・別capabilityです。
 
-text decodeは厳密です。不正byte列の場合、`exec`の対応text fieldはnullになります。
+text decodeは厳密です。不正byte列の場合、`exec`の対応text fieldはEMPTYになります。
 `exec_checked`も同じで、binary出力だけを理由に失敗しません。text必須のcallerは将来の
 明示的`require_stdout_text(result)`またはbytesを利用します。
 

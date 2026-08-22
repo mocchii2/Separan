@@ -44,6 +44,15 @@ end_function:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability)[1], "7\nfailed\n")
 
+    def test_undecodable_output_is_typed_empty_while_bytes_are_retained(self):
+        source = f'''function:main
+result = exec("{self.command}", ["-c", "import sys;sys.stdout.buffer.write(bytes([255]))"])
+print result.stdout is EMPTY
+print length(result.stdout_bytes)
+end_function:main
+'''
+        self.assertEqual(execute(source, capabilities=self.capability)[1], "true\n1\n")
+
     def test_timeout_and_output_limit(self):
         source = f'''function:main
 result = exec("{self.command}", ["-c", "import time;time.sleep(1)"], timeout = duration("10ms"))

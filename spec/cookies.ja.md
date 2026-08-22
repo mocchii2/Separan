@@ -19,6 +19,8 @@ APIは`cookie_jar`、`cookie_get`、`cookie_set`、`cookie_remove`、`cookie_cle
 `cookie_all`です。HTTP responseの`Set-Cookie`は自動保存され、今回受信した値は
 `response.cookies`へ入ります。Cookie値は`secret`なので表示時にredactされます。
 `Set-Cookie`は通常の`response.headers`から除外し、文字列として漏らしません。
+`cookie_get`は一致する有効Cookieがなければ`secret`型EMPTYを返します。jar変更操作と
+安全な保存操作はVOIDを返します。
 
 Jarはname、value、domain、path、expires/Max-Age、secure、http_only、same_site、host-only
 状態を保持します。送信時にdomain/path/expiry/secureを検証します。手動でdomainを省略した

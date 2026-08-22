@@ -14,6 +14,7 @@ from .system_utilities import UtilityFunction
 from .temporal import DurationValue
 from .auth import HttpAuthValue
 from .cookies import CookieJarValue, cookie_header, receive_cookies, _safe_name, _safe_value
+from .runtime_values import EmptyValue, empty_of
 
 
 @dataclass(frozen=True)
@@ -40,8 +41,8 @@ class HttpResponseValue:
     url: str
     headers: ObjectValue
     bytes: BytesValue
-    text: str | None
-    encoding: str | None
+    text: str | EmptyValue
+    encoding: str | EmptyValue
     redirects: list
     cookies: ObjectValue
 
@@ -200,16 +201,17 @@ def _request(arguments, named, position, runtime):
         content_type = normalized.get("content-type", "")
         for part in content_type.split(";")[1:]:
             if part.strip().lower().startswith("charset="): selected = part.split("=", 1)[1].strip().strip('"').lower()
-    try: text = None if selected is None else raw.body.decode(selected)
-    except (UnicodeError, LookupError): text = None
-    return HttpResponseValue(raw.status, raw.url, ObjectValue.create(normalized), BytesValue(raw.body), text, selected if text is not None else None, redirects, ObjectValue.create(received))
+    try: text = empty_of("string", external=True) if selected is None else raw.body.decode(selected)
+    except (UnicodeError, LookupError): text = empty_of("string", external=True)
+    encoding = selected if selected is not None and not isinstance(text, EmptyValue) else empty_of("string", external=True)
+    return HttpResponseValue(raw.status, raw.url, ObjectValue.create(normalized), BytesValue(raw.body), text, encoding, redirects, ObjectValue.create(received))
 
 
 def _get(arguments, named, position, runtime):
     named = dict(named); named["method"] = "GET"
     response = _request(arguments, named, position, runtime)
     if not 200 <= response.status < 300: raise error("E786", "http_status_error", f"HTTP GET returned status {response.status}.", position, actual=str(response.status))
-    if response.text is None: raise error("E788", "http_decode_error", "HTTP response is not valid text in the selected encoding.", position)
+    if isinstance(response.text, EmptyValue): raise error("E788", "http_decode_error", "HTTP response is not valid text in the selected encoding.", position)
     return response.text
 
 

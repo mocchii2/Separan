@@ -7,6 +7,8 @@ mutable `cookie_jar` type. The API includes jar creation, get/set/remove/clear,
 and redacted enumeration. HTTP stores `Set-Cookie` automatically and exposes
 newly received values as secrets in `response.cookies`; raw `Set-Cookie` is
 removed from ordinary response headers.
+`cookie_get` returns typed `secret` EMPTY when no matching live cookie exists.
+Jar mutations and secure-save operations return VOID.
 
 The jar retains name, secret value, domain, path, expiration/Max-Age, Secure,
 HttpOnly, SameSite, and host-only state. Domain, path, expiry, and transport

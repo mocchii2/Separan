@@ -38,6 +38,21 @@ class HttpServerTests(unittest.TestCase):
         self.assertEqual(app.dispatch_http(ServerRequest("GET", "/missing")).status, 404)
         self.assertEqual(app.dispatch_http(ServerRequest("HEAD", "/user/1", {"view": ["x"]})).status, 200)
 
+    def test_missing_request_values_are_typed_empty(self):
+        source = '''http_route GET "/optional" :optional
+if request_header("x-missing") is EMPTY :header_missing
+if request_query("missing") is EMPTY :query_missing
+if request_cookie("missing") is EMPTY :cookie_missing
+return_http(body = "empty")
+endif:cookie_missing
+endif:query_missing
+endif:header_missing
+return_http(status = 500, body = "unexpected")
+end_http_route:optional
+'''
+        response = create_application(source).dispatch_http(ServerRequest("GET", "/optional"))
+        self.assertEqual((response.status, response.body), (200, b"empty"))
+
     def test_redirect_and_request_context_guard(self):
         source = '''http_route GET "/old" :old
 redirect_http("/new", status = 308)

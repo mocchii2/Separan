@@ -62,8 +62,8 @@ The initial fields are:
 | `url` | string | final URL after redirects |
 | `headers` | `object` | normalized response headers, accessed with the object key API |
 | `bytes` | bytes | raw decoded-transfer body |
-| `text` | string or null | decoded text when decoding succeeds |
-| `encoding` | string or null | selected character encoding |
+| `text` | string or EMPTY | decoded text when decoding succeeds |
+| `encoding` | string or EMPTY | selected character encoding |
 | `redirects` | list[string] | visited redirect URLs, excluding initial URL |
 
 Member access is introduced for fixed-shape values such as `http_response` and
@@ -85,11 +85,11 @@ intentional and visible in the function name.
 | `encoding` | `"auto"` | `auto`, `utf-8`, or an explicitly supported encoding |
 | `profile` | `http_profile("separan")` | explicit `http_profile` value |
 | `headers` | empty object | string-to-string object |
-| `body` | null | string, bytes, or null |
+| `body` | omitted | string or bytes when specified |
 | `max_bytes` | 10,485,760 | integer `0..67,108,864` after decompression |
 
 Method/body compatibility is strict. `GET` and `HEAD` reject a body in the
-initial API. `HEAD` returns empty bytes and null text. Request bodies are never
+initial API. `HEAD` returns empty bytes and EMPTY text/encoding. Request bodies are never
 created by implicit JSON or form conversion; future helpers such as
 `http_post_json` must name the serialization.
 

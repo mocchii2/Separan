@@ -14,6 +14,8 @@ http_host(host = "127.0.0.1", port = 8080)
 プレビュー版は `GET`、`HEAD`、`POST`、`PUT`、`PATCH`、`DELETE` に対応する。
 `request_method`、`request_path`、`request_header`、`request_param`、
 `request_query`、`request_body`、`request_cookie` で現在のリクエストを参照する。
+単一header、parameter、query、Cookieが不在なら型付きEMPTYを返す。Cookie値は`secret`の
+まま扱い、responseとroute登録の変更操作はVOIDを返す。
 `return_http` はレスポンスを確定し、`redirect_http` は明示的なリダイレクトを返し、
 `http_set_cookie` はCookieを追加する。明示的な応答がないルートは204、未一致は404となる。
 
