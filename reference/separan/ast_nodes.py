@@ -17,6 +17,8 @@ class BinaryExpr(Expr): left: Expr; operator: str; right: Expr
 @dataclass
 class UnaryExpr(Expr): operator: str; operand: Expr
 @dataclass
+class EmptyTestExpr(Expr): operand: Expr; negated: bool = False
+@dataclass
 class GroupExpr(Expr): expression: Expr
 @dataclass
 class CallExpr(Expr):

@@ -12,7 +12,7 @@ KEYWORDS = {
     "endfor": TokenType.ENDFOR, "print": TokenType.PRINT, "return": TokenType.RETURN,
     "print_error": TokenType.PRINT_ERROR,
     "const": TokenType.CONST,
-    "not": TokenType.NOT,
+    "not": TokenType.NOT, "is": TokenType.IS,
     "object": TokenType.OBJECT, "end_object": TokenType.END_OBJECT,
     "list": TokenType.LIST, "end_list": TokenType.END_LIST,
     "import": TokenType.IMPORT, "as": TokenType.AS,
@@ -22,6 +22,7 @@ KEYWORDS = {
     "http_route": TokenType.HTTP_ROUTE, "end_http_route": TokenType.END_HTTP_ROUTE,
     "transaction": TokenType.TRANSACTION, "end_transaction": TokenType.END_TRANSACTION,
     "true": TokenType.TRUE, "false": TokenType.FALSE, "null": TokenType.NULL,
+    "EMPTY": TokenType.EMPTY,
 }
 
 

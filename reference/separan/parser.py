@@ -368,13 +368,13 @@ class Parser:
     def _or(self): return self._binary(self._and, {T.OR})
     def _and(self): return self._binary(self._equality, {T.AND})
     def _equality(self):
-        expr = self._comparison()
+        expr = self._empty_test()
         if self._at(T.EQUAL_EQUAL, T.BANG_EQUAL):
             operator = self._advance()
-            if isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!=", "in", "not in"}:
+            if isinstance(expr, EmptyTestExpr) or isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!=", "in", "not in"}:
                 self._chained(operator)
-            right = self._comparison()
-            if isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<=", "in", "not in"}:
+            right = self._empty_test()
+            if isinstance(right, EmptyTestExpr) or isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<=", "in", "not in"}:
                 self._chained(operator)
             expr = BinaryExpr(operator.position, expr, operator.lexeme, right)
         if self._at(T.EQUAL_EQUAL, T.BANG_EQUAL, T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
@@ -390,6 +390,17 @@ class Parser:
             expr = BinaryExpr(operator.position, expr, lexeme, self._term())
         if self._at(T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL, T.IN) or (self._at(T.NOT) and self._peek(1).type == T.IN):
             self._chained(self._peek())
+        return expr
+    def _empty_test(self):
+        expr = self._comparison()
+        if self._match(T.IS):
+            operator = self._previous(); negated = self._match(T.NOT)
+            if not self._match(T.EMPTY):
+                token = self._peek()
+                raise error("E128", "Invalid state test", "The 'is' operator is reserved for 'is EMPTY' and 'is not EMPTY'.", token.position,
+                            expected="EMPTY", actual=token.lexeme)
+            expr = EmptyTestExpr(operator.position, expr, negated)
+        if self._at(T.IS): self._chained(self._peek())
         return expr
     @staticmethod
     def _chained(token):

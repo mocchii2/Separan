@@ -39,6 +39,7 @@ endif:label
 - `const type name = value`は明示型を持つ再代入不能bindingを作る。
 
 完全な規則は[明示的型宣言](type-declarations.ja.md)で定義します。
+[EMPTY、EMPTYS、VOID](empty-values.ja.md)では値なし状態の段階移行を定義します。
 
 ## 演算子
 

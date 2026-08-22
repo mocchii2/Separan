@@ -39,6 +39,7 @@ share one namespace and must be unique. Closed labels may be reused.
 - `const type name = value` creates a non-reassignable explicitly typed binding.
 
 The complete rules are in [Explicit Type Declarations](type-declarations.md).
+The staged absence model is defined in [EMPTY, EMPTYS, and VOID](empty-values.md).
 
 ## Operators
 

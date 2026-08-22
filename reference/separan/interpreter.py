@@ -398,6 +398,9 @@ class Interpreter:
     def _eval(self, expr):
         if isinstance(expr, LiteralExpr): return expr.value
         if isinstance(expr, GroupExpr): return self._eval(expr.expression)
+        if isinstance(expr, EmptyTestExpr):
+            result = isinstance(self._eval(expr.operand), EmptyValue)
+            return not result if expr.negated else result
         if isinstance(expr, VariableExpr):
             if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
             if expr.name in self.functions or expr.name in BUILTINS or expr.name in self.host_functions: return FunctionValue(self, expr.name)

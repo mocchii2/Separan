@@ -82,7 +82,7 @@ def folding_ranges(source):
 TOKEN_TYPES = ["namespace", "type", "function", "parameter", "variable", "property", "label", "decorator", "number", "string", "keyword", "comment", "operator"]
 TOKEN_MODIFIERS = ["declaration", "readonly", "number", "string", "boolean", "list", "object", "bytes", "datetime", "duration", "secret", "constant", "parameter"]
 TYPE_MODIFIER = {name: TOKEN_MODIFIERS.index(name) for name in ("number", "string", "boolean", "list", "object", "bytes", "datetime", "duration", "secret")}
-KEYWORDS = {"function", "end_function", "if", "elseif", "else", "endif", "while", "endwhile", "for", "endfor", "return", "const", "object", "end_object", "list", "end_list", "try", "catch", "finally", "endtry", "throw", "transaction", "end_transaction", "http_route", "end_http_route", "import", "as", "in", "not"}
+KEYWORDS = {"function", "end_function", "if", "elseif", "else", "endif", "while", "endwhile", "for", "endfor", "return", "const", "object", "end_object", "list", "end_list", "try", "catch", "finally", "endtry", "throw", "transaction", "end_transaction", "http_route", "end_http_route", "import", "as", "in", "not", "is"}
 RENAMABLE_LABEL_KINDS = {"if", "while", "for", "try", "transaction", "http_route"}
 
 
@@ -158,7 +158,7 @@ def semantic_tokens(source):
             word = found.group()
             if word in KEYWORDS: add(line_no, found.start(), len(word), "keyword")
             elif word in ("print", "print_error"): add(line_no, found.start(), len(word), "function")
-            elif word in ("true", "false", "null"): add(line_no, found.start(), len(word), "type")
+            elif word in ("true", "false", "null", "EMPTY"): add(line_no, found.start(), len(word), "type")
             elif word in BUILTIN_SIGNATURES or re.match(r"\s*\(", text[found.end():]): add(line_no, found.start(), len(word), "function")
             elif found.start() > 0 and text[found.start() - 1] == ".": add(line_no, found.start(), len(word), "property")
         for found in re.finditer(r"\*\*|//|==|!=|>=|<=|&&|\|\||\?\?|[+\-*/%><!=]", text): add(line_no, found.start(), len(found.group()), "operator")

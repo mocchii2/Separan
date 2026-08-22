@@ -310,6 +310,7 @@ def _literal_type(expression):
     if text.startswith('"') and text.endswith('"'): return "string"
     if text in ("true", "false"): return "boolean"
     if text == "null": return "null"
+    if text == "EMPTY": return "EMPTY"
     if text.startswith("["): return "list"
     call = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", text)
     if call:
