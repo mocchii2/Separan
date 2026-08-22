@@ -1,4 +1,4 @@
-# EMPTY、EMPTYS、VOID — v0.2段階仕様
+# EMPTY、EMPTYS、VOID — v0.2仕様
 
 Separanは、従来`null`が曖昧にしていた3つの状態を分離します。
 
@@ -21,7 +21,7 @@ print value
 endif:value_present
 ```
 
-`is`は一般的な等値演算子ではありません。`value is 1`、`value is null`、状態判定と
+`is`は一般的な等値演算子ではありません。`value is 1`、sourceの`value is null`、状態判定と
 比較の連鎖は構文errorです。通常値の一致判定には引き続き`==`と`!=`を使います。
 
 型付き変数はEMPTY状態で開始でき、後から宣言型の値だけを受け取れます。既存の可変
@@ -82,4 +82,5 @@ print json_encode(optional_name)  # null
 その型を保持します。この例外は外部JSONだけです。source literalの
 `[EMPTY, EMPTY]`には引き続き`list<type>`が必要です。
 
-残る移行は、標準API移行、最後にsource-level `null`削除の順で進めます。
+source-levelの`null`と移行用`is_null()` aliasは削除済みです。`null`／`NULL`はどちらも
+`E135`となり、型宣言とEMPTYの使用を案内します。JSON `null`は外部JSON境界にだけ残ります。

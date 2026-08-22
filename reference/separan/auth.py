@@ -67,7 +67,7 @@ def _secret_get(arguments, named, position, runtime):
     except Exception as exc: raise error("E871", "Secret unavailable", str(exc), position, actual=name)
     if value is None: raise error("E871", "Secret unavailable", "The requested secret does not exist.", position, actual=name)
     if type(value) is str: value = value.encode("utf-8")
-    if type(value) is not bytes: raise error("E871", "Secret provider error", "Host secret provider must return string, bytes, or null.", position, actual=name)
+    if type(value) is not bytes: raise error("E871", "Secret provider error", "Host secret provider must return string, bytes, or no value.", position, actual=name)
     return SecretValue(value)
 
 

@@ -79,7 +79,7 @@ env_remove("MODE")
 ```
 
 - `env_get`の不在結果は型付きEMPTY。defaultが明示された場合だけそのstringを返す。
-- 名前と値はstringのみ。null、number、booleanへの暗黙変換は行わない。
+- 名前と値はstringのみ。EMPTY、number、booleanへの暗黙変換は行わない。
 - `env_set`／`env_remove`は現在のSeparan process環境と、その後起動する子processだけに
   影響する。OS全体、親process、永続user設定は変更しない。
 - hostはread可能名とwrite可能名を別々にallowlistできる。

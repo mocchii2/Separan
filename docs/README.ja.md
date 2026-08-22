@@ -107,7 +107,7 @@ string optional_note = EMPTY
 function:main
 name = "Separan"
 
-if name != null :名前あり
+if name is not EMPTY :名前あり
 print "Hello, " + name
 endif:名前あり
 
@@ -434,7 +434,7 @@ listは同型・0始まりで、追加、削除、slice、reverse、sortをす�
 
 `length(value)`と`is_empty(value)`はstring、list、bytesで共通です。文字列検索、
 繰り返し、paddingはUnicodeコードポイント単位で、`index_of`／`last_index_of`の
-不在結果は`-1`ではなくnullです。
+不在結果は`-1`ではなく型付きEMPTYです。
 
 `const name = value`は再代入不能bindingを作り、通常代入は可変のままです。
 label付きobject／list data block、namespace付きimport、capability型I/O、明示的JSON変換、
@@ -453,7 +453,7 @@ JavaScript、DOM、screen size、navigatorは将来の`browser_open`へ分離し
 `exec`、`exec_checked`、`shell_exec`、`command_exists`はprocess capability付きで
 リファレンス処理系へ先行実装済みです。
 
-regexはmatch／search／find／replace／splitを分離し、不在はnullまたは空list、不正patternは
+regexはmatch／search／find／replace／splitを分離し、不在は型付きEMPTYまたは空list、不正patternは
 `regex_error`にします。glob結果は必ずsortし、environment変更は現在processと子process
 だけに限定します。command lineでは`script_path()`と`command_args()`を分離します。
 詳細は[system utility設計](../spec/system-utilities.ja.md)を参照してください。
@@ -484,7 +484,7 @@ matching highlight、completion、signature help、Inlay Hint、label付きsymbo
 AST保存formatterをVS Code拡張へ提供します。詳細は
 [VS Code／LSP仕様](../spec/vscode-extension.ja.md)を参照してください。
 
-厳密型の演算子として累乗、整数floor除算、null fallback、複合代入、型付き包含判定を
+厳密型の演算子として累乗、整数floor除算、EMPTY fallback、複合代入、型付き包含判定を
 利用できます。[演算子サンプル](../examples/operators.sep)と[言語仕様](../spec/README.ja.md#演算子)を参照してください。
 
 ## 状態

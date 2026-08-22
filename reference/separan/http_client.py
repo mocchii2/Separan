@@ -136,7 +136,7 @@ def _request(arguments, named, position, runtime):
     if body is None: body_bytes = None
     elif type(body) is str: body_bytes = body.encode("utf-8")
     elif isinstance(body, BytesValue): body_bytes = body.value
-    else: runtime.type_error(position, "string, bytes, or null", runtime.type_name(body), "HTTP body has an invalid type.")
+    else: runtime.type_error(position, "string, bytes, or omitted body", runtime.type_name(body), "HTTP body has an invalid type.")
     auth = named.get("auth")
     if auth is not None:
         if not isinstance(auth, HttpAuthValue): runtime.type_error(position, "http_auth", runtime.type_name(auth), "auth must come from an authentication constructor.")

@@ -1,4 +1,4 @@
-# Separan言語仕様 — v0.2.0-alpha.12
+# Separan言語仕様 — v0.2.0-alpha.13
 
 この文書は現在の言語仕様の簡潔な規範文書です。実行可能な適合条件は
 `tests/`のテストとして管理します。
@@ -25,7 +25,10 @@ endif:label
 - 識別子は`[A-Za-z_][A-Za-z0-9_]*`。明示的なblock label、複数行comment label、function tagには
   NFC正規化済みUnicode identifierも使用できる。どちらも大文字小文字を区別し、絵文字、
   空白、句読点、非正規化labelは使用できない。
-- 型は`number`、`string`、`boolean`、`list`、`null`。
+- 中心value型は`number`、`string`、`boolean`、`list`、`object`。標準APIはさらに
+  `bytes`や`datetime`などの明示型を提供する。
+- `EMPTY`は型ではなく型を保持した状態、`VOID`は非valueの関数結果。source-levelの
+  `null`／`NULL`は`E135`で拒否する。
 - 変数は最初の代入で推論した型を維持する。明示的型宣言は`type name = value`で、
   初期値を必須とする。
 - 関数引数は、その関数への最初の呼び出しで型を固定する。
@@ -45,7 +48,7 @@ endif:label
 
 演算子は暗黙変換を行いません。優先順位は低い順に`??`、`||`、`&&`、等値比較、
 大小・包含比較、`+ -`、`* / // %`、単項`! not -`、`**`です。`**`は右結合。
-`??`も右結合で、左辺がnullの場合だけ右辺を評価します。
+`??`も右結合で、左辺がEMPTYの場合だけ右辺を評価します。
 
 | 演算子 | 規則 |
 |---|---|
@@ -54,12 +57,12 @@ endif:label
 | `**` | 実数かつ有限結果の累乗 |
 | `== != < <= > >=` | 変換なしの厳密比較。比較連鎖は禁止 |
 | `&& || ! not` | boolean専用。`&&`と`||`は短絡評価 |
-| `??` | null専用fallback。false、0、空値はそのまま保持 |
+| `??` | EMPTY専用fallback。false、0、空値はそのまま保持 |
 | `in`、`not in` | string、list、object field名、bytesの厳密な包含判定 |
 
 複合代入は`+=`、`-=`、`*=`、`/=`、`//=`、`%=`、`**=`を提供します。対応する演算後に
-代入するのと同じなので、constは変更できずbindingの固定型規則も維持します。`??=`はnull型bindingを
-別型へ変える抜け道になるため提供しません。`++`と`--`も定義しません。
+代入するのと同じなので、constは変更できずbindingの固定型規則も維持します。`??=`は
+値消去と置換を一つの演算へ曖昧にまとめるため提供しません。`++`と`--`も定義しません。
 
 string包含は両方string、list検索値は同型element、objectはstring field名を要求します。
 bytesはbytes部分列または0..255の整数byteを検索できます。不在はfalseですが、検索型不一致を
@@ -76,7 +79,6 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 | `len(value)` | string、list、bytes | `length`の互換alias |
 | `type(value)` | 任意の値 | ユーザー向け型名のstring |
 | `type_of(value)` | 任意の値 | ユーザー向け型名の読みやすいalias |
-| `is_null(value)` | 任意の値 | 移行用の非推奨alias。`value is EMPTY`を使用 |
 | `is_number/string/boolean/list/object(value)` | 任意の値 | 公開型との完全一致判定 |
 | `is_bytes/datetime/duration/secret(value)` | 任意の値 | 公開型との完全一致判定 |
 | `abs(value)` | number | 数値の絶対値 |
@@ -94,7 +96,7 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 | `range(start, stop, step)` | 整数値number、stepは0以外 | step間隔のnumber list |
 | `number_range(...)` | `range`と同じ厳密な引数 | number listを明示する読みやすい別名 |
 | `number(value)` | numberまたは厳密な10進string | number |
-| `string(value)` | number、string、boolean、null | 正規化したstring表現 |
+| `string(value)` | number、string、boolean | 正規化したstring表現 |
 | `boolean(value)` | booleanまたは完全一致する`"true"`／`"false"` | boolean |
 
 `range`は`step`の方向に進み、`stop`へ到達できない方向なら空listを返します。
@@ -103,12 +105,12 @@ booleanを拒否します。
 
 変換は明示的かつ厳密です。`number`が受け付ける10進文字列は
 `-?[0-9]+(?:\.[0-9]+)?`に一致するものだけで、前後空白、先頭の`+`、指数表記は
-拒否します。`boolean`はtruthy/falsy変換を行いません。数値、null、list、および
+拒否します。`boolean`はtruthy/falsy変換を行いません。数値、EMPTY、list、および
 小文字の`"true"`と`"false"`以外の文字列はエラーです。`string`はv0.1ではlistを
 シリアライズしません。文字列内容の変換失敗は`E304`になります。
 
 将来の失敗可能な変換は、デフォルト値で失敗を隠す形式より、
-`try_number(value) -> number | null`のように制御フロー上へ失敗を明示する形式を
+`try_number(value) -> number | EMPTY`のように制御フロー上へ失敗を明示する形式を
 優先します。
 
 拡張した[読みやすい数学機能仕様](mathematics.ja.md)では、意味を明示する関数名、

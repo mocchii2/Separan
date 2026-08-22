@@ -67,7 +67,7 @@ top-levelまたはfunction bodyの`object:user`は`user` bindingを作ります�
 - object field名はidentifierで、同じobject内で一意。field値は異型でよい。
 - block listは既存listと同じく同型・0始まり。空listは最初の追加時に型が決まる。
 - object／listの構築完了前に自身を参照できない。
-- `user.name`は存在するidentifier fieldへのaccess。欠落fieldはnullではなくerror。
+- `user.name`は存在するidentifier fieldへのaccess。欠落fieldはEMPTYやdefaultではなくerror。
 - JSON由来の任意string keyには`object_get(value, key)`、`object_has`を使う。これにより
   `x-api-key`のようなidentifierでないkeyも失わない。
 - 更新APIは非破壊とし、source blockの重複fieldを黙って上書きしない。
@@ -198,7 +198,7 @@ endtry:load_config
 - catch type重複はエラー。
 - tryへ入った後は、returnや新しいerrorを含めfinallyが必ず実行。
 - finallyがthrowしたら新errorをactiveにし、元errorを関連診断として保持。
-- matching catchまでerrorを伝播し、nullやdefault値へ黙って変換しない。
+- matching catchまでerrorを伝播し、EMPTYやdefault値へ黙って変換しない。
 
 初期catch category階層:
 

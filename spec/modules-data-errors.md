@@ -225,7 +225,7 @@ Rules:
 - if `finally` throws, that new error becomes active and retains the prior error
   as related diagnostic context;
 - errors propagate until a matching catch is found; no error is silently
-  converted to null or a default value.
+  converted to EMPTY or a default value.
 
 Initial catchable categories form a hierarchy:
 

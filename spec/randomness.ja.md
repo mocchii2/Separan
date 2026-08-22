@@ -10,7 +10,7 @@ seed APIは存在しません。
 
 | 関数 | 結果 |
 |---|---|
-| `random_seed(seed)` | 現在の処理系PRNGをリセットしnullを返す |
+| `random_seed(seed)` | 現在の処理系PRNGをリセットしVOIDを返す |
 | `random_number()` | `0 <= x < 1`のnumber |
 | `random_int(min, max)` | 両端を含む整数値number |
 | `random_float(min, max)` | `min <= x < max`を満たすnumber |

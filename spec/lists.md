@@ -86,7 +86,7 @@ before `file10`. Equal keys preserve input order.
 
 `sort_by` and `sort_by_descending` require an object list and a non-empty field
 name. Every object must contain that field, and all field values must have one
-identical orderable type. Missing, mixed-type, boolean, null, list, bytes,
+identical orderable type. Missing, EMPTY, mixed-type, boolean, list, bytes,
 secret, and other unordered keys are errors. Separan never guesses a fallback
 key or silently moves missing values.
 

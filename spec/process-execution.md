@@ -117,7 +117,7 @@ to child processes, so both source code and host capability must opt in.
 
 `input` is written to standard input and then closed. String input is encoded
 with the selected encoding. No newline is appended. Child stdin is empty and
-closed when input is null.
+closed when input is omitted.
 
 ## Executable resolution
 

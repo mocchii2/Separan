@@ -10,7 +10,7 @@ is no overloaded `random()` function and no secure seeding API.
 
 | Function | Result |
 |---|---|
-| `random_seed(seed)` | resets the current interpreter PRNG; returns null |
+| `random_seed(seed)` | resets the current interpreter PRNG; returns VOID |
 | `random_number()` | number in `0 <= x < 1` |
 | `random_int(min, max)` | integer-valued number with both endpoints included |
 | `random_float(min, max)` | number satisfying `min <= x < max` |

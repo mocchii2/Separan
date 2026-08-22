@@ -752,7 +752,7 @@ def _lease_duration(raw, key, position):
     if value is None:
         return None
     if type(value) is not int or value < 0:
-        raise error("E980", "network_address_error", f"DHCP lease {key} must be non-negative integer milliseconds or null.", position)
+        raise error("E980", "network_address_error", f"DHCP lease {key} must be non-negative integer milliseconds or absent.", position)
     return DurationValue(value)
 
 
@@ -780,7 +780,7 @@ def _network_dhcp_lease(args, named, position, runtime):
     expires = raw.get("expires_at_unix_ms")
     if expires is not None:
         if type(expires) is not int:
-            raise error("E980", "network_address_error", "DHCP lease expiration must be integer Unix milliseconds or null.", position)
+            raise error("E980", "network_address_error", "DHCP lease expiration must be integer Unix milliseconds or absent.", position)
         expires = from_unix_milliseconds(expires, TimezoneValue("UTC", UTC), position)
     return ObjectValue.create({
         "address": address, "prefix": prefix, "gateway": gateway if gateway is not None else empty_of("ip_address", external=True),

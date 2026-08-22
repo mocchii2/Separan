@@ -112,7 +112,7 @@ an error rather than an implicit default.
 function:main
 name = "Separan"
 
-if name != null :名前あり
+if name is not EMPTY :名前あり
 print "Hello, " + name
 endif:名前あり
 
@@ -447,7 +447,7 @@ case-folded, natural-number, and object-field variants. See the
 
 `length(value)` and `is_empty(value)` work consistently across strings, lists,
 and bytes. String search, repetition, and padding operate on Unicode code points;
-failed `index_of` and `last_index_of` searches return null.
+failed `index_of` and `last_index_of` searches return typed EMPTY values.
 
 `const name = value` creates an immutable binding while ordinary assignment
 remains mutable. Labeled object/list data blocks, namespaced imports,
@@ -485,7 +485,7 @@ Hover, definition, scope-safe label rename, matching highlights, completion,
 signature help, inlay hints, labeled symbols/folding, and AST-preserving
 formatting. See the [VS Code/LSP specification](https://github.com/mocchii2/Separan/blob/main/spec/vscode-extension.md).
 
-The strict operator set includes power, integer floor division, null fallback,
+The strict operator set includes power, integer floor division, EMPTY fallback,
 compound assignment, and typed membership. See
 [`examples/operators.sep`](https://github.com/mocchii2/Separan/blob/main/examples/operators.sep) and the
 [language specification](https://github.com/mocchii2/Separan/blob/main/spec/README.md#operators).

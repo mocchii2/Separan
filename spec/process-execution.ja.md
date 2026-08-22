@@ -106,7 +106,7 @@ default環境はhost継承ではなく最小環境です。adapterがplatform実
 capabilityの両方でopt-inします。
 
 `input`はstdinへ書いた後closeします。stringは指定encodingでencodeし、改行を追加しません。
-nullならchild stdinは空でclose済みです。
+inputを省略した場合、child stdinは空でclose済みです。
 
 ## 実行file解決
 

@@ -36,7 +36,7 @@ class TokenType(Enum):
     PERCENT = auto()
     POWER = auto()
     FLOOR_DIV = auto()
-    NULL_COALESCE = auto()
+    EMPTY_COALESCE = auto()
     EQUAL = auto()
     PLUS_EQUAL = auto()
     MINUS_EQUAL = auto()

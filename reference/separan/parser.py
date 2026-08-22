@@ -403,7 +403,7 @@ class Parser:
     def _expression(self): return self._coalesce()
     def _coalesce(self):
         expr = self._or()
-        if self._match(T.NULL_COALESCE):
+        if self._match(T.EMPTY_COALESCE):
             operator = self._previous(); expr = BinaryExpr(operator.position, expr, operator.lexeme, self._coalesce())
         return expr
     def _or(self): return self._binary(self._and, {T.OR})

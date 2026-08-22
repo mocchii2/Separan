@@ -118,7 +118,7 @@ def _reservations(value, network, in_dynamic_pool, reserved_addresses, position,
     if value is None:
         return {}
     if not isinstance(value, ObjectValue):
-        runtime.type_error(position, "object or null", runtime.type_name(value), "DHCP reservations must be an object of MAC-to-IPv4 mappings.")
+        runtime.type_error(position, "object or omitted argument", runtime.type_name(value), "DHCP reservations must be an object of MAC-to-IPv4 mappings.")
     result = {}
     used = set(reserved_addresses)
     for key, raw_address in value.fields.items():
@@ -303,9 +303,9 @@ def _dhcp_leases(args, named, position, runtime):
         hostname = item.get("hostname")
         expires = item.get("expires_at_unix_ms")
         if hostname is not None and type(hostname) is not str:
-            raise error("E982", "dhcp_server_error", "DHCP lease hostname must be string or null.", position)
+            raise error("E982", "dhcp_server_error", "DHCP lease hostname must be a string or absent.", position)
         if expires is not None and (type(expires) is not int or expires < 0):
-            raise error("E982", "dhcp_server_error", "DHCP lease expiration must be non-negative Unix milliseconds or null.", position)
+            raise error("E982", "dhcp_server_error", "DHCP lease expiration must be non-negative Unix milliseconds or absent.", position)
         address_text = str(address)
         in_pool = int(pool_start) <= int(address) <= int(pool_end)
         if address not in subnet or (not in_pool and address_text not in reserved):

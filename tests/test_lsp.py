@@ -144,6 +144,14 @@ end_function:second
         hints = inlay_hints('count = 10\nname = "Alice"\n', {"start": {"line": 0}, "end": {"line": 2}})
         self.assertEqual([hint["label"] for hint in hints], [": number", ": string"])
 
+    def test_editor_contract_uses_empty_and_void_without_null(self):
+        write_signature = signature_help('write_text("out.txt", ', 0, 22)
+        self.assertIn("-> VOID", write_signature["signatures"][0]["label"])
+        lease_signature = signature_help("network_dhcp_lease(", 0, 19)
+        self.assertIn("object | EMPTY", lease_signature["signatures"][0]["label"])
+        errors = diagnostic("value = null\n", "file:///legacy.sep")
+        self.assertEqual(errors[0]["code"], "E135")
+
     def test_oauth_static_types_remain_explicit(self):
         source = '''client_secret = secret_from_environment("OAUTH_CLIENT_SECRET")
 token = oauth_client_credentials("https://auth.test/token", "client", client_secret)

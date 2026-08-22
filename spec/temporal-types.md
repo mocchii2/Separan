@@ -176,8 +176,8 @@ than rounded values.
   `local_datetime`.
 - `duration` compares elapsed lengths.
 - `timezone` equality compares normalized zone identity.
-- Cross-type temporal comparison is a type error, except comparison with `null`
-  under the language's existing null rule.
+- Cross-type temporal comparison is a type error. Absence is tested separately
+  with `is EMPTY` before comparing temporal values.
 
 ## Explicit Unix conversion
 

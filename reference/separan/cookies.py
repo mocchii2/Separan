@@ -61,10 +61,10 @@ def _cookie_set(arguments, named, position, runtime):
     jar = _jar(arguments[0], "cookie_set", position, runtime); name, value = arguments[1:]
     _safe_name(name, position); raw = _safe_value(value, "cookie_set()", position, runtime)
     domain = named.get("domain"); path = named.get("path", "/"); secure = named.get("secure", False); http_only = named.get("http_only", True); same_site = named.get("same_site", "Lax")
-    if domain is not None and type(domain) is not str: runtime.type_error(position, "string or null domain", runtime.type_name(domain), "Cookie domain must be string or null.")
+    if domain is not None and type(domain) is not str: runtime.type_error(position, "string domain or omitted argument", runtime.type_name(domain), "Cookie domain must be a string when specified.")
     if type(path) is not str or not path.startswith("/"): raise error("E880", "Invalid cookie path", "Cookie path must start with '/'.", position, actual=repr(path))
     if type(secure) is not bool or type(http_only) is not bool: runtime.type_error(position, "boolean cookie flags", "non-boolean", "secure and http_only must be boolean.")
-    if same_site not in ("Strict", "Lax", "None", None): raise error("E880", "Invalid SameSite", "same_site must be Strict, Lax, None, or null.", position, actual=repr(same_site))
+    if same_site not in ("Strict", "Lax", "None", None): raise error("E880", "Invalid SameSite", "same_site must be Strict, Lax, None, or omitted.", position, actual=repr(same_site))
     if same_site == "None" and not secure: raise error("E880", "Unsafe SameSite=None", "SameSite=None cookies must be Secure.", position)
     jar.counter += 1; _store(jar, CookieRecord(name, raw, domain.lower().lstrip(".") if domain else None, path, None, secure, http_only, same_site, domain is None, jar.counter)); return VOID
 

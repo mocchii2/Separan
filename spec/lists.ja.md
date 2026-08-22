@@ -82,7 +82,7 @@ string専用で、ASCII数字列を数値として比較するため、`file2`�
 
 `sort_by`と`sort_by_descending`はobject listと空でないfield名を要求します。全objectが
 fieldを持ち、field値が同一の比較可能型でなければなりません。fieldの欠落、型混在、boolean、
-null、list、bytes、secretなど比較不能なkeyはエラーです。代替keyを推測したり、欠落値を
+EMPTY、list、bytes、secretなど比較不能なkeyはエラーです。代替keyを推測したり、欠落値を
 黙って末尾へ送ったりしません。
 
 ## 高階操作と集約

@@ -1,4 +1,4 @@
-# EMPTY, EMPTYS, and VOID — staged v0.2 specification
+# EMPTY, EMPTYS, and VOID — v0.2 specification
 
 Separan separates three states that legacy `null` previously blurred:
 
@@ -22,7 +22,7 @@ print value
 endif:value_present
 ```
 
-`is` is not a general equality operator. `value is 1`, `value is null`, and
+`is` is not a general equality operator. `value is 1`, source `value is null`, and
 chained state/comparison expressions are syntax errors. Ordinary value equality
 continues to use `==` and `!=`.
 
@@ -89,5 +89,6 @@ known. Its first concrete index assignment fixes that type; all retained EMPTY
 slots then keep the adopted type. This exception exists only for external JSON.
 The source literal `[EMPTY, EMPTY]` still requires `list<type>`.
 
-The remaining migration is intentionally staged: standard API migration and
-finally removal of source-level `null`.
+Source-level `null` and the transitional `is_null()` alias have been removed.
+Both `null` and `NULL` produce `E135` with guidance to declare a type and use
+EMPTY. External JSON `null` remains part of the JSON boundary only.

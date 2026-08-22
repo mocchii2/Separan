@@ -133,7 +133,7 @@ class Lexer:
                      ">=": TokenType.GREATER_EQUAL, "<=": TokenType.LESS_EQUAL,
                      "&&": TokenType.AND, "||": TokenType.OR,
                      "**": TokenType.POWER, "//": TokenType.FLOOR_DIV,
-                     "??": TokenType.NULL_COALESCE, "+=": TokenType.PLUS_EQUAL,
+                     "??": TokenType.EMPTY_COALESCE, "+=": TokenType.PLUS_EQUAL,
                      "-=": TokenType.MINUS_EQUAL, "*=": TokenType.STAR_EQUAL,
                      "/=": TokenType.SLASH_EQUAL, "%=": TokenType.PERCENT_EQUAL}
             pair = text[i:i+2]

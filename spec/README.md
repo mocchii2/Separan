@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.12
+# Separan Language Specification — v0.2.0-alpha.13
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -25,7 +25,10 @@ share one namespace and must be unique. Closed labels may be reused.
 - Identifiers match `[A-Za-z_][A-Za-z0-9_]*`. Explicit block labels,
   multiline-comment labels, and function tags may instead be NFC-normalized Unicode identifiers. They are
   case-sensitive; emoji, spaces, punctuation, and non-normalized labels are invalid.
-- Types are `number`, `string`, `boolean`, `list`, and `null`.
+- Core value types include `number`, `string`, `boolean`, `list`, and `object`;
+  additional standard APIs expose explicit types such as `bytes` and `datetime`.
+- `EMPTY` is a retained typed state, not a type. `VOID` is a non-value function
+  result. Source-level `null`/`NULL` is rejected with `E135`.
 - Variables keep the type inferred by their first assignment. Explicit declarations use
   `type name = value`; an initializer is always required.
 - Function parameter types are fixed by the function's first call.
@@ -81,7 +84,6 @@ Built-in names are reserved and cannot be redefined by source programs.
 | `len(value)` | string, list, or bytes | compatibility alias for `length` |
 | `type(value)` | any value | public type name as a string |
 | `type_of(value)` | any value | readable alias returning the public type name |
-| `is_null(value)` | any value | deprecated migration alias; use `value is EMPTY` |
 | `is_number/string/boolean/list/object(value)` | any value | exact public-type test |
 | `is_bytes/datetime/duration/secret(value)` | any value | exact public-type test |
 | `abs(value)` | number | absolute numeric value |
@@ -99,7 +101,7 @@ Built-in names are reserved and cannot be redefined by source programs.
 | `range(start, stop, step)` | integer-valued numbers; non-zero `step` | stepped number list |
 | `number_range(...)` | same strict arguments as `range` | readable compatibility name for a number list |
 | `number(value)` | number or strict decimal string | number |
-| `string(value)` | number, string, boolean, or null | canonical string representation |
+| `string(value)` | number, string, or boolean | canonical string representation |
 | `boolean(value)` | boolean or exact string `"true"`/`"false"` | boolean |
 
 `range` follows the direction of `step`; a direction that cannot reach `stop`
@@ -108,11 +110,11 @@ though integers and floating-point values share the public `number` type.
 
 Conversions are explicit and strict. `number` accepts decimal strings matching
 `-?[0-9]+(?:\.[0-9]+)?` without surrounding whitespace, a leading plus sign, or
-exponent notation. `boolean` never applies truthiness: numbers, null, lists, and
+exponent notation. `boolean` never applies truthiness: numbers, EMPTY, lists, and
 strings other than exact lowercase `"true"` and `"false"` are errors. `string`
 does not serialize lists in v0.1. Invalid textual conversions produce `E304`.
 
-A future fallible conversion such as `try_number(value) -> number | null` is
+A future fallible conversion such as `try_number(value) -> number | EMPTY` is
 preferred over default-on-failure conversion, because failure remains explicit
 in the program's control flow.
 

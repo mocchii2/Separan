@@ -110,7 +110,7 @@ def _set_cookie(args, named, position, runtime):
         raise error("E895", "Invalid response cookie", "Cookie value contains an invalid character.", position)
     path = named.get("path", "/"); same_site = named.get("same_site", "Lax")
     if type(path) is not str or not path.startswith("/") or "\r" in path or "\n" in path: raise error("E895", "Invalid response cookie", "Cookie path must be an absolute HTTP path.", position)
-    if same_site not in (None, "Lax", "Strict", "None"): raise error("E895", "Invalid response cookie", "same_site must be Lax, Strict, None, or null.", position)
+    if same_site not in (None, "Lax", "Strict", "None"): raise error("E895", "Invalid response cookie", "same_site must be Lax, Strict, None, or omitted.", position)
     parts = [name + "=" + text, "Path=" + path]
     if named.get("secure", False): parts.append("Secure")
     if named.get("http_only", True): parts.append("HttpOnly")

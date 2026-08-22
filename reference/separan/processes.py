@@ -65,7 +65,7 @@ def _options(named, position, runtime):
     if stdin is None: input_bytes = b""
     elif type(stdin) is str: input_bytes = stdin.encode(encoding)
     elif isinstance(stdin, BytesValue): input_bytes = stdin.value
-    else: runtime.type_error(position, "string, bytes, or null", runtime.type_name(stdin), "Process input has an invalid type.")
+    else: runtime.type_error(position, "string, bytes, or omitted input", runtime.type_name(stdin), "Process input has an invalid type.")
     stdout_limit = _positive_integer(named.get("max_stdout_bytes", capability.max_process_output_bytes), "max_stdout_bytes", capability.max_process_output_bytes, position, runtime)
     stderr_limit = _positive_integer(named.get("max_stderr_bytes", capability.max_process_output_bytes), "max_stderr_bytes", capability.max_process_output_bytes, position, runtime)
     return cwd, timeout.milliseconds / 1000, encoding, environment, input_bytes, stdout_limit, stderr_limit
