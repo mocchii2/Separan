@@ -6,18 +6,22 @@ IAM remain CloudFormation resources. The four Lambda entrypoints execute the
 same [Separan application](lambda/monitor.sep); Python is only the generic
 reference-runtime adapter and contains no monitor policy.
 
-## Build the Separan runtime artifact
+## One-file deployment
 
-The interpreter and its binary dependencies cannot be represented by
-CloudFormation's single-file inline source form. Build one Linux-compatible ZIP
-and upload it to an S3 bucket in the deployment region:
+`monitor.yaml` embeds a monitor-only Separan runtime archive. An inline bootstrap
+custom resource verifies the versioned archive and writes it to the stack's
+private S3 bucket before the four application functions are created. Therefore
+the CloudFormation console needs only this YAML; no prebuilt ZIP or artifact
+bucket parameter is required.
+
+For inspecting or deploying the full standard-library runtime separately, a
+Linux-compatible ZIP can still be generated with:
 
 ```powershell
 ./examples/monitor/build-runtime.ps1 -Bucket my-deployment-artifacts
 ```
 
-The script prints the `SeparanRuntimeBucket` and `SeparanRuntimeKey` values to
-enter in the CloudFormation GUI. The generated ZIP is about 7 MB and contains
+The generated full ZIP is about 7 MB and contains
 `application.sep`, the Separan interpreter, Linux wheels, and a one-line
 `index.handler` adapter. All four functions reuse that object and select their
 Separan entrypoint through `SEPARAN_HANDLER`.
@@ -62,8 +66,7 @@ configured post-start/stop/reboot grace period.
 
 1. Choose **Create stack → With new resources**.
 2. Upload [`monitor.yaml`](monitor.yaml).
-3. Enter the runtime artifact bucket/key printed by `build-runtime.ps1`, then
-   enter up to five EC2 instance IDs, five RDS identifiers, thresholds, and
+3. Enter up to five EC2 instance IDs, five RDS identifiers, thresholds, and
    notification destinations. Leave unused slots empty.
 4. Acknowledge IAM resource creation and create the stack.
 5. Confirm the SNS email subscription if an email address was supplied.

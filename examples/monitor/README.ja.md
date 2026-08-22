@@ -5,17 +5,20 @@ CloudFormationテンプレートです。CloudWatch Alarm、EventBridge、SNS、
 CloudFormationで構築し、4本のLambdaは同じ[Separan application](lambda/monitor.sep)を実行します。
 Pythonは汎用reference-runtime adapterだけで、監視の判断処理は含みません。
 
-## Separan runtime artifactを作る
+## YAML一枚でdeployする
 
-interpreterとbinary依存はCloudFormationのinline source一個には収まらないため、Linux互換ZIPを
-一度buildし、deploy先と同じregionのS3 bucketへ置きます。
+`monitor.yaml`には監視専用の軽量Separan runtime archiveを埋め込んでいます。inline bootstrap
+custom resourceがversion固定archiveをstack内のprivate S3 bucketへ配置してから、4本の
+application Lambdaを作成します。したがってCloudFormation consoleへ渡すのはこのYAML一枚だけで、
+事前ZIPやartifact bucket parameterは不要です。
+
+full standard-library runtimeを個別に確認・deployする場合は、従来どおりLinux互換ZIPも作れます。
 
 ```powershell
 ./examples/monitor/build-runtime.ps1 -Bucket my-deployment-artifacts
 ```
 
-scriptが表示する`SeparanRuntimeBucket`と`SeparanRuntimeKey`をCloudFormation GUIへ入力します。
-生成ZIPは約7 MBで、`application.sep`、Separan interpreter、Linux wheel、1行だけの
+生成するfull ZIPは約7 MBで、`application.sep`、Separan interpreter、Linux wheel、1行だけの
 `index.handler` adapterを収録します。4関数は同じobjectを使い、`SEPARAN_HANDLER`で
 `notify_handler`／`log2_handler`／`status_handler`／`config_handler`を選びます。
 
@@ -58,7 +61,7 @@ S3 config/holidays.json ─────┴─ notify Lambdaの送信判定
 
 1. AWS CloudFormationコンソールで「スタックの作成」→「新しいリソースを使用」を開きます。
 2. 「テンプレートファイルのアップロード」で[`monitor.yaml`](monitor.yaml)を選びます。
-3. runtime artifactのbucket／key、EC2 instance ID、RDS DB instance identifier、通知先、しきい値をGUIで入力します。
+3. EC2 instance ID、RDS DB instance identifier、通知先、しきい値をGUIで入力します。
    未使用の2〜5番slotは空のままで構いません。
 4. IAM resource作成への同意を選択してstackを作成します。
 5. Emailを指定した場合は、届いたSNS subscription確認メールを承認します。

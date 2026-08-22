@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+import importlib.util
 
 
 LAMBDA_DEPENDENCIES = (
@@ -38,6 +39,30 @@ def _install_dependencies(destination, architecture, python_version):
     subprocess.run(command, check=True)
 
 
+def _install_monitor_core_dependencies(destination):
+    """Install pure-data dependencies and unavailable-feature stubs for the inline monitor runtime."""
+    for package in ("yaml", "tzdata"):
+        spec = importlib.util.find_spec(package)
+        if spec is None or spec.submodule_search_locations is None:
+            raise RuntimeError(f"{package} must be installed to build the inline monitor runtime")
+        source = Path(next(iter(spec.submodule_search_locations)))
+        shutil.copytree(source, destination / package, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyd", "*.so"))
+    stubs = {
+        "argon2/__init__.py": "class PasswordHasher:\n def __init__(self,*a,**k): pass\n def hash(self,*a,**k): raise RuntimeError('Argon2 is not included in the monitor core runtime')\n def verify(self,*a,**k): raise RuntimeError('Argon2 is not included in the monitor core runtime')\n",
+        "argon2/exceptions.py": "class InvalidHashError(Exception): pass\nclass VerificationError(Exception): pass\n",
+        "argon2/low_level.py": "class Type: ID=2\ndef hash_secret_raw(*a,**k): raise RuntimeError('Argon2 is not included in the monitor core runtime')\n",
+        "cryptography/__init__.py": "",
+        "cryptography/exceptions.py": "class InvalidTag(Exception): pass\n",
+        "cryptography/hazmat/__init__.py": "",
+        "cryptography/hazmat/primitives/__init__.py": "",
+        "cryptography/hazmat/primitives/ciphers/__init__.py": "",
+        "cryptography/hazmat/primitives/ciphers/aead.py": "class AESGCM:\n def __init__(self,*a,**k): raise RuntimeError('AEAD is not included in the monitor core runtime')\n",
+    }
+    for relative, content in stubs.items():
+        path = destination / relative; path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8", newline="\n")
+
+
 def _write_zip(stage, output):
     output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
@@ -49,7 +74,7 @@ def _write_zip(stage, output):
             archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 
 
-def build_lambda_package(source, output, architecture="x86_64", python_version="313", install_dependencies=True):
+def build_lambda_package(source, output, architecture="x86_64", python_version="313", install_dependencies=True, monitor_core=False):
     source = Path(source).resolve(); output = Path(output).resolve()
     if source.suffix.lower() != ".sep" or not source.is_file():
         raise ValueError("Lambda application source must be an existing .sep file")
@@ -58,7 +83,8 @@ def build_lambda_package(source, output, architecture="x86_64", python_version="
     with tempfile.TemporaryDirectory(prefix="separan-lambda-") as temporary:
         stage = Path(temporary)
         _copy_runtime(stage)
-        if install_dependencies: _install_dependencies(stage, architecture, python_version)
+        if monitor_core: _install_monitor_core_dependencies(stage)
+        elif install_dependencies: _install_dependencies(stage, architecture, python_version)
         shutil.copy2(source, stage / "application.sep")
         (stage / "index.py").write_text(
             "from separan.lambda_entry import handler\n",

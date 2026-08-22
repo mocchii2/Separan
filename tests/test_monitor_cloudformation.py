@@ -1,10 +1,13 @@
 import base64
 import gzip
+import hashlib
+import io
 import json
 import os
 import sys
 import types
 import unittest
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -474,24 +477,33 @@ class NativeSeparanMonitorTemplateTests(unittest.TestCase):
                 properties = self.resources[name]["Properties"]
                 self.assertEqual("python3.13", properties["Runtime"])
                 self.assertEqual("index.handler", properties["Handler"])
-                self.assertEqual("SeparanRuntimeBucket", properties["Code"]["S3Bucket"])
-                self.assertEqual("SeparanRuntimeKey", properties["Code"]["S3Key"])
+                self.assertEqual("MonitorConfigBucket", properties["Code"]["S3Bucket"])
+                self.assertEqual("runtime/separan-monitor.zip", properties["Code"]["S3Key"])
                 self.assertEqual(handler, properties["Environment"]["Variables"]["SEPARAN_HANDLER"])
                 self.assertNotIn("ZipFile", properties["Code"])
 
-    def test_runtime_artifact_parameters_are_visible_in_cloudformation_gui(self):
-        parameters = self.template["Parameters"]
-        self.assertIn("SeparanRuntimeBucket", parameters)
-        self.assertIn("SeparanRuntimeKey", parameters)
-        groups = self.template["Metadata"]["AWS::CloudFormation::Interface"]["ParameterGroups"]
-        self.assertTrue(any("SeparanRuntimeBucket" in group["Parameters"] for group in groups))
+    def test_runtime_artifact_is_embedded_and_installed_before_functions(self):
+        self.assertNotIn("SeparanRuntimeBucket", self.template["Parameters"])
+        installer = self.resources["RuntimeInstallerFunction"]["Properties"]["Code"]["ZipFile"]
+        self.assertIn("ARCHIVE = base64.b64decode", installer)
+        self.assertIn("runtime/separan-monitor.zip", installer)
+        encoded = installer.split('ARCHIVE = base64.b64decode("""', 1)[1].split('""")', 1)[0]
+        archive = base64.b64decode(encoded)
+        expected = installer.split('EXPECTED_SHA256 = "', 1)[1].split('"', 1)[0]
+        self.assertEqual(expected, hashlib.sha256(archive).hexdigest())
+        with zipfile.ZipFile(io.BytesIO(archive)) as package:
+            self.assertIn("application.sep", package.namelist())
+            self.assertIn("separan/lambda_runtime.py", package.namelist())
+        self.assertLess(NATIVE_TEMPLATE_PATH.stat().st_size, 1_000_000)
+        for name in ("NotifyFunction", "Log2Function", "StatusFunction", "ConfigBootstrapFunction"):
+            self.assertEqual("RuntimeArtifact", self.resources[name]["DependsOn"])
 
     def test_monitor_business_logic_is_not_inline_python(self):
         application = NATIVE_SOURCE_PATH.read_text(encoding="utf-8")
         for handler in ("notify_handler", "log2_handler", "status_handler", "config_handler"):
             self.assertIn(f"function:{handler}(event, context)", application)
-        self.assertNotIn("import boto3", self.source)
-        self.assertNotIn("ZipFile: |", self.source)
+        self.assertNotIn("import boto3", application)
+        self.assertEqual(1, self.source.count("ZipFile: |"))
 
 
 if __name__ == "__main__":
