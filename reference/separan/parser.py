@@ -511,6 +511,8 @@ class Parser:
         if self._match(T.EMPTYS):
             from .runtime_values import EMPTYS
             t = self._previous(); return LiteralExpr(t.position, EMPTYS)
+        if self._match(T.FRONT, T.BACK):
+            t = self._previous(); return PositionSelectorExpr(t.position, t.lexeme)
         if self._match(T.LBRACKET):
             t = self._previous(); values = []
             if not self._at(T.RBRACKET):

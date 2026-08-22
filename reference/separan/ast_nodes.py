@@ -21,6 +21,8 @@ class EmptyTestExpr(Expr): operand: Expr; negated: bool = False
 @dataclass
 class EmptysTestExpr(Expr): operand: Expr; negated: bool = False
 @dataclass
+class PositionSelectorExpr(Expr): name: str
+@dataclass
 class GroupExpr(Expr): expression: Expr
 @dataclass
 class CallExpr(Expr):

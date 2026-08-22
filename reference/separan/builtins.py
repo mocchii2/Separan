@@ -20,7 +20,7 @@ from .randomness import (
 )
 from .list_ops import (
     contains as list_contains, first as list_first, index_of as list_index_of,
-    last as list_last, last_index_of as list_last_index_of, list_append, list_remove, prepend as list_prepend,
+    direct_shape_operation, last as list_last, last_index_of as list_last_index_of, list_append, list_remove, prepend as list_prepend,
     remove_at as list_remove_at, reverse as list_reverse, size as list_size, slice_list,
     sort_by, sort_by_descending, sort_descending, sort_ignore_case, sort_ignore_case_descending,
     sort_list, sort_natural, sort_natural_descending, sort_natural_ignore_case,
@@ -745,7 +745,10 @@ BUILTINS = {
         BuiltinFunction("list_append", 2, 2, list_append),
         BuiltinFunction("append", 2, 2, list_append),
         BuiltinFunction("prepend", 2, 2, list_prepend),
-        BuiltinFunction("list_remove", 2, 2, list_remove),
+        BuiltinFunction("list_remove", 2, 3, list_remove),
+        BuiltinFunction("list_insert", 3, 3, direct_shape_operation),
+        BuiltinFunction("list_remove_horizontal", 4, 4, direct_shape_operation),
+        BuiltinFunction("list_remove_vertical", 4, 4, direct_shape_operation),
         BuiltinFunction("remove", 2, 2, list_remove),
         BuiltinFunction("remove_at", 2, 2, list_remove_at),
         BuiltinFunction("size", 1, 1, list_size),

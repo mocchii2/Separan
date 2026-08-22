@@ -23,6 +23,7 @@ KEYWORDS = {
     "transaction": TokenType.TRANSACTION, "end_transaction": TokenType.END_TRANSACTION,
     "true": TokenType.TRUE, "false": TokenType.FALSE,
     "EMPTY": TokenType.EMPTY, "EMPTYS": TokenType.EMPTYS,
+    "front": TokenType.FRONT, "back": TokenType.BACK,
 }
 
 

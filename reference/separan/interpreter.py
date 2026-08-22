@@ -642,6 +642,9 @@ class Interpreter:
         if isinstance(expr, EmptysTestExpr):
             result = container_is_emptys(self._eval(expr.operand))
             return not result if expr.negated else result
+        if isinstance(expr, PositionSelectorExpr):
+            raise error("E136", "Position selector context", f"'{expr.name}' is valid only as a list shape position.", expr.position,
+                        expected="list_insert/list_remove position", actual=expr.name)
         if isinstance(expr, VariableExpr):
             if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
             if expr.name in self.functions or expr.name in BUILTINS or expr.name in self.host_functions: return FunctionValue(self, expr.name)
@@ -649,6 +652,8 @@ class Interpreter:
         if isinstance(expr, ListExpr):
             values = [self._eval(e) for e in expr.elements]; list_element_type(values, expr.position); return values
         if isinstance(expr, CallExpr):
+            if expr.callee in ("list_insert", "list_remove_horizontal", "list_remove_vertical") or expr.callee == "list_remove" and len(expr.arguments) == 3:
+                return self._list_shape_call(expr)
             positional = [self._eval(a) for a in expr.arguments]
             named = {name: self._eval(value) for name, value in expr.named_arguments.items()}
             return self._call(expr.callee, positional, expr.position, named)
@@ -771,6 +776,131 @@ class Interpreter:
                 if op == "**": return self._power(left, right, expr.position)
                 return {"+": lambda: left+right, "-": lambda: left-right, "*": lambda: left*right, "/": lambda: left/right, "//": lambda: left//right, "%": lambda: left%right, ">": lambda: left>right, "<": lambda: left<right, ">=": lambda: left>=right, "<=": lambda: left<=right}[op]()
         raise RuntimeError(f"Unknown AST node: {expr!r}")
+
+    @staticmethod
+    def _shape_argument_count(name, actual, expected, position):
+        if actual != expected:
+            raise error("E207", "Argument count mismatch", f"Built-in function '{name}' requires {expected} argument(s).", position,
+                        expected=str(expected), actual=str(actual))
+
+    def _shape_integer(self, expression, name, position, *, positive=False):
+        value = self._eval(expression)
+        valid = type(value) is int and value >= (1 if positive else 0)
+        if not valid:
+            expectation = "positive integer" if positive else "non-negative integer"
+            self._type_error(position, expectation, self._display(value), f"{name} must be a {expectation}.")
+        return value
+
+    def _resolve_shape_target(self, expression, position):
+        if isinstance(expression, GroupExpr):
+            return self._resolve_shape_target(expression.expression, position)
+        if isinstance(expression, VariableExpr):
+            binding = self.environment.binding(expression.name, expression.position)
+            if binding.constant:
+                raise error("E211", "Constant reassignment", f"Constant '{expression.name}' cannot be changed by a list shape operation.", position,
+                            expected="mutable list", actual=expression.name, related=binding.declaration_position)
+            value = binding.value
+            if isinstance(value, EmptyValue):
+                raise error("E131", "EMPTY value use", "An EMPTY list has no slot shape to modify.", position,
+                            expected="a present list", actual="EMPTY")
+            if type(value) is not list:
+                self._type_error(position, "mutable list", type_name(value), "List shape operations require a list target.")
+            return value, binding.element_type
+        if isinstance(expression, IndexExpr):
+            parent, parent_element = self._resolve_shape_target(expression.target, position)
+            index = self._shape_integer(expression.index, "List target index", expression.index.position)
+            if index >= len(parent):
+                raise error("E603", "Invalid list shape range", "Indexed list shape target is outside the parent list.", expression.index.position,
+                            expected=f"0..{len(parent)-1}", actual=str(index))
+            value = parent[index]
+            if isinstance(value, EmptyValue):
+                raise error("E131", "EMPTY value use", "An EMPTY nested-list slot has no row shape to modify.", position,
+                            expected="a present nested list", actual="EMPTY")
+            if type(value) is not list:
+                self._type_error(position, "nested list", type_name(value), "Indexed list shape targets must identify a nested list.")
+            element_type = parent_element[1] if is_list_type_spec(parent_element) else list_element_type(value, position)
+            return value, element_type
+        raise error("E605", "List shape target required", "The first argument must directly name a mutable list variable or indexed row.", position,
+                    expected="list variable or values[index]", actual=type(expression).__name__)
+
+    def _shape_position(self, expression, values, count, name, position, *, insert):
+        candidate = expression.expression if isinstance(expression, GroupExpr) else expression
+        if isinstance(candidate, PositionSelectorExpr):
+            if candidate.name == "front": return 0
+            return len(values) if insert else len(values) - count
+        index = self._shape_integer(expression, f"{name} position", position)
+        maximum = len(values) if insert else len(values) - count
+        if index > maximum:
+            raise error("E603", "Invalid list shape range", f"{name} position and count exceed the target list shape.", position,
+                        expected=f"0..{maximum}", actual=str(index))
+        return index
+
+    def _list_shape_call(self, expression):
+        name = expression.callee
+        if expression.named_arguments:
+            raise error("E207", "Unsupported named argument", f"Built-in function '{name}' does not accept named arguments.", expression.position,
+                        actual=next(iter(expression.named_arguments)))
+        expected_count = 3 if name in ("list_insert", "list_remove") else 4
+        self._shape_argument_count(name, len(expression.arguments), expected_count, expression.position)
+        values, element_type = self._resolve_shape_target(expression.arguments[0], expression.position)
+
+        if name in ("list_insert", "list_remove"):
+            count = self._shape_integer(expression.arguments[2], f"{name} count", expression.arguments[2].position, positive=True)
+            if name == "list_insert":
+                if element_type is None:
+                    element_type = list_element_type(values, expression.position)
+                if element_type is None:
+                    raise error("E134", "List element type required", "list_insert() creates typed EMPTY slots and requires a known element type.", expression.position,
+                                expected="list<type>", actual="untyped empty list")
+                index = self._shape_position(expression.arguments[1], values, count, name, expression.arguments[1].position, insert=True)
+                values[index:index] = [empty_for_type_spec(element_type) for _ in range(count)]
+            else:
+                if count > len(values):
+                    raise error("E603", "Invalid list shape range", "list_remove() count exceeds the target list length.", expression.arguments[2].position,
+                                expected=f"1..{len(values)}", actual=str(count))
+                index = self._shape_position(expression.arguments[1], values, count, name, expression.arguments[1].position, insert=False)
+                del values[index:index + count]
+            return VOID
+
+        row_index = self._shape_integer(expression.arguments[1], f"{name} row", expression.arguments[1].position)
+        column = self._shape_integer(expression.arguments[2], f"{name} column", expression.arguments[2].position)
+        count = self._shape_integer(expression.arguments[3], f"{name} count", expression.arguments[3].position, positive=True)
+        if row_index >= len(values):
+            raise error("E603", "Invalid list shape range", f"{name} row is outside the outer list.", expression.arguments[1].position,
+                        expected=f"0..{len(values)-1}", actual=str(row_index))
+
+        if name == "list_remove_horizontal":
+            row = values[row_index]
+            if isinstance(row, EmptyValue) or type(row) is not list:
+                self._type_error(expression.position, "present nested list row", type_name(row), "Horizontal removal requires a present list row.")
+            if column + count > len(row):
+                raise error("E603", "Invalid list shape range", "Horizontal removal exceeds the selected row shape.", expression.arguments[2].position,
+                            expected=f"column + count <= {len(row)}", actual=f"{column} + {count}")
+            del row[column:column + count]
+            return VOID
+
+        if row_index + count > len(values):
+            raise error("E603", "Invalid list shape range", "Vertical removal count exceeds the remaining rows.", expression.arguments[3].position,
+                        expected=f"row + count <= {len(values)}", actual=f"{row_index} + {count}")
+        affected = values[row_index:]
+        for offset, row in enumerate(affected, row_index):
+            if isinstance(row, EmptyValue) or type(row) is not list or column >= len(row):
+                raise error("E605", "Jagged list shape mismatch", "Vertical removal requires the target column in every affected row and changes nothing on failure.", expression.position,
+                            expected=f"column {column} in rows {row_index}..{len(values)-1}", actual=f"row {offset} length {0 if not isinstance(row, list) else len(row)}")
+        cell_type = element_type[1] if is_list_type_spec(element_type) else None
+        column_values = [row[column] for row in affected]
+        if cell_type is None:
+            for value in column_values:
+                actual = value_type_spec(value, expression.position)
+                if not type_specs_compatible(cell_type, actual):
+                    raise error("E203", "Heterogeneous list", "Vertical column values must retain one element type.", expression.position)
+                cell_type = merge_type_specs(cell_type, actual)
+        if cell_type is None:
+            raise error("E134", "List element type required", "Vertical removal requires a known cell type for the new EMPTY tail slots.", expression.position)
+        shifted = column_values[count:] + [empty_for_type_spec(cell_type) for _ in range(count)]
+        for row, value in zip(affected, shifted):
+            row[column] = value
+        return VOID
 
     def _call(self, name, args, position, named=None):
         named = named or {}

@@ -52,6 +52,8 @@ def prepend(arguments, position, runtime):
 
 
 def list_remove(arguments, position, runtime):
+    if len(arguments) != 2:
+        raise error("E605", "List shape target required", "Three-argument list_remove() must directly target a mutable list variable or indexed row.", position)
     values, value = arguments
     require_list(values, "list_remove", position, runtime)
     _compatible_search(values, value, "list_remove", position, runtime)
@@ -60,6 +62,10 @@ def list_remove(arguments, position, runtime):
     except ValueError:
         raise error("E604", "List value not found", "list_remove() removes the first matching value, but no match exists.", position, actual=runtime.display(value))
     return values[:index] + values[index + 1:]
+
+
+def direct_shape_operation(arguments, position, runtime):
+    raise error("E605", "List shape target required", "List shape operations require a direct mutable list variable or indexed row.", position)
 
 
 def remove_at(arguments, position, runtime):

@@ -12,6 +12,8 @@ class TokenType(Enum):
     FALSE = auto()
     EMPTY = auto()
     EMPTYS = auto()
+    FRONT = auto()
+    BACK = auto()
     FUNCTION = auto()
     END_FUNCTION = auto()
     IF = auto()
