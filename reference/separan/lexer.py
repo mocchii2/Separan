@@ -22,7 +22,7 @@ KEYWORDS = {
     "http_route": TokenType.HTTP_ROUTE, "end_http_route": TokenType.END_HTTP_ROUTE,
     "transaction": TokenType.TRANSACTION, "end_transaction": TokenType.END_TRANSACTION,
     "true": TokenType.TRUE, "false": TokenType.FALSE, "null": TokenType.NULL,
-    "EMPTY": TokenType.EMPTY,
+    "EMPTY": TokenType.EMPTY, "EMPTYS": TokenType.EMPTYS,
 }
 
 

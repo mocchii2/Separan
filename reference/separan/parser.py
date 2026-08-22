@@ -109,6 +109,13 @@ class Parser:
             name = self._binding(self._consume(T.IDENTIFIER, "Expected constant name after 'const'."))
             self._consume(T.EQUAL, "Expected '=' after constant name.")
             value = self._expression(); self._line_end(); return ConstDeclaration(token.position, name.lexeme, value)
+        if self._is_index_assignment():
+            name = self._binding(self._advance())
+            self._consume(T.LBRACKET, "Expected '[' after list variable name.")
+            index = self._expression(); self._consume(T.RBRACKET, "Expected ']' after list index.")
+            self._consume(T.EQUAL, "Expected '=' after indexed target.")
+            value = self._expression(); self._line_end()
+            return IndexAssignment(name.position, name.lexeme, index, value)
         if token.type == T.IDENTIFIER and self._peek(1).type in self.ASSIGNMENTS:
             name = self._binding(self._advance()); assignment = self._advance(); value = self._expression(); self._line_end()
             operator = self.ASSIGNMENTS[assignment.type]
@@ -159,6 +166,18 @@ class Parser:
         if declared_type == "list":
             return self._peek(1).type == T.LESS
         return self._peek(1).type == T.IDENTIFIER
+
+    def _is_index_assignment(self):
+        if not self._at(T.IDENTIFIER) or self._peek(1).type != T.LBRACKET: return False
+        depth, offset = 0, 1
+        while self._peek(offset).type not in (T.NEWLINE, T.EOF):
+            kind = self._peek(offset).type
+            if kind == T.LBRACKET: depth += 1
+            elif kind == T.RBRACKET:
+                depth -= 1
+                if depth == 0: return self._peek(offset + 1).type == T.EQUAL
+            offset += 1
+        return False
 
     def _looks_like_uninitialized_typed_declaration(self):
         token = self._peek()
@@ -393,14 +412,14 @@ class Parser:
         expr = self._empty_test()
         if self._at(T.EQUAL_EQUAL, T.BANG_EQUAL):
             operator = self._advance()
-            if isinstance(expr, EmptyTestExpr) or isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!=", "in", "not in"}:
+            if isinstance(expr, (EmptyTestExpr, EmptysTestExpr)) or isinstance(expr, BinaryExpr) and expr.operator in {">", "<", ">=", "<=", "==", "!=", "in", "not in"}:
                 self._chained(operator)
             right = self._empty_test()
-            from .runtime_values import EmptyValue
-            if isinstance(expr, LiteralExpr) and isinstance(expr.value, EmptyValue) or isinstance(right, LiteralExpr) and isinstance(right.value, EmptyValue):
-                raise error("E128", "Invalid state test", "Use 'is EMPTY' or 'is not EMPTY' instead of equality with EMPTY.", operator.position,
-                            expected="is EMPTY", actual=operator.lexeme + " EMPTY")
-            if isinstance(right, EmptyTestExpr) or isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<=", "in", "not in"}:
+            from .runtime_values import EmptyValue, EmptysValue
+            if isinstance(expr, LiteralExpr) and isinstance(expr.value, (EmptyValue, EmptysValue)) or isinstance(right, LiteralExpr) and isinstance(right.value, (EmptyValue, EmptysValue)):
+                raise error("E128", "Invalid state test", "Use 'is EMPTY' / 'is EMPTYS' state syntax instead of equality.", operator.position,
+                            expected="is EMPTY or is EMPTYS", actual=operator.lexeme)
+            if isinstance(right, (EmptyTestExpr, EmptysTestExpr)) or isinstance(right, BinaryExpr) and right.operator in {">", "<", ">=", "<=", "in", "not in"}:
                 self._chained(operator)
             expr = BinaryExpr(operator.position, expr, operator.lexeme, right)
         if self._at(T.EQUAL_EQUAL, T.BANG_EQUAL, T.GREATER, T.GREATER_EQUAL, T.LESS, T.LESS_EQUAL):
@@ -421,11 +440,14 @@ class Parser:
         expr = self._comparison()
         if self._match(T.IS):
             operator = self._previous(); negated = self._match(T.NOT)
-            if not self._match(T.EMPTY):
+            if self._match(T.EMPTY):
+                expr = EmptyTestExpr(operator.position, expr, negated)
+            elif self._match(T.EMPTYS):
+                expr = EmptysTestExpr(operator.position, expr, negated)
+            else:
                 token = self._peek()
-                raise error("E128", "Invalid state test", "The 'is' operator is reserved for 'is EMPTY' and 'is not EMPTY'.", token.position,
-                            expected="EMPTY", actual=token.lexeme)
-            expr = EmptyTestExpr(operator.position, expr, negated)
+                raise error("E128", "Invalid state test", "The 'is' operator is reserved for EMPTY and EMPTYS state tests.", token.position,
+                            expected="EMPTY or EMPTYS", actual=token.lexeme)
         if self._at(T.IS): self._chained(self._peek())
         return expr
     @staticmethod
@@ -482,6 +504,9 @@ class Parser:
         if self._match(T.EMPTY):
             from .runtime_values import EMPTY
             t = self._previous(); return LiteralExpr(t.position, EMPTY)
+        if self._match(T.EMPTYS):
+            from .runtime_values import EMPTYS
+            t = self._previous(); return LiteralExpr(t.position, EMPTYS)
         if self._match(T.LBRACKET):
             t = self._previous(); values = []
             if not self._at(T.RBRACKET):

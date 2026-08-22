@@ -43,7 +43,7 @@ def object_set(arguments, position, runtime):
     expected = field_types.get(key)
     if expected is None and key in value.fields:
         expected = (runtime.type_name(value.fields[key]), None)
-    field = runtime.prepare_object_field(key, expected, field, position)
+    field = runtime.prepare_object_field(key, expected, field, position, value.fields.get(key), key in value.fields)
     result = dict(value.fields); result[key] = field
     if expected is not None: field_types[key] = expected
     return ObjectValue.create(result, field_types)

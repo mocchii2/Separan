@@ -43,6 +43,35 @@ state with `is EMPTY` or the retained type with `type_of()` is valid. Printing,
 arithmetic, indexing, conditions, and APIs requiring concrete values raise
 `E131` until a value is assigned.
 
-The remaining migration is intentionally staged: list elements and EMPTYS,
-JSON null conversion, standard API migration, and finally removal of
-source-level `null`.
+List slots may independently be EMPTY while retaining the list's homogeneous
+element type. Index assignment is zero-based and explicit:
+
+```separan
+list<number> values = [10, 20, 30]
+values[1] = EMPTY
+values[1] = 25
+```
+
+A typed list literal may contain EMPTY. An inferred list must contain at least
+one concrete element so its element type is knowable. Thus `[1, EMPTY]` is a
+`list<number>`, while an untyped `[EMPTY, EMPTY]` is `E134`.
+
+EMPTYS clears all effective values while preserving container structure. For a
+list it preserves slot count and replaces each slot with typed EMPTY. For an
+object it preserves fields, field types, and nested container shapes.
+
+```separan
+values = EMPTYS
+
+if values is EMPTYS :no_values
+print length(values)
+endif:no_values
+```
+
+An empty list/object and a container whose slots/fields are all EMPTY satisfy
+`is EMPTYS`. A typed `list<number> values = EMPTYS` initializes an empty typed
+list. EMPTYS cannot initialize an object because no field structure exists to
+preserve, and it cannot be assigned to a scalar or individual list slot.
+
+The remaining migration is intentionally staged: JSON null conversion,
+standard API migration, and finally removal of source-level `null`.

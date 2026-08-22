@@ -40,11 +40,10 @@ print age
             "number value = EMPTY\nprint value + 1\n",
             "function:main\nboolean value = EMPTY\nif value :present\nendif:present\nend_function:main\n",
             "string value = EMPTY\nprint upper(value)\n",
-            "list<number> values = [EMPTY]\n",
         )
         for source in cases:
             with self.subTest(source=source):
-                self.assert_error(source, "E132" if "[EMPTY]" in source else "E131")
+                self.assert_error(source, "E131")
 
     def test_typed_parameter_accepts_empty_without_losing_type(self):
         source = '''function:show_age(age: number)

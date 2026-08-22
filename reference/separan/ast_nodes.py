@@ -19,6 +19,8 @@ class UnaryExpr(Expr): operator: str; operand: Expr
 @dataclass
 class EmptyTestExpr(Expr): operand: Expr; negated: bool = False
 @dataclass
+class EmptysTestExpr(Expr): operand: Expr; negated: bool = False
+@dataclass
 class GroupExpr(Expr): expression: Expr
 @dataclass
 class CallExpr(Expr):
@@ -38,6 +40,8 @@ class MemberCallExpr(Expr): target: Expr; name: str; arguments: list[Expr]; name
 class Stmt(Node): pass
 @dataclass
 class Assignment(Stmt): name: str; value: Expr
+@dataclass
+class IndexAssignment(Stmt): name: str; index: Expr; value: Expr
 @dataclass
 class ConstDeclaration(Stmt): name: str; value: Expr
 @dataclass

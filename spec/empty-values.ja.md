@@ -39,5 +39,32 @@ age = 31       # 有効。ageはnumberのまま
 `type_of()`による保持型取得は有効です。値を再設定する前の表示、演算、index、条件、
 実値を要求するAPI利用は`E131`になります。
 
-残る移行は、list要素とEMPTYS、JSON null変換、標準API移行、最後に
-source-level `null`削除の順で進めます。
+listの各slotは、listの同型element規則を保ったまま個別にEMPTYへできます。index代入は
+0始まりで明示します。
+
+```separan
+list<number> values = [10, 20, 30]
+values[1] = EMPTY
+values[1] = 25
+```
+
+型付きlist literalにはEMPTYを含められます。推論型listではelement型を決定するため
+1個以上の実値が必要です。このため`[1, EMPTY]`は`list<number>`ですが、型なしの
+`[EMPTY, EMPTY]`は`E134`です。
+
+EMPTYSはcontainer構造を保ったまま有効値をすべて消します。listではslot数を維持して
+各slotを型付きEMPTYへ変え、objectではfield、field型、nested container形状を維持します。
+
+```separan
+values = EMPTYS
+
+if values is EMPTYS :no_values
+print length(values)
+endif:no_values
+```
+
+空list／object、および全slot／fieldがEMPTYのcontainerは`is EMPTYS`を満たします。
+`list<number> values = EMPTYS`は空の型付きlistを初期化します。objectには保持対象fieldが
+ないためEMPTYSで初期化できず、scalarや個別list slotにもEMPTYSを代入できません。
+
+残る移行は、JSON null変換、標準API移行、最後にsource-level `null`削除の順で進めます。

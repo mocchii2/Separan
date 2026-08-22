@@ -27,7 +27,7 @@ from .structured_data import XmlDocumentValue, XmlElementValue
 from .embedded import BoardValue, BusValue, EmbeddedContext, PinNamespaceValue, PinValue, fixed_member, pin_member
 from .network import IpAddressValue, NativeNetworkAdapter, NetworkInterfaceValue, TcpConnectionValue, UdpSocketValue
 from .network_services import DhcpServerValue, DnsServerValue
-from .runtime_values import EmptyValue, VoidResult, EMPTY, VOID
+from .runtime_values import EmptyValue, EmptysValue, VoidResult, EMPTY, EMPTYS, VOID
 from .token import SourcePosition
 
 
@@ -45,6 +45,7 @@ class FunctionValue:
 
 def type_name(value):
     if isinstance(value, EmptyValue): return value.declared_type or "EMPTY"
+    if isinstance(value, EmptysValue): return "EMPTYS"
     if isinstance(value, VoidResult): return "VOID"
     if isinstance(value, SystemContextValue): return "system"
     if isinstance(value, BoardValue): return "board"
@@ -101,6 +102,9 @@ class Environment:
             old = self.values[name]
             if old.constant:
                 raise error("E211", "Constant reassignment", f"Constant '{name}' cannot be assigned again.", position, expected="no reassignment", actual=name, related=old.declaration_position)
+            if isinstance(value, EmptysValue):
+                old.value = clear_container_value(old.value, old.declared_type, old.element_type, position)
+                return
             if isinstance(value, EmptyValue):
                 old.value = EmptyValue(old.declared_type, old.element_type)
                 return
@@ -110,9 +114,13 @@ class Environment:
                 raise error("E201", "Type error", f"Variable '{name}' has fixed type {old.declared_type} and cannot receive {value_type}.", position, expected=old.declared_type, actual=value_type)
             if value_type == "list" and old.element_type and element_type and old.element_type != element_type:
                 raise error("E201", "Type error", f"List variable '{name}' has fixed element type {old.element_type}.", position, expected=old.element_type, actual=element_type)
+            if value_type == "list": value = normalize_list_values(value, old.element_type or element_type, position)
             old.value = value
             if old.element_type is None: old.element_type = element_type
         else:
+            if isinstance(value, EmptysValue):
+                raise error("E133", "EMPTYS container required", f"Variable '{name}' has no declared container to clear.", position,
+                            expected="an existing list or object binding", actual="EMPTYS")
             if isinstance(value, EmptyValue):
                 if value.declared_type is None:
                     raise error("E129", "EMPTY type required", f"Variable '{name}' cannot infer a type from EMPTY.", position,
@@ -121,6 +129,7 @@ class Environment:
                 return
             value_type = type_name(value)
             element_type = list_element_type(value, position) if value_type == "list" else None
+            if value_type == "list": value = normalize_list_values(value, element_type, position)
             self.values[name] = Binding(value, value_type, element_type, False, position)
     def define_const(self, name, value, position):
         if isinstance(value, VoidResult):
@@ -129,9 +138,9 @@ class Environment:
         if name in self.values:
             previous = self.values[name]
             raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position, expected="a unique constant name", actual=name, related=previous.declaration_position)
-        if isinstance(value, EmptyValue):
+        if isinstance(value, (EmptyValue, EmptysValue)):
             raise error("E130", "EMPTY constant", "A constant must contain a value and cannot be initialized with EMPTY.", position,
-                        expected="a concrete constant value", actual="EMPTY")
+                        expected="a concrete constant value", actual=type_name(value))
         value_type = type_name(value)
         element_type = list_element_type(value, position) if value_type == "list" else None
         self.values[name] = Binding(value, value_type, element_type, True, position)
@@ -143,9 +152,9 @@ class Environment:
             previous = self.values[name]
             raise error("E210", "Duplicate binding", f"Name '{name}' is already defined in this scope.", position,
                         expected="a unique variable name", actual=name, related=previous.declaration_position)
-        if constant and isinstance(value, EmptyValue):
+        if constant and isinstance(value, (EmptyValue, EmptysValue)):
             raise error("E130", "EMPTY constant", "A constant must contain a value and cannot be initialized with EMPTY.", position,
-                        expected="a concrete constant value", actual="EMPTY")
+                        expected="a concrete constant value", actual=type_name(value))
         value = prepare_typed_value(name, declared_type, declared_element_type, value, position)
         self.values[name] = Binding(value, declared_type, declared_element_type, constant, position)
     def get(self, name, position):
@@ -154,6 +163,33 @@ class Environment:
         raise error("E202", "Undefined variable", f"Variable '{name}' is not defined.", position, actual=name)
     def contains(self, name):
         return name in self.values or bool(self.parent and self.parent.contains(name))
+    def binding(self, name, position):
+        if name in self.values: return self.values[name]
+        if self.parent: return self.parent.binding(name, position)
+        raise error("E202", "Undefined variable", f"Variable '{name}' is not defined.", position, actual=name)
+    def assign_index(self, name, index, value, position):
+        binding = self.binding(name, position)
+        if binding.constant:
+            raise error("E211", "Constant reassignment", f"Constant '{name}' cannot be changed through an index.", position,
+                        expected="no reassignment", actual=name, related=binding.declaration_position)
+        if binding.declared_type != "list" or type(binding.value) is not list:
+            raise error("E201", "Type error", f"Indexed assignment requires a present list variable, but '{name}' is {binding.declared_type}.", position,
+                        expected="list", actual=binding.declared_type)
+        if type(index) is not int or index < 0:
+            raise error("E201", "Type error", "List indexes must be non-negative integers.", position,
+                        expected="non-negative integer", actual=repr(index))
+        if index >= len(binding.value):
+            raise error("E302", "Index out of range", f"Index {index} is outside a list of length {len(binding.value)}.", position,
+                        expected=f"0..{len(binding.value)-1}", actual=str(index))
+        if isinstance(value, EmptysValue):
+            raise error("E133", "EMPTYS scalar slot", "EMPTYS clears a container, not one list slot. Use EMPTY for a slot.", position,
+                        expected="EMPTY or a list element value", actual="EMPTYS")
+        expected = binding.element_type
+        if isinstance(value, EmptyValue): value = EmptyValue(expected)
+        elif expected is not None and type_name(value) != expected:
+            raise error("E201", "Type error", f"List variable '{name}' requires elements of type {expected}.", position,
+                        expected=expected, actual=type_name(value))
+        updated = list(binding.value); updated[index] = value; binding.value = updated
 
 
 def list_element_type(value, position):
@@ -161,17 +197,73 @@ def list_element_type(value, position):
     if any(isinstance(item, VoidResult) for item in value):
         raise error("E127", "VOID value use", "VOID cannot be stored in a list because it does not represent a value.", position,
                     expected="list elements", actual="VOID")
-    if any(isinstance(item, EmptyValue) for item in value):
-        raise error("E132", "EMPTY list element", "EMPTY list elements require the typed list-element model, which is not active yet.", position,
-                    expected="concrete list elements", actual="EMPTY")
-    first = type_name(value[0])
-    for item in value[1:]:
-        if type_name(item) != first:
-            raise error("E203", "Heterogeneous list", "All list elements must have the same type in v0.1.", position, expected=first, actual=type_name(item))
-    return first
+    if any(isinstance(item, EmptysValue) for item in value):
+        raise error("E133", "EMPTYS list element", "EMPTYS applies to a whole container and cannot be stored as an element.", position,
+                    expected="EMPTY or a concrete element", actual="EMPTYS")
+    found = None
+    for item in value:
+        actual = item.declared_type if isinstance(item, EmptyValue) else type_name(item)
+        if actual is None: continue
+        if found is not None and actual != found:
+            raise error("E203", "Heterogeneous list", "All list elements must have the same type, including retained EMPTY types.", position,
+                        expected=found, actual=actual)
+        found = actual
+    return found
+
+
+def normalize_list_values(values, element_type, position):
+    if values and element_type is None:
+        raise error("E134", "List element type required", "A list containing only EMPTY elements requires an explicit element type.", position,
+                    expected="list<type>", actual="list[EMPTY]")
+    result = []
+    for item in values:
+        if isinstance(item, EmptyValue): result.append(EmptyValue(element_type))
+        elif type_name(item) != element_type:
+            raise error("E203", "Heterogeneous list", "All list elements must have the same type, including retained EMPTY types.", position,
+                        expected=element_type, actual=type_name(item))
+        else: result.append(item)
+    return result
+
+
+def container_is_emptys(value):
+    if type(value) is list:
+        return not value or all(isinstance(item, EmptyValue) or isinstance(item, (list, ObjectValue)) and container_is_emptys(item) for item in value)
+    if isinstance(value, ObjectValue):
+        return not value.fields or all(isinstance(item, EmptyValue) or isinstance(item, (list, ObjectValue)) and container_is_emptys(item) for item in value.fields.values())
+    return False
+
+
+def clear_container_value(value, declared_type, element_type, position):
+    if declared_type == "list":
+        if isinstance(value, EmptyValue): return []
+        if type(value) is not list:
+            raise error("E133", "EMPTYS container required", "EMPTYS requires a present list structure.", position,
+                        expected="list", actual=type_name(value))
+        result = []
+        for item in value:
+            if isinstance(item, (list, ObjectValue)): result.append(clear_container_value(item, type_name(item), None, position))
+            else: result.append(EmptyValue(element_type or type_name(item)))
+        return result
+    if declared_type == "object":
+        if not isinstance(value, ObjectValue):
+            raise error("E133", "EMPTYS container required", "An EMPTY object has no field structure for EMPTYS to preserve.", position,
+                        expected="a present object", actual=type_name(value))
+        fields, field_types = {}, dict(value.field_types)
+        for key, item in value.fields.items():
+            expected = field_types.get(key, (type_name(item), None))
+            field_types[key] = expected
+            if isinstance(item, (list, ObjectValue)): fields[key] = clear_container_value(item, type_name(item), expected[1], position)
+            else: fields[key] = EmptyValue(expected[0], expected[1])
+        return ObjectValue.create(fields, field_types)
+    raise error("E133", "EMPTYS scalar", "EMPTYS can only be assigned to a list or object.", position,
+                expected="list or object", actual=declared_type)
 
 
 def prepare_typed_value(name, declared_type, declared_element_type, value, position):
+    if isinstance(value, EmptysValue):
+        if declared_type == "list": return []
+        raise error("E133", "EMPTYS container required", f"'{name}' has no existing container structure to clear.", position,
+                    expected="list<type> or an existing object", actual=declared_type)
     if isinstance(value, EmptyValue):
         if value.declared_type not in (None, declared_type):
             raise error("E201", "Type error", f"'{name}' requires {declared_type}, but the EMPTY value retains {value.declared_type}.", position,
@@ -185,6 +277,7 @@ def prepare_typed_value(name, declared_type, declared_element_type, value, posit
     if declared_type == "list" and element_type is not None and element_type != declared_element_type:
         raise error("E201", "Type error", f"List '{name}' requires elements of type {declared_element_type}.", position,
                     expected=declared_element_type, actual=element_type)
+    if declared_type == "list": return normalize_list_values(value, declared_element_type, position)
     return value
 
 
@@ -284,6 +377,7 @@ class Interpreter:
     def _execute(self, stmt):
         if isinstance(stmt, ImportStmt): self._import(stmt)
         elif isinstance(stmt, Assignment): self.environment.assign(stmt.name, self._eval(stmt.value), stmt.position)
+        elif isinstance(stmt, IndexAssignment): self.environment.assign_index(stmt.name, self._eval(stmt.index), self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, ConstDeclaration): self.environment.define_const(stmt.name, self._eval(stmt.value), stmt.position)
         elif isinstance(stmt, TypedDeclaration): self.environment.define_typed(stmt.name, stmt.declared_type, stmt.element_type, self._eval(stmt.value), stmt.constant, stmt.position)
         elif isinstance(stmt, PrintStmt): self.output.write(self._display_value(self._eval(stmt.value), stmt.position) + "\n")
@@ -408,7 +502,12 @@ class Interpreter:
         return ObjectValue.create(fields, field_types)
 
     @staticmethod
-    def prepare_object_field(name, expected, value, position):
+    def prepare_object_field(name, expected, value, position, current=None, current_exists=False):
+        if isinstance(value, EmptysValue):
+            if not current_exists:
+                raise error("E133", "EMPTYS container required", f"New object field '{name}' has no container structure to clear.", position,
+                            expected="an existing list or object field", actual="EMPTYS")
+            return clear_container_value(current, expected[0] if expected else type_name(current), expected[1] if expected else None, position)
         if expected is None:
             if isinstance(value, EmptyValue):
                 raise error("E129", "EMPTY type required", f"New object field '{name}' cannot infer a type from EMPTY.", position,
@@ -451,6 +550,9 @@ class Interpreter:
         if isinstance(expr, GroupExpr): return self._eval(expr.expression)
         if isinstance(expr, EmptyTestExpr):
             result = isinstance(self._eval(expr.operand), EmptyValue)
+            return not result if expr.negated else result
+        if isinstance(expr, EmptysTestExpr):
+            result = container_is_emptys(self._eval(expr.operand))
             return not result if expr.negated else result
         if isinstance(expr, VariableExpr):
             if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
@@ -515,6 +617,9 @@ class Interpreter:
             return target.runtime._call(expr.name, args, expr.position, named)
         if isinstance(expr, UnaryExpr):
             value = self._eval(expr.operand)
+            if isinstance(value, EmptysValue):
+                raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot participate in an operator.", expr.position,
+                            expected="a present value", actual="EMPTYS")
             if isinstance(value, EmptyValue):
                 raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator.", expr.position,
                             expected="a present value", actual="EMPTY")
@@ -526,6 +631,9 @@ class Interpreter:
             return -value
         if isinstance(expr, BinaryExpr):
             left = self._eval(expr.left)
+            if isinstance(left, EmptysValue):
+                raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot participate in an operator.", expr.left.position,
+                            expected="a present value", actual="EMPTYS")
             if isinstance(left, EmptyValue):
                 raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator; use 'is EMPTY'.", expr.left.position,
                             expected="a present value", actual="EMPTY")
@@ -536,6 +644,9 @@ class Interpreter:
             if expr.operator == "||": return self._boolean(left, expr.left.position) or self._boolean(self._eval(expr.right), expr.right.position)
             if expr.operator == "??": return left if left is not None else self._eval(expr.right)
             right = self._eval(expr.right); op = expr.operator
+            if isinstance(right, EmptysValue):
+                raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot participate in an operator.", expr.right.position,
+                            expected="a present value", actual="EMPTYS")
             if isinstance(right, EmptyValue):
                 raise error("E131", "EMPTY value use", "EMPTY cannot participate in an operator; use 'is EMPTY'.", expr.right.position,
                             expected="a present value", actual="EMPTY")
@@ -577,6 +688,9 @@ class Interpreter:
         if any(isinstance(value, VoidResult) for value in args) or any(isinstance(value, VoidResult) for value in named.values()):
             raise error("E127", "VOID value use", "VOID cannot be passed as a function argument.", position,
                         expected="a value", actual="VOID")
+        if name != "object_set" and (any(isinstance(value, EmptysValue) for value in args) or any(isinstance(value, EmptysValue) for value in named.values())):
+            raise error("E133", "EMPTYS value use", "EMPTYS is an assignment operation and cannot be passed as an argument.", position,
+                        expected="a value", actual="EMPTYS")
         if name in self.error_categories:
             if named or len(args) != 1: raise error("E207", "Argument count mismatch", f"Custom error '{name}' requires one positional message.", position, expected="1", actual=str(len(args) + len(named)))
             if type(args[0]) is not str: self._type_error(position, "string message", type_name(args[0]), f"Custom error '{name}' requires a string message.")
@@ -685,6 +799,9 @@ class Interpreter:
     def display(value): return Interpreter._display(value)
     @staticmethod
     def _display_value(value, position):
+        if isinstance(value, EmptysValue):
+            raise error("E133", "EMPTYS value use", "EMPTYS is a container-clear operation and cannot be printed.", position,
+                        expected="a value", actual="EMPTYS")
         if isinstance(value, EmptyValue):
             raise error("E131", "EMPTY value use", "EMPTY cannot be printed because it has no current value.", position,
                         expected="a present value", actual="EMPTY")
@@ -785,6 +902,7 @@ class Interpreter:
         if isinstance(value, TimezoneValue): return value.name
         if isinstance(value, DurationValue): return format_duration(value)
         if isinstance(value, EmptyValue): return "EMPTY"
+        if isinstance(value, EmptysValue): return "EMPTYS"
         if isinstance(value, VoidResult): return "VOID"
         if value is None: return "null"
         if type(value) is bool: return "true" if value else "false"

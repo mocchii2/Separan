@@ -12,14 +12,18 @@ names = ["alice", "bob", "carol"]
 first_number = numbers[0]
 ```
 
-`[1, "a", true]` is a type error. An empty list has an unknown element type;
-its type becomes known when a non-empty value is assigned through an operation
-such as `list_append`.
+`[1, "a", true]` is a type error. An inferred empty list has an unknown element
+type; `list<number> values = []` records it explicitly.
+
+Typed slots may hold `EMPTY` without changing the homogeneous element type.
+`items[index] = EMPTY` clears one zero-based slot; assigning a concrete value
+later must match the retained element type. `items = EMPTYS` preserves length
+and clears all slots. Use `items is EMPTYS` for the explicit all-empty test.
 
 ## Non-mutating API
 
-All list operations return values without modifying their input list. v0.1 has
-no mutating list function and no indexed assignment.
+All list functions return values without modifying their input list. Indexed
+assignment is a separate, visibly mutating language statement.
 
 | Function | Result |
 |---|---|

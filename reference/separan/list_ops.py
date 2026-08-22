@@ -4,6 +4,7 @@ import re
 
 from .errors import error
 from .objects import ObjectValue
+from .runtime_values import EmptyValue
 
 
 ORDERED_TYPES = frozenset(("number", "string", "datetime", "local_datetime", "duration"))
@@ -136,6 +137,9 @@ def reverse(arguments, position, runtime):
 
 def _ordered_list(values, function, position, runtime):
     require_list(values, function, position, runtime)
+    if any(isinstance(value, EmptyValue) for value in values):
+        raise error("E131", "EMPTY value use", f"{function}() cannot order EMPTY list slots.", position,
+                    expected="all list slots present", actual="EMPTY")
     element_type = _element_type(values, runtime)
     if element_type not in ({None} | ORDERED_TYPES):
         expected = "list[number|string|datetime|local_datetime|duration]"
@@ -172,6 +176,9 @@ def _object_sort(name, *, descending=False):
             if field not in value.fields:
                 raise error("E212", "Missing object field", f"{name}() field '{field}' is missing from object at index {index}.", position, actual=field)
             keys.append(value.fields[field])
+        if any(isinstance(key, EmptyValue) for key in keys):
+            raise error("E131", "EMPTY value use", f"{name}() cannot order EMPTY field '{field}'.", position,
+                        expected="present ordered field values", actual="EMPTY")
         key_type = None if not keys else runtime.type_name(keys[0])
         if key_type not in ({None} | ORDERED_TYPES):
             runtime.type_error(position, "ordered scalar object field", key_type, f"{name}() field '{field}' is not orderable.")

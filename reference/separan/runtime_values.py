@@ -21,6 +21,11 @@ class VoidResult:
     """Function completion that produced no value."""
 
 
-EMPTY = EmptyValue()
-VOID = VoidResult()
+@dataclass(frozen=True)
+class EmptysValue:
+    """Operation marker requesting that a container retain only empty slots."""
 
+
+EMPTY = EmptyValue()
+EMPTYS = EmptysValue()
+VOID = VoidResult()

@@ -1,0 +1,15 @@
+function:main
+list<number> samples = [10, 20, 30]
+
+samples[1] = EMPTY
+print samples
+print samples[1] is EMPTY
+
+samples = EMPTYS
+print samples
+print samples is EMPTYS
+print length(samples)
+
+samples[0] = 100
+print samples is not EMPTYS
+end_function:main
