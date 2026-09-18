@@ -14,9 +14,16 @@ if condition :label
 endif:label
 ```
 
-The same rule applies to `while`/`endwhile`, `for`/`endfor`, and function names
-in `function:name`/`end_function:name`. All currently open structure identifiers
-share one namespace and must be unique. Closed labels may be reused.
+The same rule applies to `while`/`endwhile`, `for`/`endfor`, and callable
+logic boundaries. The conceptual callable unit is `SEP` (Separate Logic):
+`SEP:name` opens a named logic block and `END_SEP:name` closes it.
+
+This is a named Separan logic unit whose structure is explicit and
+self-identifying. The current reference implementation may keep compatibility
+syntax during early development, but the language definition is centered on
+`SEP` as a reusable and independently scoped behavior boundary. All currently
+open structure identifiers share one namespace and must be unique. Closed labels
+may be reused.
 
 ## v0.2 alpha syntax
 
@@ -31,7 +38,7 @@ share one namespace and must be unique. Closed labels may be reused.
   result. Source-level `null`/`NULL` is rejected with `E135`.
 - Variables keep the type inferred by their first assignment. Explicit declarations use
   `type name = value`; an initializer is always required.
-- Function parameter types are fixed by the function's first call.
+- Logic parameter types are fixed by the block's first call.
 - Lists are homogeneous. Indexes are zero-based, non-negative integers.
 - Conditions require booleans; there is no truthy/falsy conversion.
 - Implicit conversion between strings, numbers, and booleans is forbidden.
@@ -181,10 +188,10 @@ endwhile:loop
 for item in items :items_loop
 endfor:items_loop
 
-function:add(a, b)
+SEP:add(a, b)
 @math
 return a + b
-end_function:add
+end_SEP:add
 ```
 
 ## Comments

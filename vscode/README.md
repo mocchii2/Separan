@@ -27,14 +27,14 @@ if user.active :active_user
 endif:active_user
 ```
 
-Related functions can also declare machine-readable semantic identity:
+Related logic blocks can also declare machine-readable semantic identity:
 
 ```separan
-function:send_email
+SEP:send_email
 @notification
 @email
 send_message()
-end_function:send_email
+END_SEP:send_email
 ```
 
 The label names the structure and its exact boundary. Even before using the
@@ -115,9 +115,9 @@ python -m pip install separan
 ### 3. Create a `.sep` file
 
 ```separan
-function:main
+SEP:main
 print "Hello from Separan"
-end_function:main
+END_SEP:main
 ```
 
 ### 4. Verify AI Changes
@@ -125,13 +125,13 @@ end_function:main
 Write a labeled edit scope:
 
 ```separan
-function:process_payment
+SEP:process_payment
 if true :payment_approved
   amount = get_amount()
   charge_card(amount)
   log_transaction()
 endif:payment_approved
-end_function:process_payment
+END_SEP:process_payment
 ```
 
 Right-click inside `:payment_approved` → **"Verify AI Edit Scope Against HEAD"**
@@ -220,9 +220,9 @@ while running :main_loop      ← opening label
   process()
 endwhile:main_loop            ← must match!
 
-function:authenticate         ← function name is its structure identity
+SEP:authenticate             ← the named logic boundary is the structure identity
   verify_credentials()
-end_function:authenticate     ← must match!
+END_SEP:authenticate         ← must match!
 ```
 
 This is not just style—it's enforced by the language. Mismatches are caught immediately.

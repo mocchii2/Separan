@@ -13,7 +13,7 @@ let structureRefreshTimer;
 let structuralCompletionTimer;
 
 const blockPairs = {
-  function: "end_function", if: "endif", while: "endwhile", for: "endfor",
+  SEP: "END_SEP", function: "end_function", if: "endif", while: "endwhile", for: "endfor",
   object: "end_object", list: "end_list", try: "endtry", error: "end_error",
   transaction: "end_transaction", http_route: "end_http_route",
 };
@@ -63,8 +63,8 @@ async function goToMatchingLabel() {
   const editor = currentEditor(); if (!editor) return;
   const label = labelAt(editor); if (!label) return vscode.window.showInformationMessage("Place the cursor on a Separan label.");
   const stack = []; const completed = [];
-  const openPattern = /^\s*(function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
-  const closePattern = /^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
+  const openPattern = /^\s*(SEP|sep|function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
+  const closePattern = /^\s*(END_SEP|end_sep|end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
   const closerKinds = { end_function: "function", endif: "if", endwhile: "while", endfor: "for", end_object: "object", end_list: "list", endtry: "try", end_error: "error", end_http_route: "http_route", end_transaction: "transaction" };
   let commentLabel;
   for (let line = 0; line < editor.document.lineCount; line += 1) {
@@ -89,7 +89,7 @@ async function goToMatchingLabel() {
 async function goToLabel() {
   const editor = currentEditor(); if (!editor) return;
   const items = []; const stack = [];
-  const pattern = /^\s*(function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
+  const pattern = /^\s*(SEP|sep|function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
   const closePattern = /^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
   let commentLabel;
   for (let line = 0; line < editor.document.lineCount; line += 1) {

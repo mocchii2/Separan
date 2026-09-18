@@ -152,7 +152,7 @@ This release focuses on **AI-generated code review capabilities**. The core feat
   - Useful for detecting unexpected structural modifications
 - **Copy AI Edit Scope** - Generate AI instructions from labeled blocks
   - Right-click label → "Copy AI Edit Scope"
-  - Copies a full identity such as `Modify only Separan scope function:main#1/if:payment_verification#1`
+  - Copies a full identity such as `Modify only Separan scope SEP:main#1/if:payment_verification#1`
 
 #### Navigation & Editing
 - **Go to Matching Label** - Jump between opening and closing labels

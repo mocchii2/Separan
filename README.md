@@ -93,6 +93,15 @@ AI systems, and development tools can inspect without guessing where a block
 ends. Indentation is decoration. Every block carries an explicit identity, and
 its opener and closer must agree.
 
+Design note: the conceptual callable unit is `SEP` (Separate Logic). The
+preferred canonical shape is `SEP:name` / `END_SEP:name`, because it makes the
+meaning of a reusable logic unit explicit in the syntax itself.
+
+This is a named logic boundary that describes a separate, independently scoped
+unit of behavior. The reference implementation may still use compatibility
+syntax during early development, but the language identity is intentionally built
+around `SEP` and `END_SEP`.
+
 Variables may use inferred or explicit fixed types. Explicit declarations always
 include an initializer, so a forgotten value cannot silently become an
 uninitialized binding:
@@ -109,14 +118,14 @@ state explicitly with `value is EMPTY`; a normal operation on an EMPTY value is
 an error rather than an implicit default.
 
 ```separan
-function:main
+SEP:main
 name = "Separan"
 
 if name is not EMPTY :名前あり
 print "Hello, " + name
 endif:名前あり
 
-end_function:main
+END_SEP:main
 ```
 
 Block and multiline-comment labels accept NFC-normalized Unicode identifiers.
@@ -166,7 +175,7 @@ endif:active_user
 Give the AI a structural instruction instead of a line-number range:
 
 ```text
-Modify only Separan scope function:main#1/if:active_user#1
+Modify only Separan scope SEP:main#1/if:active_user#1
 ```
 
 The parser verifies that the opening and closing structure agree. The v0.4
@@ -180,17 +189,17 @@ Allowed changes 1, violations 0
 The label is simultaneously human documentation, parser-checked structure, and
 a machine-verifiable edit boundary.
 
-Function tags add a second, semantic dimension when related code is separated:
+Logic tags add a second, semantic dimension when related code is separated:
 
 ```separan
-function:send_notification
+SEP:send_notification
 @notification
 @aws
 send_message()
-end_function:send_notification
+END_SEP:send_notification
 ```
 
-`@notification` is AST metadata, so tools can enumerate the exact function set
+`@notification` is AST metadata, so tools can enumerate the exact logic set
 instead of asking an AI to guess what “notification-related” means.
 
 ```console
@@ -219,8 +228,8 @@ reproducible and secure randomness, filesystem and process utilities, HTTP
 client/server previews, authentication, capability-gated mail, YAML/XML structured data, cookies,
 parameter-bound SQLite, native interface/DHCP/DNS/TCP/UDP networking, capability-checked embedded board profiles,
 and Pico/Pico 2 C++ firmware generation with Pico SDK ELF/UF2/HEX builds.
-Built-ins use the same strict argument and type diagnostics as user-defined
-functions; implicit coercion remains forbidden.
+Built-ins use the same strict argument and type diagnostics as named logic
+blocks; implicit coercion remains forbidden.
 
 This release also adds the experimental [AWS Lambda runtime](spec/aws-lambda.md):
 host JSON is converted to immutable Separan values, parsed applications are
@@ -237,7 +246,7 @@ layer for desktop and server scripts. It uses dedicated `ip_address`,
 passing ambiguous strings through every operation.
 
 ```separan
-function:main
+SEP:main
 
 @network
 @diagnostics
@@ -251,7 +260,7 @@ print interface.connected
 print interface.ip_address
 endfor:show_interfaces
 
-end_function:main
+END_SEP:main
 ```
 
 Run the inspection sample with explicit host permission:
@@ -282,7 +291,7 @@ DHCP, static addressing, and IPv4 link-local are one common IP layer shared by
 Ethernet and Wi-Fi adapters:
 
 ```separan
-function:main
+SEP:main
 
 lan = ethernet_open()
 network_use_dhcp(lan)
@@ -293,7 +302,7 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_function:main
+END_SEP:main
 ```
 
 Embedded adapters can now expose Wi-Fi AP, IPv4 DHCP-server, and simple local
@@ -327,7 +336,7 @@ Arduino Nano/Nano Every through reviewed board profiles. The portable Blink
 example names the board LED instead of copying a physical pin number:
 
 ```separan
-function:main
+SEP:main
 
 @embedded
 @gpio
@@ -342,7 +351,7 @@ gpio_write(pin.LED_BUILTIN, false)
 delay_milliseconds(500)
 endwhile:blink_loop
 
-end_function:main
+END_SEP:main
 ```
 
 The source stays identical; only the build target changes. Pico and Pico 2 now
