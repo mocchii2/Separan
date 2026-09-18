@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.8] - 2026-09-18
+
+### Marketplace release alignment
+
+- Updated the extension README and metadata to match the canonical `SEP` / `END_SEP` block syntax.
+- Kept legacy function syntax only as compatibility support while presenting the current language identity clearly.
+- Verified the extension grammar and public example snippets against the current spec.
+- Bumped the Marketplace package metadata to the current GitHub-facing release version.
+
 ## [0.9.7] - 2026-09-18
 
 ### Marketplace alignment
