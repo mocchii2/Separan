@@ -1,0 +1,6 @@
+SEP:main
+if true :shared
+while true :shared
+endwhile:shared
+endif:shared
+END_SEP:main

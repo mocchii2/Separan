@@ -1,0 +1,5 @@
+SEP:main
+if true :check
+print "ok"
+endif:check
+END_SEP:main

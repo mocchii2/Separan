@@ -1,0 +1,5 @@
+SEP:main
+if true :ok
+else:wrong
+endif:ok
+END_SEP:main

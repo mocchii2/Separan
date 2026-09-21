@@ -1,0 +1,4 @@
+SEP:main
+if true :check
+endif:wrong
+END_SEP:main

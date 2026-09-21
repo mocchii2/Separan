@@ -1,0 +1,6 @@
+SEP:main
+@demo
+if true :ready
+print "hello"
+endif:ready
+END_SEP:main
