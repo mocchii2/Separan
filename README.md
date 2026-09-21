@@ -33,10 +33,10 @@ The easiest way to try Separan is to download the native release bundle for your
 
 Available from the latest [GitHub release](https://github.com/mocchii2/Separan/releases).
 
-The native binary validates the current block structure and is the recommended
-way to run Separan files for everyday use. The Python package remains the
-reference implementation for development and tooling, but it is no longer the
-primary story for end users.
+The native binary is the public runtime entry point: it validates the current
+block structure and is the recommended way to run Separan files in day-to-day
+use. The Python package remains the reference implementation for development,
+tooling, and language work, but it is not the main public install story.
 
 The canonical callable unit is `SEP` (Separate Logic): it is the named logic
 boundary of a Separan program, written explicitly as a checked structure rather
@@ -74,8 +74,9 @@ separan.exe examples/hello.sep
 ./separan examples/hello.sep
 ```
 
-The Python runtime is still available for developers and tooling, but native
-packages are the first-class install path for using Separan today.
+The native runtime is the first-class install path for end users, while the
+Python package remains the full reference implementation and the platform for
+language tooling, experiments, and developer workflows.
 
 ## Try it in five minutes
 
