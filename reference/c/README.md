@@ -19,10 +19,22 @@ The current C core checks the structural contract that the Python implementation
 
 ## Build
 
-Use a C compiler such as GCC or Clang:
+Use a C compiler such as GCC or Clang to build the CLI or the reusable native library:
 
 ```console
 gcc -std=c11 -Wall -Wextra -Iinclude src/main.c src/separan_core.c -o separan_core
+make all
+```
+
+The native library is exported as `libseparan.a` and exposes the public result API in `include/separan_core.h`.
+
+```c
+#include "separan_core.h"
+
+separan_result result = separan_validate_source("SEP:main\nEND_SEP:main\n");
+if (!result.ok) {
+    printf("%s\n", result.errors[0].code);
+}
 ```
 
 ## Portable download bundles

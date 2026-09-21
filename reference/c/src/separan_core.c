@@ -176,13 +176,53 @@ static int is_valid_label_text(const char *text) {
     return 1;
 }
 
-static void print_error(const char *code, const char *title, int line_number, const char *expected, const char *actual) {
+static separan_result g_last_result = {0};
+
+static void reset_result(separan_result *result) {
+    if (result == NULL) {
+        return;
+    }
+    result->ok = 1;
+    result->error_count = 0U;
+    for (size_t index = 0; index < SEPARAN_MAX_ERRORS; index++) {
+        result->errors[index].line_number = 0;
+        result->errors[index].code[0] = '\0';
+        result->errors[index].title[0] = '\0';
+        result->errors[index].expected[0] = '\0';
+        result->errors[index].actual[0] = '\0';
+    }
+}
+
+static void record_error(const char *code, const char *title, int line_number, const char *expected, const char *actual) {
+    if (code == NULL || title == NULL) {
+        return;
+    }
+
+    if (g_last_result.error_count < SEPARAN_MAX_ERRORS) {
+        separan_error *entry = &g_last_result.errors[g_last_result.error_count++];
+        entry->line_number = line_number;
+        snprintf(entry->code, sizeof(entry->code), "%s", code);
+        snprintf(entry->title, sizeof(entry->title), "%s", title);
+        if (expected != NULL) {
+            snprintf(entry->expected, sizeof(entry->expected), "%s", expected);
+        }
+        if (actual != NULL) {
+            snprintf(entry->actual, sizeof(entry->actual), "%s", actual);
+        }
+    }
+
+    g_last_result.ok = 0;
+
     fprintf(stderr, "SEPARAN %s: %s\n\n", code, title);
     fprintf(stderr, " --> line:%d\n", line_number);
     if (expected != NULL && actual != NULL) {
         fprintf(stderr, "  expected: %s\n", expected);
         fprintf(stderr, "  actual:   %s\n", actual);
     }
+}
+
+static void print_error(const char *code, const char *title, int line_number, const char *expected, const char *actual) {
+    record_error(code, title, line_number, expected, actual);
 }
 
 static void push_block(BlockStack *stack, BlockKind kind, const char *label, int line_number) {
@@ -444,8 +484,38 @@ static int parse_line(BlockStack *stack, char *trimmed, int line_number, int *in
     return 0;
 }
 
+void separan_reset_result(separan_result *result) {
+    if (result == NULL) {
+        return;
+    }
+    reset_result(result);
+}
+
+void separan_result_free(separan_result *result) {
+    if (result == NULL) {
+        return;
+    }
+    reset_result(result);
+}
+
+separan_result separan_validate_source(const char *source) {
+    reset_result(&g_last_result);
+    int status = separan_analyze_source(source);
+    g_last_result.ok = (status == 0);
+    return g_last_result;
+}
+
+separan_result separan_validate_path(const char *path) {
+    reset_result(&g_last_result);
+    int status = separan_analyze_path(path);
+    g_last_result.ok = (status == 0);
+    return g_last_result;
+}
+
 int separan_analyze_source(const char *source) {
+    reset_result(&g_last_result);
     if (source == NULL) {
+        record_error("E000", "Null source", 0, "a valid source string", "NULL");
         return 1;
     }
 
@@ -518,34 +588,40 @@ int separan_analyze_source(const char *source) {
 
 int separan_analyze_path(const char *path) {
     if (path == NULL) {
+        record_error("E000", "Null file path", 0, "a valid file path", "NULL");
         return 1;
     }
 
     FILE *file = fopen(path, "rb");
     if (file == NULL) {
         fprintf(stderr, "Unable to open input file: %s\n", path);
+        record_error("E000", "Unable to open input file", 0, path, "file not found");
         return 1;
     }
 
     if (fseek(file, 0L, SEEK_END) != 0) {
         fclose(file);
+        record_error("E000", "Seek failed", 0, "a readable file", path);
         return 1;
     }
 
     long size = ftell(file);
     if (size < 0) {
         fclose(file);
+        record_error("E000", "File length unavailable", 0, "a readable file", path);
         return 1;
     }
 
     if (fseek(file, 0L, SEEK_SET) != 0) {
         fclose(file);
+        record_error("E000", "Rewind failed", 0, "a readable file", path);
         return 1;
     }
 
     char *buffer = (char *)malloc((size_t)size + 1U);
     if (buffer == NULL) {
         fclose(file);
+        record_error("E000", "Memory allocation failed", 0, "enough memory", path);
         return 1;
     }
 
@@ -557,3 +633,4 @@ int separan_analyze_path(const char *path) {
     free(buffer);
     return result;
 }
+
