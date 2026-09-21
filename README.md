@@ -12,6 +12,7 @@
 
 [日本語](https://github.com/mocchii2/Separan/blob/main/docs/README.ja.md) | English
 
+[![Release](https://img.shields.io/badge/Release-native%20bundles-blue)](https://github.com/mocchii2/Separan/releases)
 [![PyPI](https://img.shields.io/pypi/v/separan?label=PyPI)](https://pypi.org/project/separan/)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 
@@ -22,18 +23,59 @@ the program's checked structure. A reviewer can understand what a block is for,
 navigate its exact boundary, and verify where an AI made changes without first
 reconstructing indentation or counting brackets.
 
+## Download native builds
+
+The easiest way to try Separan is to download the native release bundle for your platform:
+
+- Windows installer: `separan-installer.exe`
+- Windows portable ZIP: `separan-portable.zip`
+- Linux portable tar.gz: `separan-linux-x86_64.tar.gz`
+
+Available from the latest [GitHub release](https://github.com/mocchii2/Separan/releases).
+
+The native binary validates the current block structure and is the recommended
+way to run Separan files for everyday use. The Python package remains the
+reference implementation for development and tooling, but it is no longer the
+primary story for end users.
+
+The canonical callable unit is `SEP` (Separate Logic): it is the named logic
+boundary of a Separan program, written explicitly as a checked structure rather
+than an implicit Python-style `def`.
+
+```separan
+SEP:process_payment
+@billing
+@payment
+
+if user.active :active_user
+charge_card(user.card)
+log_success(user.id)
+endif:active_user
+
+END_SEP:process_payment
+```
+
+The block name gives the behavior a real identity, and the matching `END_SEP`
+closes exactly the same logical boundary. That makes the code easier to review,
+trace, and verify than a typical indentation-driven function body.
+
 This is not only about restricting AI. It is about making generated code
 explain its structure to the human who remains responsible for it.
 
-## Run it in 30 seconds
+## Native CLI in 30 seconds
+
+Download the release bundle for your OS, extract it, and run the binary directly:
 
 ```console
-git clone https://github.com/mocchii2/Separan.git && cd Separan
-python -m pip install separan
-separan examples/hello.sep
+# Windows
+separan.exe examples/hello.sep
+
+# Linux
+./separan examples/hello.sep
 ```
 
-Python 3.10 or newer is required.
+The Python runtime is still available for developers and tooling, but native
+packages are the first-class install path for using Separan today.
 
 ## Try it in five minutes
 
@@ -98,9 +140,11 @@ preferred canonical shape is `SEP:name` / `END_SEP:name`, because it makes the
 meaning of a reusable logic unit explicit in the syntax itself.
 
 This is a named logic boundary that describes a separate, independently scoped
-unit of behavior. The reference implementation may still use compatibility
-syntax during early development, but the language identity is intentionally built
-around `SEP` and `END_SEP`.
+unit of behavior. In practice, it is the named boundary for Separan, but the
+syntax stays explicit and structural: `SEP:name` opens the unit and
+`END_SEP:name` closes it. The reference implementation may still use
+compatibility syntax during early development, but the language identity is
+intentionally built around `SEP` and `END_SEP`.
 
 Variables may use inferred or explicit fixed types. Explicit declarations always
 include an initializer, so a forgotten value cannot silently become an
@@ -218,7 +262,7 @@ active file against Git `HEAD` and verify the label under the cursor. See the
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
 `main` auto-start, conditionals, loops, `#`/`##` comments, strict escaped and raw
-strings, Function Tag metadata, and AST output. The v0.4
+strings, semantic tag metadata, and AST output. The v0.4
 tooling layer adds a dependency-free LSP, rich VS Code support, structural
 diffs, and enforced AI edit scopes without changing v0.1 language semantics.
 
