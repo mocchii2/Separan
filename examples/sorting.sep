@@ -1,4 +1,4 @@
-function:main
+SEP:main
 
 files = ["file10.sep", "file2.sep", "file1.sep"]
 print sort_natural(files)
@@ -21,4 +21,4 @@ users = [first_user, second_user]
 ranked = sort_by_descending(users, "score")
 print ranked[0].name
 
-end_function:main
+end_SEP:main

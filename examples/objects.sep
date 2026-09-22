@@ -12,7 +12,7 @@ list:roles
 end_list:roles
 end_object:user
 
-function:main
+SEP:main
 print user.name
 print user.address.city
 print user.roles
@@ -24,4 +24,4 @@ print "caught"
 finally:validation
 print "finished"
 endtry:validation
-end_function:main
+end_SEP:main

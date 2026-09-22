@@ -34,9 +34,9 @@ values = ["one"]      # E201
 関数引数の型注釈では、読み手が引数名を先に認識できるよう名前を先に書きます。
 
 ```separan
-function:show_age(age: number, labels: list<string>)
+SEP:show_age(age: number, labels: list<string>)
 ...
-end_function:show_age
+end_SEP:show_age
 ```
 
 型付き引数は`EMPTY`を直接受け取れます。型なし引数が受け取れるのは、呼び出し元の

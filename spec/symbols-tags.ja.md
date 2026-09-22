@@ -1,4 +1,4 @@
-# 記号・Function Tag・文字列
+# 記号・Semantic Tag・文字列
 
 状態: **preview実装済み**。
 
@@ -31,17 +31,17 @@ string外の`#`から行末までをコメントとします。行頭、コー�
 ネストは禁止です。open中に異なるdelimiterが現れると`E104`、EOFへ達すると`E106`です。
 旧`:`／`::label`コメントはbreaking syntaxとして廃止しました。
 
-## Function Tag
+## Semantic Tag
 
 tagは実行結果を変えないAST metadataです。
 
 ```separan
-function:notify
+SEP:notify
 @monitor:notification
 @aws:sns
 @通知
 send_message()
-end_function:notify
+end_SEP:notify
 ```
 
 tag名はNFC正規化済みidentifierを`:`で区切ったcase-sensitiveなpathです。

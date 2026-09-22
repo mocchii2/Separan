@@ -1,7 +1,7 @@
-function:main
+SEP:main
 print "unchanged outside scope"
 
 if true :active_user
 print "hello"
 endif:active_user
-end_function:main
+end_SEP:main

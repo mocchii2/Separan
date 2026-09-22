@@ -37,7 +37,7 @@ class LspTests(unittest.TestCase):
 
     def test_document_symbols_preserve_block_hierarchy(self):
         symbols = document_symbols(SOURCE)
-        self.assertEqual([(item["name"], item["detail"]) for item in symbols], [("main", "function")])
+        self.assertEqual([(item["name"], item["detail"]) for item in symbols], [("main", "SEP")])
         self.assertEqual(symbols[0]["children"][0]["name"], "active")
         self.assertEqual(symbols[0]["range"]["end"]["line"], 4)
 
@@ -46,6 +46,17 @@ class LspTests(unittest.TestCase):
             {"startLine": 0, "endLine": 4, "kind": "region"},
             {"startLine": 1, "endLine": 3, "kind": "region"},
         ])
+
+    def test_sep_is_the_canonical_block_name_in_lsp(self):
+        source = '''SEP:main
+if true :active
+print "ok"
+endif:active
+END_SEP:main
+'''
+        symbols = document_symbols(source)
+        self.assertEqual([(item["name"], item["detail"]) for item in symbols], [("main", "SEP")])
+        self.assertIn("END_SEP:main", [item["label"] for item in completions(source, 2, 4)["items"]])
 
     def test_unicode_labels_appear_in_symbols_and_folding(self):
         source = SOURCE.replace("active", "利用者確認")
@@ -66,6 +77,13 @@ class LspTests(unittest.TestCase):
         payload = output.getvalue().split(b"\r\n\r\n", 1)[1]
         notification = json.loads(payload)
         self.assertEqual(notification["params"]["diagnostics"], [])
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows-only URI normalization")
+    def test_windows_file_uris_are_readable_by_the_core(self):
+        target = ROOT / "tests" / "windows_core_fixture.sep"
+        target.write_text(SOURCE, encoding="utf-8")
+        self.addCleanup(target.unlink, missing_ok=True)
+        self.assertEqual(Server().source(target.as_uri()), SOURCE)
 
     def test_stdio_json_rpc_framing(self):
         request = json.dumps({"jsonrpc": "2.0", "id": 7, "method": "initialize", "params": {}}).encode()
@@ -187,7 +205,7 @@ ap = wifi_access_point_status(wifi)
     def test_structural_end_and_tag_completion(self):
         source = 'function:main\n@notification\nif true :active\n:end\n'
         items = completions(source, 3, 4)["items"]
-        self.assertEqual([item["label"] for item in items[:2]], ["endif:active", "end_function:main"])
+        self.assertEqual([item["label"] for item in items[:2]], ["endif:active", "END_SEP:main"])
         self.assertEqual(items[0]["textEdit"]["newText"], "endif:active")
         self.assertIn("opened at line 3", items[0]["detail"])
         tags = completions(source + 'function:other\n@not', 5, 4)["items"]

@@ -1,4 +1,4 @@
-function:main
+SEP:main
 items = range(1, 6)
 
 print "item count"
@@ -16,4 +16,4 @@ age = number(age_text)
 print age + 1
 print string(age)
 print boolean("true")
-end_function:main
+end_SEP:main

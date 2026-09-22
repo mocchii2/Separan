@@ -10,7 +10,7 @@ language-level APIs.
 ## Message composition
 
 ```separan
-function:send_alert
+SEP:send_alert
 @notification
 @mail
 
@@ -30,7 +30,7 @@ mailer = mail_create_sender(
 
 result = mail_send_message(mailer, message)
 print result.message_id
-end_function:send_alert
+end_SEP:send_alert
 ```
 
 Implemented message functions:

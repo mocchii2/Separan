@@ -30,7 +30,7 @@ may be reused.
 - UTF-8 source files use the `.sep` extension.
 - One line contains one statement; semicolons have no meaning.
 - Identifiers match `[A-Za-z_][A-Za-z0-9_]*`. Explicit block labels,
-  multiline-comment labels, and function tags may instead be NFC-normalized Unicode identifiers. They are
+  multiline-comment labels, and semantic tags may instead be NFC-normalized Unicode identifiers. They are
   case-sensitive; emoji, spaces, punctuation, and non-normalized labels are invalid.
 - Core value types include `number`, `string`, `boolean`, `list`, and `object`;
   additional standard APIs expose explicit types such as `bytes` and `datetime`.

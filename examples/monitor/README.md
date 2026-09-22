@@ -105,7 +105,7 @@ The production Lambda logic is available as
 [`lambda/monitor.sep`](lambda/monitor.sep). The upload-ready CloudFormation
 template embeds this application together with its minimal runtime.
 
-The source uses English hierarchical function tags such as
+The source uses English hierarchical semantic tags such as
 `@monitor:notification:decision`, `@monitor:log:windows`, and `@aws:dynamodb`.
 Notification history payloads are clipped at a UTF-8-safe 60,000-byte boundary,
 and duplicate identity is derived from stable event fields plus a normalized message.

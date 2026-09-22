@@ -25,16 +25,16 @@ windows_source = ""
 event_id = ""
 end_object:candidate_template
 
-function:text_field(value, name)
+SEP:text_field(value, name)
 if object_has(value, name) :field_present
 if object_get(value, name) is not EMPTY :field_present_value
 return string(object_get(value, name))
 endif:field_present_value
 endif:field_present
 return ""
-end_function:text_field
+end_SEP:text_field
 
-function:object_field(value, name)
+SEP:object_field(value, name)
 if object_has(value, name) :object_present
 field = object_get(value, name)
 if is_object(field) :object_valid
@@ -42,9 +42,9 @@ return field
 endif:object_valid
 endif:object_present
 return empty_object
-end_function:object_field
+end_SEP:object_field
 
-function:object_list_field(value, name)
+SEP:object_list_field(value, name)
 if object_has(value, name) :list_present
 field = object_get(value, name)
 if is_list(field) :list_valid
@@ -52,9 +52,9 @@ return field
 endif:list_valid
 endif:list_present
 return empty_objects
-end_function:object_list_field
+end_SEP:object_list_field
 
-function:configured_name(ids_name, names_name, resource_id)
+SEP:configured_name(ids_name, names_name, resource_id)
 ids = split(aws_environment(ids_name, ""), ",")
 names = split(aws_environment(names_name, ""), ",")
 position = index_of(ids, resource_id)
@@ -69,17 +69,17 @@ if name != "" :configured_name_nonempty
 return name
 endif:configured_name_nonempty
 return resource_id
-end_function:configured_name
+end_SEP:configured_name
 
-function:is_configured(ids_name, resource_id)
+SEP:is_configured(ids_name, resource_id)
 if resource_id == "" :empty_resource_id
 return false
 endif:empty_resource_id
 ids = split(aws_environment(ids_name, ""), ",")
 return contains(ids, resource_id)
-end_function:is_configured
+end_SEP:is_configured
 
-function:new_candidate(kind, resource_type, resource_id, resource_name, source, title, message)
+SEP:new_candidate(kind, resource_type, resource_id, resource_name, source, title, message)
 candidate = object_set(candidate_template, "notification_type", kind)
 candidate = object_set(candidate, "resource_type", resource_type)
 candidate = object_set(candidate, "resource_id", resource_id)
@@ -88,25 +88,25 @@ candidate = object_set(candidate, "source", source)
 candidate = object_set(candidate, "title", title)
 candidate = object_set(candidate, "rule_id", title)
 return object_set(candidate, "message", message)
-end_function:new_candidate
+end_SEP:new_candidate
 
-function:send_candidate(candidate)
+SEP:send_candidate(candidate)
 @monitor:event:routing
 @aws:sns
 aws_sns_publish(aws_environment("INGRESS_TOPIC"), json_encode(candidate))
-end_function:send_candidate
+end_SEP:send_candidate
 
-function:contains_alert_keyword(message)
+SEP:contains_alert_keyword(message)
 @monitor:anomaly_detection
 text = lower(message)
 return contains(text, "error") || contains(text, "critical")
-end_function:contains_alert_keyword
+end_SEP:contains_alert_keyword
 
 ########################################
 # log2: CloudWatch Logs and RDS events
 ########################################
 
-function:process_windows_log(resource_id, group_name, raw_message)
+SEP:process_windows_log(resource_id, group_name, raw_message)
 @monitor:log:windows
 @monitor:anomaly_detection
 @aws:cloudwatch_logs
@@ -125,9 +125,9 @@ event = new_candidate("C", "EC2", resource_id, resource_name, group_name, "Windo
 event = object_set(event, "windows_source", parsed.source)
 event = object_set(event, "event_id", parsed.event_id)
 send_candidate(event)
-end_function:process_windows_log
+end_SEP:process_windows_log
 
-function:process_rds_log(resource_id, group_name, raw_message)
+SEP:process_rds_log(resource_id, group_name, raw_message)
 @monitor:log:rds
 @monitor:anomaly_detection
 @aws:cloudwatch_logs
@@ -136,9 +136,9 @@ resource_name = configured_name("RDS_IDS", "RDS_NAMES", resource_id)
 candidate = new_candidate("D", "RDS", resource_id, resource_name, group_name, "RDS log keyword", raw_message)
 send_candidate(candidate)
 endif:rds_keyword
-end_function:process_rds_log
+end_SEP:process_rds_log
 
-function:process_log_payload(payload)
+SEP:process_log_payload(payload)
 group_name = text_field(payload, "logGroup")
 stream_name = text_field(payload, "logStream")
 is_rds = contains(group_name, "/aws/rds/")
@@ -163,9 +163,9 @@ process_windows_log(resource_id, group_name, raw_message)
 endif:configured_windows_log
 endif:route_rds_log
 endfor:each_log_event
-end_function:process_log_payload
+end_SEP:process_log_payload
 
-function:process_rds_event(event)
+SEP:process_rds_event(event)
 detail = object_field(event, "detail")
 resource_id = text_field(detail, "SourceIdentifier")
 if resource_id == "" :rds_arn_fallback
@@ -180,9 +180,9 @@ resource_name = configured_name("RDS_IDS", "RDS_NAMES", resource_id)
 candidate = new_candidate("E", "RDS", resource_id, resource_name, "EventBridge RDS", "RDS service event", text_field(detail, "Message"))
 send_candidate(candidate)
 endif:configured_rds_event
-end_function:process_rds_event
+end_SEP:process_rds_event
 
-function:log2_handler(event, context)
+SEP:log2_handler(event, context)
 @monitor:handler:log
 @aws:lambda
 if object_has(event, "awslogs") :cloudwatch_logs_event
@@ -195,13 +195,13 @@ object:result
 ok = true
 end_object:result
 return result
-end_function:log2_handler
+end_SEP:log2_handler
 
 ########################################
 # status: scheduled checks and state push
 ########################################
 
-function:grace_seconds(state, old_state)
+SEP:grace_seconds(state, old_state)
 if state == "stopped" || state == "stopping" :shutdown_grace
 return number(aws_environment("SHUTDOWN_SUPPRESSION", "5")) * 60
 endif:shutdown_grace
@@ -209,9 +209,9 @@ if state == "rebooting" || old_state == "rebooting" :reboot_grace
 return number(aws_environment("REBOOT_SUPPRESSION", "15")) * 60
 endif:reboot_grace
 return number(aws_environment("STARTUP_SUPPRESSION", "15")) * 60
-end_function:grace_seconds
+end_SEP:grace_seconds
 
-function:record_transition(resource_type, resource_id, resource_name, state, source, message, force)
+SEP:record_transition(resource_type, resource_id, resource_name, state, source, message, force)
 @monitor:status:transition
 @aws:dynamodb
 table = aws_environment("TABLE_NAME")
@@ -250,9 +250,9 @@ candidate = new_candidate("F", resource_type, resource_id, resource_name, source
 candidate = object_set(candidate, "state", public_state)
 send_candidate(candidate)
 endif:publish_transition
-end_function:record_transition
+end_SEP:record_transition
 
-function:check_ec2_instance(resource_id)
+SEP:check_ec2_instance(resource_id)
 name = configured_name("EC2_IDS", "EC2_NAMES", resource_id)
 try :query_ec2_state
 state = aws_ec2_instance_state(resource_id)
@@ -262,18 +262,18 @@ candidate = new_candidate("F", "EC2", resource_id, name, "EventBridge periodic c
 candidate = object_set(candidate, "state", "check_failed")
 send_candidate(candidate)
 endtry:query_ec2_state
-end_function:check_ec2_instance
+end_SEP:check_ec2_instance
 
-function:check_ec2_instances
+SEP:check_ec2_instances
 ids = split(aws_environment("EC2_IDS", ""), ",")
 for resource_id in ids :each_ec2
 if resource_id != "" :nonempty_ec2
 check_ec2_instance(resource_id)
 endif:nonempty_ec2
 endfor:each_ec2
-end_function:check_ec2_instances
+end_SEP:check_ec2_instances
 
-function:check_rds_instance(resource_id)
+SEP:check_rds_instance(resource_id)
 name = configured_name("RDS_IDS", "RDS_NAMES", resource_id)
 try :query_rds_state
 state = aws_rds_instance_state(resource_id)
@@ -283,18 +283,18 @@ candidate = new_candidate("F", "RDS", resource_id, name, "EventBridge periodic c
 candidate = object_set(candidate, "state", "check_failed")
 send_candidate(candidate)
 endtry:query_rds_state
-end_function:check_rds_instance
+end_SEP:check_rds_instance
 
-function:check_rds_instances
+SEP:check_rds_instances
 ids = split(aws_environment("RDS_IDS", ""), ",")
 for resource_id in ids :each_rds
 if resource_id != "" :nonempty_rds
 check_rds_instance(resource_id)
 endif:nonempty_rds
 endfor:each_rds
-end_function:check_rds_instances
+end_SEP:check_rds_instances
 
-function:process_cloudtrail(detail)
+SEP:process_cloudtrail(detail)
 event_source = text_field(detail, "eventSource")
 event_name = text_field(detail, "eventName")
 request = object_field(detail, "requestParameters")
@@ -329,9 +329,9 @@ name = configured_name("RDS_IDS", "RDS_NAMES", resource_id)
 record_transition("RDS", resource_id, name, state, "CloudTrail API push", event_name, true)
 endif:configured_cloudtrail_rds
 endif:cloudtrail_ec2
-end_function:process_cloudtrail
+end_SEP:process_cloudtrail
 
-function:status_handler(event, context)
+SEP:status_handler(event, context)
 @monitor:handler:status
 @aws:lambda
 @aws:eventbridge
@@ -373,13 +373,13 @@ source = source
 detail_type = detail_type
 end_object:result
 return result
-end_function:status_handler
+end_SEP:status_handler
 
 ########################################
 # notify: dedup, transition grace, history, and channel routing
 ########################################
 
-function:channel_enabled(channel)
+SEP:channel_enabled(channel)
 if channel == "email" :email_channel
 return aws_environment("EMAIL_ENABLED", "false") == "true"
 elseif channel == "sms" :email_channel
@@ -388,9 +388,9 @@ elseif channel == "teams" :email_channel
 return aws_environment("TEAMS_ENABLED", "false") == "true"
 endif:email_channel
 return false
-end_function:channel_enabled
+end_SEP:channel_enabled
 
-function:channel_topic(channel)
+SEP:channel_topic(channel)
 if channel == "email" :email_topic
 return aws_environment("EMAIL_TOPIC", "")
 elseif channel == "sms" :email_topic
@@ -399,9 +399,9 @@ elseif channel == "teams" :email_topic
 return aws_environment("TEAMS_TOPIC", "")
 endif:email_topic
 return ""
-end_function:channel_topic
+end_SEP:channel_topic
 
-function:publish_notification(candidate)
+SEP:publish_notification(candidate)
 @monitor:notification:delivery
 @aws:sns
 routes = json_decode(aws_environment("ROUTES_JSON", "{}"))
@@ -425,9 +425,9 @@ endif:configured_channel
 endif:enabled_channel
 endfor:each_channel
 return delivered
-end_function:publish_notification
+end_SEP:publish_notification
 
-function:list_rule_matches(rule, field_name, actual)
+SEP:list_rule_matches(rule, field_name, actual)
 if !object_has(rule, field_name) :rule_field_absent
 return true
 endif:rule_field_absent
@@ -441,9 +441,9 @@ return true
 endif:rule_value_matches
 endfor:each_rule_value
 return false
-end_function:list_rule_matches
+end_SEP:list_rule_matches
 
-function:user_rule_matches(candidate, rule)
+SEP:user_rule_matches(candidate, rule)
 if !object_has(rule, "enabled") :rule_enabled_missing
 return false
 endif:rule_enabled_missing
@@ -470,9 +470,9 @@ if needle == "" :rule_content_wildcard
 return true
 endif:rule_content_wildcard
 return contains(lower(candidate.message), needle)
-end_function:user_rule_matches
+end_SEP:user_rule_matches
 
-function:user_suppressed(candidate)
+SEP:user_suppressed(candidate)
 @monitor:notification:suppression
 @aws:s3
 config = aws_s3_read_json(aws_environment("CONFIG_BUCKET"), aws_environment("SUPPRESSION_KEY", "config/suppression.json"), empty_object)
@@ -488,9 +488,9 @@ return true
 endif:suppression_rule_matched
 endfor:each_suppression_rule
 return false
-end_function:user_suppressed
+end_SEP:user_suppressed
 
-function:clock_minutes(value)
+SEP:clock_minutes(value)
 parts = split(value, ":")
 if length(parts) != 2 :invalid_clock
 throw value_error(format("Invalid notification-break time: {}", value))
@@ -501,9 +501,9 @@ if hour < 0 || hour > 23 || minute < 0 || minute > 59 :clock_out_of_range
 throw value_error(format("Invalid notification-break time: {}", value))
 endif:clock_out_of_range
 return hour * 60 + minute
-end_function:clock_minutes
+end_SEP:clock_minutes
 
-function:weekday_name(value)
+SEP:weekday_name(value)
 weekday = datetime_weekday(value)
 if weekday == 1 :weekday_monday
 return "MON"
@@ -519,9 +519,9 @@ elseif weekday == 6 :weekday_monday
 return "SAT"
 endif:weekday_monday
 return "SUN"
-end_function:weekday_name
+end_SEP:weekday_name
 
-function:weekly_break_matches(local_time, entry)
+SEP:weekly_break_matches(local_time, entry)
 if !object_has(entry, "enabled") :weekly_enabled_missing
 return false
 endif:weekly_enabled_missing
@@ -550,9 +550,9 @@ if now_minutes > end_minutes :weekly_after_overnight_end
 return false
 endif:weekly_after_overnight_end
 return contains(days, yesterday)
-end_function:weekly_break_matches
+end_SEP:weekly_break_matches
 
-function:date_break_matches(local_time, entry)
+SEP:date_break_matches(local_time, entry)
 if !object_has(entry, "enabled") :date_enabled_missing
 return false
 endif:date_enabled_missing
@@ -581,9 +581,9 @@ if yesterday != target :date_previous_day_mismatch
 return false
 endif:date_previous_day_mismatch
 return now_minutes <= end_minutes
-end_function:date_break_matches
+end_SEP:date_break_matches
 
-function:holiday_reason(now)
+SEP:holiday_reason(now)
 @monitor:notification:suppression
 @aws:s3
 config = aws_s3_read_json(aws_environment("CONFIG_BUCKET"), aws_environment("HOLIDAY_KEY", "config/holidays.json"), empty_object)
@@ -612,9 +612,9 @@ endif:date_break_active
 endfor:each_date_break
 endif:date_breaks_present
 return ""
-end_function:holiday_reason
+end_SEP:holiday_reason
 
-function:metric_grace_active(candidate, now)
+SEP:metric_grace_active(candidate, now)
 if candidate.notification_type != "A" && candidate.notification_type != "A2" :not_metric_candidate
 return false
 endif:not_metric_candidate
@@ -627,9 +627,9 @@ if !object_has(state, "suppress_metrics_until") :grace_missing
 return false
 endif:grace_missing
 return now < state.suppress_metrics_until
-end_function:metric_grace_active
+end_SEP:metric_grace_active
 
-function:store_history(candidate, now, status, reason)
+SEP:store_history(candidate, now, status, reason)
 @monitor:notification:history
 @monitor:storage:boundary
 @aws:dynamodb
@@ -649,9 +649,9 @@ payload_truncated = payload_bytes < original_bytes
 expires_at = now + number(aws_environment("HISTORY_DAYS", "30")) * 86400
 end_object:history
 aws_dynamodb_put(aws_environment("TABLE_NAME"), history)
-end_function:store_history
+end_SEP:store_history
 
-function:normalized_dedup_message(candidate)
+SEP:normalized_dedup_message(candidate)
 @monitor:notification:deduplication
 kind = text_field(candidate, "notification_type")
 if kind == "A" || kind == "A2" :metric_identity
@@ -661,9 +661,9 @@ message = lower(trim(text_field(candidate, "message")))
 message = regex_replace(r"\s+", " ", message)
 timestamp_pattern = r"\b[0-9]{4}-[0-9]{2}-[0-9]{2}[t ][0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:z|[+-][0-9]{2}:[0-9]{2})?\b"
 return regex_replace(timestamp_pattern, "<timestamp>", message)
-end_function:normalized_dedup_message
+end_SEP:normalized_dedup_message
 
-function:dedup_identity(candidate)
+SEP:dedup_identity(candidate)
 @monitor:notification:deduplication
 rule_id = text_field(candidate, "rule_id")
 if rule_id == "" :dedup_rule_fallback
@@ -680,9 +680,9 @@ event_id = text_field(candidate, "event_id")
 message = normalized_dedup_message(candidate)
 end_object:identity
 return json_encode(identity)
-end_function:dedup_identity
+end_SEP:dedup_identity
 
-function:process_notification(candidate)
+SEP:process_notification(candidate)
 @monitor:notification:decision
 @monitor:notification:suppression
 @monitor:notification:deduplication
@@ -728,9 +728,9 @@ endtry:publish_channels
 else:deliver_candidate
 store_history(candidate, now, "SUPPRESSED", reason)
 endif:deliver_candidate
-end_function:process_notification
+end_SEP:process_notification
 
-function:normalize_alarm(alarm)
+SEP:normalize_alarm(alarm)
 @monitor:notification:normalization
 @aws:cloudwatch
 description = text_field(alarm, "AlarmDescription")
@@ -749,9 +749,9 @@ candidate = object_set(candidate, "title", text_field(alarm, "AlarmName"))
 candidate = object_set(candidate, "rule_id", text_field(alarm, "AlarmName"))
 candidate = object_set(candidate, "message", text_field(alarm, "NewStateReason"))
 return object_set(candidate, "source", "CloudWatch Alarm")
-end_function:normalize_alarm
+end_SEP:normalize_alarm
 
-function:notify_handler(event, context)
+SEP:notify_handler(event, context)
 @monitor:handler:notify
 @aws:lambda
 processed = 0
@@ -769,13 +769,13 @@ object:result
 processed = processed
 end_object:result
 return result
-end_function:notify_handler
+end_SEP:notify_handler
 
 ########################################
 # config: seed S3 policy documents once
 ########################################
 
-function:config_handler(event, context)
+SEP:config_handler(event, context)
 @monitor:handler:config
 @aws:lambda
 @aws:s3
@@ -810,4 +810,4 @@ catch any :seed_and_respond
 aws_cloudformation_respond(event, context, "FAILED", "Separan configuration bootstrap failed.")
 endtry:seed_and_respond
 return
-end_function:config_handler
+end_SEP:config_handler

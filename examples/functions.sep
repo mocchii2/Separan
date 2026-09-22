@@ -1,8 +1,8 @@
-function:add(a, b)
+SEP:add(a, b)
 return a + b
-end_function:add
+end_SEP:add
 
-function:main
+SEP:main
 print add(20, 22)
-end_function:main
+end_SEP:main
 

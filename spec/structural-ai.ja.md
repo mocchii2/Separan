@@ -9,11 +9,11 @@
 sibling occurrenceには番号が付きます。
 
 ```text
-function:main#1/if:active_user#1
+SEP:main#1/if:active_user#1
 ```
 
 `inspect`はidentity、親identity、kind、label、ソース位置、SHA-256 fingerprintを、
-function tag、SHA-256 fingerprintをversion付き`separan.structure.v2` JSON schemaで出力します。位置、indent、空行、commentは
+semantic tag、SHA-256 fingerprintをversion付き`separan.structure.v2` JSON schemaで出力します。位置、indent、空行、commentは
 fingerprintから除外されます。
 
 ```console
@@ -36,7 +36,7 @@ block自身のfingerprintでは、内側の名前付きblockをidentity marker�
 ```console
 separan-structure verify app.before.sep app.after.sep --allow active_user
 separan-structure verify app.before.sep app.after.sep \
-  --allow function:main/if:active_user --json
+  --allow SEP:main/if:active_user --json
 ```
 
 許可blockとその子孫だけの変更はPASSし、それ以外のAST変更はexit code 1でFAILします。

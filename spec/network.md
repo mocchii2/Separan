@@ -177,7 +177,7 @@ Address configuration is independent of link type. The same API accepts an
 Ethernet or Wi-Fi `network_interface`:
 
 ```separan
-function:main
+SEP:main
 
 lan = ethernet_open()
 network_use_dhcp(lan)
@@ -188,7 +188,7 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_function:main
+end_SEP:main
 ```
 
 The public configuration operations are:

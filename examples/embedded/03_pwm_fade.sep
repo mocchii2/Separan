@@ -2,7 +2,7 @@
 # Portable PWM Fade
 ########################################
 
-function:main
+SEP:main
 
 @embedded
 @pwm
@@ -24,4 +24,4 @@ endfor:fade_down
 
 endwhile:fade_forever
 
-end_function:main
+end_SEP:main

@@ -125,7 +125,7 @@ class SeparanMonitorTemplateTests(unittest.TestCase):
     def test_monitor_business_logic_is_separan_source(self):
         application = SOURCE_PATH.read_text(encoding="utf-8")
         for handler in ("notify_handler", "log2_handler", "status_handler", "config_handler"):
-            self.assertIn(f"function:{handler}(event, context)", application)
+            self.assertIn(f"SEP:{handler}(event, context)", application)
         self.assertNotIn("import boto3", application)
         self.assertNotIn("重大", application)
         self.assertNotIn("\\u91cd\\u5927", self.source)

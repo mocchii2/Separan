@@ -1,5 +1,5 @@
 # Readable mathematics, statistics, and explicit base conversion
-function:main
+SEP:main
 
 samples = [12, 18, 24, 30]
 
@@ -17,4 +17,4 @@ mask = 0b1111_0000
 print number_to_hexadecimal(mask)
 print hexadecimal_to_number("ff")
 
-end_function:main
+end_SEP:main

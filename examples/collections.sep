@@ -1,16 +1,16 @@
-function:double(value)
+SEP:double(value)
 return value * 2
-end_function:double
+end_SEP:double
 
-function:is_large(value)
+SEP:is_large(value)
 return value >= 10
-end_function:is_large
+end_SEP:is_large
 
-function:add(total, value)
+SEP:add(total, value)
 return total + value
-end_function:add
+end_SEP:add
 
-function:main
+SEP:main
 
 values = [2, 5, 10, 20]
 
@@ -30,4 +30,4 @@ print sqrt(16)
 print sin(0)
 print log10(1000)
 
-end_function:main
+end_SEP:main

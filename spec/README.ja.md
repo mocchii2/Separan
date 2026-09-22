@@ -14,15 +14,20 @@ if condition :label
 endif:label
 ```
 
-同じ規則を`while`/`endwhile`、`for`/`endfor`、および
-`function:name`/`end_function:name`へ適用します。同時に開いている構造識別子は
-同じ名前空間に属し、一意でなければなりません。閉じたラベルは再利用できます。
+同じ規則を`while`/`endwhile`、`for`/`endfor`、および呼び出し可能なロジック境界へ
+適用します。概念上の呼び出し可能単位は`SEP`（Separate Logic）です。
+`SEP:name`でロジックブロックを開き、`END_SEP:name`で閉じます。
+
+これは分離された独立した処理単位を構造として明示するための名前付き境界です。
+参照実装が開発初期に互換構文を残していても、言語の定義中心は`SEP`と`END_SEP`です。
+同時に開いている構造識別子は同じ名前空間に属し、一意でなければなりません。
+閉じたラベルは再利用できます。
 
 ## v0.2 alphaの規則
 
 - ソースはUTF-8の`.sep`ファイル。
 - 1行1文。セミコロンは使用しない。
-- 識別子は`[A-Za-z_][A-Za-z0-9_]*`。明示的なblock label、複数行comment label、function tagには
+- 識別子は`[A-Za-z_][A-Za-z0-9_]*`。明示的なblock label、複数行comment label、semantic tagには
   NFC正規化済みUnicode identifierも使用できる。どちらも大文字小文字を区別し、絵文字、
   空白、句読点、非正規化labelは使用できない。
 - 中心value型は`number`、`string`、`boolean`、`list`、`object`。標準APIはさらに
@@ -153,7 +158,7 @@ string検索位置はUnicodeコードポイント単位です。単一検索の�
 半角空白です。repeatとpaddingの結果は1,048,576コードポイント以下に制限し、
 無制限にメモリを確保せず`E607`を返します。
 
-## コメント、Function Tag、文字列literal
+## コメント、Semantic Tag、文字列literal
 
 `#`は行頭またはコードの後ろから行末までのコメントです。string内部の`#`は文字として
 残ります。複数行コメントは一致する`##label`で囲み、labelなしの`##`／`##`も利用できます。
@@ -163,7 +168,7 @@ string検索位置はUnicodeコードポイント単位です。単一検索の�
 変えずにSemantic IdentityをASTへ保持します。tagはNFC正規化済みUnicode identifierを
 `:`で区切ったpathを許可し、
 重複、Function外、最初の実行文より後への配置を拒否します。詳細は
-[記号・Function Tag・文字列](symbols-tags.ja.md)を参照してください。
+[記号・Semantic Tag・文字列](symbols-tags.ja.md)を参照してください。
 
 通常stringは`\\`、`\"`、`\n`、`\r`、`\t`、`\0`、`\uXXXX`、`\UXXXXXXXX`を
 解釈します。未知、不完全、surrogate、範囲外のescapeはerrorです。`r"..."`はbackslashを

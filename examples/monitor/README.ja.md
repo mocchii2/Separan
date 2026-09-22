@@ -151,5 +151,5 @@ stack作成時に、設定bucketへ次の2ファイルが初回だけ作成さ�
 配布用CloudFormation templateには、このapplicationと必要最小限のruntimeを埋め込んでいます。
 
 ソースでは`@monitor:notification:decision`、`@monitor:log:windows`、`@aws:dynamodb`など、
-英語の階層Function Tagを使用しています。通知historyのpayloadはUTF-8を壊さず60,000 bytes以内に制限し、
+英語の階層Semantic Tagを使用しています。通知historyのpayloadはUTF-8を壊さず60,000 bytes以内に制限し、
 dedup identityは安定したevent fieldと正規化済みmessageから生成します。

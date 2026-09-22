@@ -4,8 +4,8 @@
   "autoClosingPairs": [["(", ")"], ["[", "]"], ["\"", "\""]],
   "surroundingPairs": [["(", ")"], ["[", "]"], ["\"", "\""]],
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(?:SEP|sep|function|if|elseif|else|while|for|object|list|try|catch|finally|error|transaction|http_route)\\b.*:[^\\s:()]+\\s*$",
-    "decreaseIndentPattern": "^\\s*(?:END_SEP|end_sep|end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_transaction|end_http_route|elseif|else|catch|finally)\\b"
+    "increaseIndentPattern": "^\\s*(?:SEP|sep|if|elseif|else|while|for|object|list|try|catch|finally|error|transaction|http_route)\\b.*:[^\\s:()]+\\s*$",
+    "decreaseIndentPattern": "^\\s*(?:END_SEP|end_sep|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_transaction|end_http_route|elseif|else|catch|finally)\\b"
   }
 }
 

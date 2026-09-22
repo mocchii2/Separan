@@ -19,7 +19,7 @@ inferred public types without changing source text.
   and annotated with opening lines; tag and built-in completion;
 - built-in signature help;
 - semantic tokens for labels, functions, parameters, variables, properties,
-  literals, keywords, comments, function tags, and operators, with public-type modifiers;
+  literals, keywords, comments, semantic tags, and operators, with public-type modifiers;
 - optional inferred-type inlay hints;
 - a formatter whose conformance test requires identical structural AST output;
 - Run File, Run Tests, Show AST, Go to Label, Go to Matching Label, and Copy AI
@@ -51,7 +51,7 @@ server; both are parsed before comparison. Whitespace/comments are ignored,
 while AST changes outside the selected subtree fail verification. Ambiguous
 short labels require the full path copied by Copy AI Edit Scope.
 
-Function tags are included in parser-backed structure metadata. The LSP supports
+Semantic tags are included in parser-backed structure metadata. The LSP supports
 same-document tag completion and rename plus `separan/verifyTagScope`. Workspace
 tag trees and cross-file rename require a stable workspace index and remain a
 future editor UI layer; the CLI already performs recursive tag-path inspection.

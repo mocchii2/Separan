@@ -14,7 +14,7 @@ Language support for the label-structured Separan programming language.
 
 - **Syntax highlighting** for keywords, values, functions, types, and labels
 - **Label-aware structure** with diagnostics, navigation, Outline, folding, and rename
-- **Semantic function tags** for related code that is separated across structures
+- **Semantic tags** for related code that is separated across structures
 - **Native network API awareness** for shared DHCP/static/link-local addressing, IP, interface, DNS, TCP, UDP, Ethernet, and Wi-Fi values
 - **Pico firmware commands** for explicit Pico/Pico 2 C++ project generation and SDK builds
 - **`:end` structural completion** that opens automatically and orders valid closers from the innermost open block
@@ -87,7 +87,7 @@ structural problem.
 - **🧭 Human-Readable Structure** - Make generated control flow explain its intent
 - **🌳 Structure Explorer** - Browse block hierarchy, reads, writes, calls, and Git changes
 - **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
-- **🔗 Function Tags** - Highlight, complete, rename, inspect, and verify semantic groups
+- **🔗 Semantic Tags** - Highlight, complete, rename, inspect, and verify semantic groups
 - **⌨️ Structural Completion** - Type `:end` to automatically choose a valid closer with its opening line
 - **⚡ Live Diagnostics** - Catch label mismatches, type errors, scope violations instantly
 - **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
@@ -157,7 +157,7 @@ Open the Separan icon in the Activity Bar to see the active file as a checked,
 navigable structure:
 
 ```text
-main                         function
+SEP:main
 └─ :active_user              if • modified
    ├─ Reads (1)
    │  └─ user.active

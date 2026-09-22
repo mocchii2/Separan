@@ -1,8 +1,8 @@
 ########################################
-# Function Tag and string syntax preview
+# Semantic tag and string syntax preview
 ########################################
 
-function:notification_path
+SEP:notification_path
 @notification
 @windows
 @通知
@@ -13,9 +13,9 @@ Tags are metadata and this comment is ignored by the runtime.
 
 path = r"C:\App\logs\application.log" # Backslashes stay literal.
 print "監視対象:\n" + path
-end_function:notification_path
+end_SEP:notification_path
 
-function:main
+SEP:main
 @example
 notification_path()
-end_function:main
+end_SEP:main

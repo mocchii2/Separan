@@ -16,7 +16,7 @@ The roadmap describes direction, not a compatibility promise.
 - implemented: labeled data blocks, temporal values, modules, capabilities, JSON, and labeled errors
 - implemented: HTTP client/server previews, process execution, regex, glob, environment, and command-line helpers
 - implemented: capability-separated native interface inspection, strict IP values, deterministic DNS, and bounded TCP/UDP
-- implemented: `#`/`##` comment syntax, strict escapes, raw strings, and Function Tag metadata
+- implemented: `#`/`##` comment syntax, strict escapes, raw strings, and semantic tag metadata
 - implemented: exact semantic-tag inspection and edit-scope verification
 - implemented: reviewed Pico/Nano board profiles, logical pins, static capability validation,
   and portable GPIO/PWM/ADC/UART/I²C examples
@@ -31,8 +31,8 @@ The roadmap describes direction, not a compatibility promise.
 - dependency-free LSP editor core implements diagnostics, mismatch Quick Fixes,
   typed Semantic Tokens, Hover, definition, scoped label rename, completion,
   signature help, inlay hints, symbols, folding, and AST-preserving formatting
-- next: project-wide function argument inference, references/test CodeLens, and
-  Run Current Function; Function Tag workspace UI and cross-file rename
+- next: project-wide argument inference, references/test CodeLens, and
+  Run Current block; semantic tag workspace UI and cross-file rename
 
 ## v0.4 — structural AI workflows
 
@@ -62,7 +62,7 @@ The roadmap describes direction, not a compatibility promise.
 ## 日本語概要
 
 - **v0.1-alpha:** 現在の処理系、ラベル検証、基本型、関数、制御構文
-- **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Function Tag、
+- **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Semantic Tag、
   semantic scope検証、review済みPico／Nano profile、論理pin、portable Embedded sample、
   Pico／Pico 2のC++／SDK compile／UF2書き込み、native interface／IP／DNS／TCP／UDP、
   1,800件超の適合testを実装済み。次はPico W／Arduino firmware backendとbeta向け安定化

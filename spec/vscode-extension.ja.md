@@ -16,7 +16,7 @@ variableと分離し、Semantic Tokenではソースを書き換えずに推論�
 - matching label highlight、definition、block scope限定label rename、移動command
 - 内側優先・opening line付きの`:end` structural completion、tag／組み込み関数completion
 - 組み込み関数signature help
-- label、function、parameter、variable、property、literal、keyword、comment、Function Tag、operatorの
+- label、semantic tag、parameter、variable、property、literal、keyword、comment、operatorの
   Semantic Tokenと公開型modifier
 - 任意設定の型Inlay Hint
 - 整形前後の構造AST一致を適合testで要求するformatter
@@ -46,7 +46,7 @@ baselineと現在の本文をLanguage Serverへ渡し、両方をparseしてか�
 空白・commentだけの差は無視し、選択subtree外のAST変更はFAILします。短いlabelが曖昧なら、
 Copy AI Edit Scopeが出す完全pathを要求します。
 
-Function TagはParser連動structure metadataに含まれます。LSPは同一documentのtag completion／
+Semantic TagはParser連動structure metadataに含まれます。LSPは同一documentのtag completion／
 renameと`separan/verifyTagScope`を提供します。workspace tag treeとfile横断renameは安定した
 workspace indexが必要な将来UIですが、CLIのtag path検索はdirectoryを再帰走査できます。
 

@@ -13,7 +13,7 @@ let structureRefreshTimer;
 let structuralCompletionTimer;
 
 const blockPairs = {
-  SEP: "END_SEP", function: "end_function", if: "endif", while: "endwhile", for: "endfor",
+  SEP: "END_SEP", if: "endif", while: "endwhile", for: "endfor",
   object: "end_object", list: "end_list", try: "endtry", error: "end_error",
   transaction: "end_transaction", http_route: "end_http_route",
 };
@@ -63,9 +63,9 @@ async function goToMatchingLabel() {
   const editor = currentEditor(); if (!editor) return;
   const label = labelAt(editor); if (!label) return vscode.window.showInformationMessage("Place the cursor on a Separan label.");
   const stack = []; const completed = [];
-  const openPattern = /^\s*(SEP|sep|function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
-  const closePattern = /^\s*(END_SEP|end_sep|end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
-  const closerKinds = { end_function: "function", endif: "if", endwhile: "while", endfor: "for", end_object: "object", end_list: "list", endtry: "try", end_error: "error", end_http_route: "http_route", end_transaction: "transaction" };
+  const openPattern = /^\s*(SEP|sep|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
+  const closePattern = /^\s*(END_SEP|end_sep|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
+  const closerKinds = { endif: "if", endwhile: "while", endfor: "for", end_object: "object", end_list: "list", endtry: "try", end_error: "error", end_http_route: "http_route", end_transaction: "transaction" };
   let commentLabel;
   for (let line = 0; line < editor.document.lineCount; line += 1) {
     const raw = editor.document.lineAt(line).text; const delimiter = multilineCommentDelimiter(raw);
@@ -89,8 +89,8 @@ async function goToMatchingLabel() {
 async function goToLabel() {
   const editor = currentEditor(); if (!editor) return;
   const items = []; const stack = [];
-  const pattern = /^\s*(SEP|sep|function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
-  const closePattern = /^\s*(end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
+  const pattern = /^\s*(SEP|sep|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
+  const closePattern = /^\s*(endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
   let commentLabel;
   for (let line = 0; line < editor.document.lineCount; line += 1) {
     const raw = editor.document.lineAt(line).text; const delimiter = multilineCommentDelimiter(raw);
@@ -180,7 +180,7 @@ function showReview(title, content) {
 }
 
 const structureIcons = {
-  function: "symbol-function", if: "symbol-boolean", while: "sync", for: "list-ordered",
+  SEP: "symbol-namespace", if: "symbol-boolean", while: "sync", for: "list-ordered",
   object: "symbol-object", list: "symbol-array", try: "shield", error: "error",
   transaction: "database", http_route: "globe",
 };
@@ -196,7 +196,7 @@ class StructureTreeItem {
   }
 
   treeItem() {
-    const label = this.data.kind === "function" ? this.data.label : `:${this.data.label}`;
+    const label = this.data.kind === "SEP" ? `SEP:${this.data.label}` : `:${this.data.label}`;
     const item = new vscode.TreeItem(label, this.children.length || this.insights.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
     item.id = this.data.id; item.contextValue = "separanStructure";
     item.description = this.data.status ? `${this.data.kind} • ${this.data.status}` : this.data.kind;
@@ -341,7 +341,7 @@ async function autoClose(event) {
   if (!event.contentChanges.some((change) => change.text.includes("\n"))) return;
   const editor = currentEditor(); if (!editor || editor.document !== event.document) return;
   const lineNumber = Math.max(0, editor.selection.active.line - 1); const text = codeText(event.document.lineAt(lineNumber).text);
-  const match = /^\s*(function|if|while|for|object|list|try|error|transaction|http_route)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u.exec(text);
+  const match = /^\s*(SEP|if|while|for|object|list|try|error|transaction|http_route)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u.exec(text);
   if (!match || !blockPairs[match[1]]) return;
   const closer = `${blockPairs[match[1]]}:${match[2]}`;
   if (event.document.lineAt(editor.selection.active.line).text.trim() === closer) return;

@@ -38,9 +38,9 @@ Function parameter annotations put the name first so the parameter remains the
 primary readable unit:
 
 ```separan
-function:show_age(age: number, labels: list<string>)
+SEP:show_age(age: number, labels: list<string>)
 ...
-end_function:show_age
+end_SEP:show_age
 ```
 
 A typed parameter accepts `EMPTY`; an untyped parameter can accept only an

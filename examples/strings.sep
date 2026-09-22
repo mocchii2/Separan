@@ -1,4 +1,4 @@
-function:main
+SEP:main
 raw_name = "  Separan Language  "
 name = trim(raw_name)
 
@@ -16,4 +16,4 @@ print last_index_of("one two one", "one")
 print repeat("ab", 3)
 print pad_left("7", 3, "0")
 print pad_right("Separan", 10, ".")
-end_function:main
+end_SEP:main

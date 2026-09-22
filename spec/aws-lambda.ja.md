@@ -5,13 +5,13 @@
 Separan Lambda applicationは、2引数のentry functionを持つ通常の`.sep`です。
 
 ```separan
-function:handler(event, context)
+SEP:handler(event, context)
 object:result
 ok = true
 request_id = context.aws_request_id
 end_object:result
 return result
-end_function:handler
+end_SEP:handler
 ```
 
 runtimeはLambda workerごとにapplicationを一度だけparseし、warm invocationではASTと

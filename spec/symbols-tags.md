@@ -1,4 +1,4 @@
-# Symbols, Function Tags, and Strings
+# Symbols, Semantic Tags, and Strings
 
 Status: **implemented preview**.
 
@@ -33,28 +33,28 @@ They cannot nest. A different delimiter while a multiline comment is open is
 `E104`; reaching EOF is `E106`. The former `:` and `::label` comment forms are
 breaking syntax and are no longer accepted.
 
-## Function tags
+## Semantic tags
 
 Tags are AST metadata with no runtime effect:
 
 ```separan
-function:notify
+SEP:notify
 @monitor:notification
 @aws:sns
 @通知
 send_message()
-end_function:notify
+end_SEP:notify
 ```
 
-They are valid only in the metadata area after a function declaration and
+They are valid only in the metadata area after a named logic boundary and
 before its first executable statement. Blank lines may surround tag lines.
 Names are case-sensitive paths of colon-separated NFC-normalized identifiers
 without whitespace. A flat tag such as `@notification` remains valid, while
 `@monitor:notification:decision` expresses a hierarchy without changing runtime behavior.
-Duplicate tags are `E218`; a tag outside a function is `E216`; a late tag is
+Duplicate tags are `E218`; a tag outside a named block is `E216`; a late tag is
 `E217`.
 
-Functions sharing a tag path form a semantic scope. `separan-structure` can
+Blocks sharing a tag path form a semantic scope. `separan-structure` can
 inspect that scope and verify that changes stay inside it. A query matches the
 exact path and its descendants: `monitor:notification` includes
 `monitor:notification:decision`, but never fuzzy-matches an unrelated name.

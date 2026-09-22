@@ -2,7 +2,7 @@
 # Portable UART Echo
 ########################################
 
-function:main
+SEP:main
 
 @embedded
 @uart
@@ -15,4 +15,4 @@ line = uart_read_line(serial)
 uart_write(serial, line + "\n")
 endwhile:echo_lines
 
-end_function:main
+end_SEP:main

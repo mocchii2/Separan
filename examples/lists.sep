@@ -1,4 +1,4 @@
-function:main
+SEP:main
 nums = [10, 20, 30]
 nums = list_append(nums, 40)
 
@@ -16,4 +16,4 @@ print sort(nums)
 for item in nums :each_num
 print item
 endfor:each_num
-end_function:main
+end_SEP:main

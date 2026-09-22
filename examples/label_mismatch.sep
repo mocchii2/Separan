@@ -1,6 +1,6 @@
 # Intentionally invalid: demonstrates structural diagnostics
-function:main
+SEP:main
 if true :check
 print "ok"
 endif:wrong
-end_function:main
+end_SEP:main

@@ -1,4 +1,4 @@
-function:main
+SEP:main
 
 status = "active"
 
@@ -12,4 +12,4 @@ endif:利用者は有効
 Indentation does not close this comment.
 ##日本語コメント
 
-end_function:main
+end_SEP:main

@@ -106,7 +106,7 @@
 ### Semantic identity and symbol cleanup
 
 - Replaced legacy `:`/`::label` comments with `#`/`##label` comments.
-- Added Function Tag highlighting, completion, rename, and Structure Explorer metadata.
+- Added semantic tag highlighting, completion, rename, and Structure Explorer metadata.
 - Added `:end` completion with innermost-first valid closers and opening lines.
 - Added strict Unicode escapes and `r"..."` raw strings.
 - Added parser-backed semantic tag scope inspection and verification.

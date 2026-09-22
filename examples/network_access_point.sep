@@ -5,7 +5,7 @@
 object:empty_records
 end_object:empty_records
 
-function:main
+SEP:main
 
 @embedded
 @network
@@ -27,4 +27,4 @@ print dns_server_status(dns)
 
 # Start the HTTP setup service here. Runtime shutdown closes DNS, DHCP, and AP.
 
-end_function:main
+end_SEP:main

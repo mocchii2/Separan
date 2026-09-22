@@ -167,7 +167,7 @@ address設定はlink typeから独立しています。同じAPIへEthernetま�
 `network_interface`を渡します。
 
 ```separan
-function:main
+SEP:main
 
 lan = ethernet_open()
 network_use_dhcp(lan)
@@ -178,7 +178,7 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_function:main
+end_SEP:main
 ```
 
 公開する設定操作は次です。

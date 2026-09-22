@@ -3,16 +3,16 @@
 Status: Experimental preview in v0.2 alpha.
 
 Separan Lambda applications are ordinary `.sep` files with a two-parameter
-entry function:
+entry SEP:
 
 ```separan
-function:handler(event, context)
+SEP:handler(event, context)
 object:result
 ok = true
 request_id = context.aws_request_id
 end_object:result
 return result
-end_function:handler
+end_SEP:handler
 ```
 
 The runtime parses the application once per Lambda worker and reuses its AST

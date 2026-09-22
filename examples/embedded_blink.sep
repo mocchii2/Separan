@@ -2,7 +2,7 @@
 # Portable Blink
 ########################################
 
-function:main
+SEP:main
 
 @embedded
 @gpio
@@ -20,4 +20,4 @@ delay_milliseconds(500)
 
 endwhile:blink_loop
 
-end_function:main
+end_SEP:main

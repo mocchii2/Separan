@@ -1,11 +1,11 @@
-function:show_age(age: number)
+SEP:show_age(age: number)
 if age is EMPTY :age_missing
 return "Age unknown"
 endif:age_missing
 return "Age " + string(age)
-end_function:show_age
+end_SEP:show_age
 
-function:main
+SEP:main
 number age = EMPTY
 print show_age(age)
 
@@ -14,4 +14,4 @@ print show_age(age)
 
 age = EMPTY
 print age is EMPTY
-end_function:main
+end_SEP:main

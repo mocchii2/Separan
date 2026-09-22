@@ -104,14 +104,14 @@ string optional_note = EMPTY
 判定し、EMPTYのまま通常演算へ使うと暗黙のdefault値にはならずerrorになります。
 
 ```separan
-function:main
+SEP:main
 name = "Separan"
 
 if name is not EMPTY :名前あり
 print "Hello, " + name
 endif:名前あり
 
-end_function:main
+end_SEP:main
 ```
 
 block labelと複数行comment labelにはNFC正規化済みの日本語を含むUnicode identifierを
@@ -142,7 +142,7 @@ endif:active_user
 
 ```text
 AI instruction:
-Modify only Separan scope function:main#1/if:active_user#1
+Modify only Separan scope SEP:main#1/if:active_user#1
 ```
 
 Parserは開始・終了ラベルの一致を検証します。v0.4 review toolは同じidentityを
@@ -159,11 +159,11 @@ Allowed changes 1, violations 0
 離れた関連FunctionにはSemantic Tagを付けられます。
 
 ```separan
-function:send_notification
+SEP:send_notification
 @monitor:notification
 @aws:sns
 send_message()
-end_function:send_notification
+end_SEP:send_notification
 ```
 
 `@monitor:notification`はAST metadataなので、AIに「通知関連らしいFunction」を推測させず、
@@ -184,7 +184,7 @@ CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
-`#`／`##`コメント、厳密escape／Raw String、Function Tag metadata、AST表示が含まれます。
+`#`／`##`コメント、厳密escape／Raw String、Semantic Tag metadata、AST表示が含まれます。
 v0.4 tooling層では、v0.1言語意味論を変えずに
 依存なしLSP、VS Code支援、構造diff、AI edit scope強制を追加しています。
 
@@ -209,7 +209,7 @@ Separan sourceへ移しました。
 `network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
 
 ```separan
-function:main
+SEP:main
 
 @network
 @diagnostics
@@ -223,7 +223,7 @@ print interface.connected
 print interface.ip_address
 endfor:show_interfaces
 
-end_function:main
+end_SEP:main
 ```
 
 host照会を明示許可してサンプルを実行します。
@@ -253,7 +253,7 @@ tcp_close(connection)
 DHCP、固定address、IPv4 link-localはEthernet／Wi-Fi共通のIP layerです。
 
 ```separan
-function:main
+SEP:main
 
 lan = ethernet_open()
 network_use_dhcp(lan)
@@ -264,7 +264,7 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_function:main
+end_SEP:main
 ```
 
 embedded adapter向けに、Wi-Fi AP、IPv4 DHCP server、簡易local DNS serverのAPIも
@@ -296,7 +296,7 @@ Pico 2／Pico 2 WとArduino Nano／Nano Everyに対応します。portableなL�
 物理pin番号を転記せず、board LEDを論理名で指定します。
 
 ```separan
-function:main
+SEP:main
 
 @embedded
 @gpio
@@ -311,7 +311,7 @@ gpio_write(pin.LED_BUILTIN, false)
 delay_milliseconds(500)
 endwhile:blink_loop
 
-end_function:main
+end_SEP:main
 ```
 
 sourceは同じまま、build targetだけを変更します。Pico／Pico 2ではC++生成から公式

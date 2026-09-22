@@ -9,11 +9,11 @@ Every named structure receives a hierarchical identity. Sibling occurrences
 are numbered so repeated labels remain addressable:
 
 ```text
-function:main#1/if:active_user#1
+SEP:main#1/if:active_user#1
 ```
 
 `inspect` emits the identity, parent identity, kind, label, source location,
-function tags, and SHA-256 fingerprints using the versioned `separan.structure.v2` JSON
+semantic tags, and SHA-256 fingerprints using the versioned `separan.structure.v2` JSON
 schema. Positions, indentation, blank lines, and comments are excluded from
 the fingerprint.
 
@@ -38,7 +38,7 @@ reordering a child boundary is a change to its parent structure.
 ```console
 separan-structure verify app.before.sep app.after.sep --allow active_user
 separan-structure verify app.before.sep app.after.sep \
-  --allow function:main/if:active_user --json
+  --allow SEP:main/if:active_user --json
 ```
 
 Changes to an allowed block and its descendants pass. Any changed AST outside

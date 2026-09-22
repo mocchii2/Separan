@@ -1,4 +1,4 @@
-function:main
+SEP:main
 print regex_match("^[0-9]+$", "12345")
 
 regex_match_result match = regex_find("([0-9]+)-([A-Z]+)", "ticket 42-SEP")
@@ -14,4 +14,4 @@ print script_path()
 
 mode = env_get("SEPARAN_MODE", default = "development")
 print mode
-end_function:main
+end_SEP:main

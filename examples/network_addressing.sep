@@ -2,7 +2,7 @@
 # Common Ethernet / Wi-Fi IP addressing
 ########################################
 
-function:main
+SEP:main
 
 @network
 @dhcp
@@ -28,4 +28,4 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_function:main
+end_SEP:main

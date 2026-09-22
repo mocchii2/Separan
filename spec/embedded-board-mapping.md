@@ -23,11 +23,11 @@ known-invalid mapping before an adapter can touch hardware.
 ```separan
 board = board_select("raspberry_pi_pico")
 
-function:main
+SEP:main
 gpio_set_mode(pin.LED_BUILTIN, "output")
 gpio_write(pin.LED_BUILTIN, true)
 sensor_bus = i2c_open(0)
-end_function:main
+end_SEP:main
 ```
 
 The build target can instead be supplied outside source:

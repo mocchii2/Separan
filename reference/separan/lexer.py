@@ -5,7 +5,8 @@ from .token import SourcePosition, Token, TokenType
 
 
 KEYWORDS = {
-    "function": TokenType.FUNCTION, "end_function": TokenType.END_FUNCTION,
+    "function": TokenType.FUNCTION, "sep": TokenType.FUNCTION, "SEP": TokenType.FUNCTION,
+    "end_function": TokenType.END_FUNCTION, "end_sep": TokenType.END_FUNCTION, "END_SEP": TokenType.END_FUNCTION,
     "if": TokenType.IF, "elseif": TokenType.ELSEIF, "else": TokenType.ELSE,
     "endif": TokenType.ENDIF, "while": TokenType.WHILE,
     "endwhile": TokenType.ENDWHILE, "for": TokenType.FOR, "in": TokenType.IN,
@@ -215,7 +216,7 @@ class Lexer:
                     if not self._valid_name(lex):
                         raise error("E102", "Invalid label", "Unicode labels must be valid NFC-normalized identifiers.", pos, actual=lex)
                     out.append(Token(TokenType.LABEL, lex, None, pos)); continue
-                kind = KEYWORDS.get(lex, TokenType.IDENTIFIER)
+                kind = KEYWORDS.get(lex, KEYWORDS.get(lex.lower(), TokenType.IDENTIFIER))
                 literal = True if kind == TokenType.TRUE else False if kind == TokenType.FALSE else None
                 out.append(Token(kind, lex, literal, pos)); continue
             raise error("E100", "Unexpected character", f"Character {c!r} is not valid Separan syntax.", pos, actual=c)

@@ -225,16 +225,16 @@ static void print_error(const char *code, const char *title, int line_number, co
     record_error(code, title, line_number, expected, actual);
 }
 
-static void push_block(BlockStack *stack, BlockKind kind, const char *label, int line_number) {
+static int push_block(BlockStack *stack, BlockKind kind, const char *label, int line_number) {
     if (stack->count >= SEPARAN_MAX_BLOCKS) {
         print_error("E106", "Unclosed block", line_number, "a valid block closer", label ? label : "<unknown>");
-        exit(1);
+        return 1;
     }
 
     for (size_t index = 0; index < stack->count; index++) {
         if (strcmp(stack->entries[index].label, label) == 0) {
             print_error("E109", "Duplicate open label", line_number, block_kind_name(stack->entries[index].kind), label);
-            exit(1);
+            return 1;
         }
     }
 
@@ -242,6 +242,7 @@ static void push_block(BlockStack *stack, BlockKind kind, const char *label, int
     slot->kind = kind;
     slot->label = duplicate_string(label);
     slot->line_number = line_number;
+    return 0;
 }
 
 static int pop_block(BlockStack *stack, BlockKind kind, const char *label, int line_number) {
@@ -303,9 +304,9 @@ static int handle_open_block(BlockStack *stack, BlockKind kind, const char *line
         return 1;
     }
 
-    push_block(stack, kind, label, line_number);
+    int status = push_block(stack, kind, label, line_number);
     free(label);
-    return 0;
+    return status;
 }
 
 static int handle_close_block(BlockStack *stack, BlockKind kind, const char *line, int line_number) {
@@ -380,7 +381,7 @@ static int handle_multiline_comment(BlockStack *stack, char *trimmed, int line_n
                 *in_multiline_comment = 0;
             } else {
                 print_error("E104", "Multiline comment label mismatch", line_number, *comment_label, after);
-                return 1;
+                return -1;
             }
         } else {
             *comment_label = duplicate_string(after);
@@ -396,8 +397,9 @@ static int handle_multiline_comment(BlockStack *stack, char *trimmed, int line_n
 }
 
 static int parse_line(BlockStack *stack, char *trimmed, int line_number, int *in_multiline_comment, char **comment_label) {
-    if (handle_multiline_comment(stack, trimmed, line_number, in_multiline_comment, comment_label)) {
-        return 0;
+    int comment_status = handle_multiline_comment(stack, trimmed, line_number, in_multiline_comment, comment_label);
+    if (comment_status != 0) {
+        return comment_status < 0 ? 1 : 0;
     }
 
     if (*trimmed == '\0') {
@@ -410,7 +412,7 @@ static int parse_line(BlockStack *stack, char *trimmed, int line_number, int *in
     if (starts_with_keyword(trimmed, "function:")) {
         return handle_open_block(stack, BLOCK_FUNCTION, trimmed, line_number);
     }
-    if (starts_with_keyword(trimmed, "END_SEP:")) {
+    if (starts_with_keyword(trimmed, "END_SEP:") || starts_with_keyword(trimmed, "end_SEP:") || starts_with_keyword(trimmed, "end_sep:")) {
         return handle_close_block(stack, BLOCK_SEP, trimmed, line_number);
     }
     if (starts_with_keyword(trimmed, "end_function:")) {
@@ -541,10 +543,12 @@ int separan_analyze_source(const char *source) {
 
         line_number++;
         char *trimmed = trim_in_place(line);
-        trimmed = strip_leading_comment(trimmed);
-        trimmed = trim_in_place(trimmed);
+        if (!in_multiline_comment && !starts_with_keyword(trimmed, "##")) {
+            trimmed = strip_leading_comment(trimmed);
+            trimmed = trim_in_place(trimmed);
+        }
 
-        if (!in_multiline_comment && *trimmed != '\0') {
+        if (*trimmed != '\0') {
             int result = parse_line(&stack, trimmed, line_number, &in_multiline_comment, &comment_label);
             if (result != 0) {
                 free(line);
