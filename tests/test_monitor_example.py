@@ -111,7 +111,7 @@ class MonitorExampleTests(unittest.TestCase):
     def test_monitor_uses_english_hierarchical_function_tags(self):
         source = self.source_path().read_text(encoding="utf-8")
         snapshot = inspect_source(source, str(self.source_path()))
-        functions = {item.label: item for item in snapshot.blocks if item.kind == "function"}
+        functions = {item.label: item for item in snapshot.blocks if item.kind == "SEP"}
         self.assertIn("monitor:notification:decision", functions["process_notification"].tags)
         self.assertIn("monitor:log:windows", functions["process_windows_log"].tags)
         self.assertIn("aws:dynamodb", functions["store_history"].tags)

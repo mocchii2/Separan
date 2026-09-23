@@ -62,7 +62,7 @@ class ScopeResolutionError(ValueError):
 
 
 def _kind_and_label(node: Any) -> tuple[str, str]:
-    if isinstance(node, FunctionDecl): return "function", node.name
+    if isinstance(node, FunctionDecl): return "SEP", node.name
     if isinstance(node, IfStmt): return "if", node.label
     if isinstance(node, WhileStmt): return "while", node.label
     if isinstance(node, ForStmt): return "for", node.label
@@ -257,7 +257,7 @@ def resolve_tag(snapshot: StructureSnapshot, tag: str) -> tuple[BlockRecord, ...
     query = tag[1:] if tag.startswith("@") else tag
     matches = tuple(
         item for item in snapshot.blocks
-        if item.kind == "function" and _tag_path_matches(item.tags, query)
+        if item.kind == "SEP" and _tag_path_matches(item.tags, query)
     )
     if not matches:
         raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
@@ -301,7 +301,7 @@ def inspect_tag_path(path: Path, tag: str) -> dict[str, Any]:
     for source_path in paths:
         snapshot = inspect_file(source_path)
         for item in snapshot.blocks:
-            if item.kind == "function" and _tag_path_matches(item.tags, query):
+            if item.kind == "SEP" and _tag_path_matches(item.tags, query):
                 functions.append({"source": str(source_path), "path": item.path, "function": item.label,
                                   "line": item.start_line, "tags": list(item.tags)})
     if not functions:
@@ -322,7 +322,7 @@ def verify_tag_paths(before_path: Path, after_path: Path, tag: str) -> dict[str,
     snapshots_before = {relative: inspect_file(path) for relative, path in before_files.items()}
     snapshots_after = {relative: inspect_file(path) for relative, path in after_files.items()}
     scopes = [(relative, item) for relative, snapshot in snapshots_before.items()
-              for item in snapshot.blocks if item.kind == "function" and _tag_path_matches(item.tags, query)]
+              for item in snapshot.blocks if item.kind == "SEP" and _tag_path_matches(item.tags, query)]
     if not scopes:
         raise ScopeResolutionError("S404", f"Unknown semantic tag '@{query}'.")
     allowed, violations, all_changes = [], [], []
@@ -407,7 +407,7 @@ def main(argv=None) -> int:
                 if args.json: print(json.dumps(report, ensure_ascii=False, indent=2))
                 else:
                     print("Tag: @" + report["tag"])
-                    for item in report["functions"]: print(f"{item['source']}\n  function:{item['function']}")
+                    for item in report["functions"]: print(f"{item['source']}\n  SEP:{item['function']}")
                 return 0
             report = inspect_file(args.source).to_dict()
             print(json.dumps(report, ensure_ascii=False, indent=2) if args.json else "\n".join(item["path"] for item in report["blocks"]))

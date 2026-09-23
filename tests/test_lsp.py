@@ -320,7 +320,7 @@ end_function:main
 
     def test_v04_structural_requests_use_parser_block_identity(self):
         scope = structural_scope_at(SOURCE, 1, 11, "file:///x.sep")
-        self.assertEqual(scope["path"], "function:main#1/if:active#1")
+        self.assertEqual(scope["path"], "SEP:main#1/if:active#1")
         server = Server(io.BytesIO(), io.BytesIO())
         changed_inside = SOURCE.replace('print "ok"', 'print "changed"')
         verified = server.dispatch({"method": "separan/verifyScope", "params": {

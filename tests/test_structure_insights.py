@@ -21,7 +21,7 @@ class StructureInsightsTests(unittest.TestCase):
         self.assertEqual(report["schema"], "separan.document-structure.v2")
         self.assertEqual(report["block_count"], 3)
         function = report["roots"][0]
-        self.assertEqual((function["kind"], function["label"]), ("function", "main"))
+        self.assertEqual((function["kind"], function["label"]), ("SEP", "main"))
         self.assertEqual(function["parameters"], ["value"])
         self.assertEqual((function["start_line"], function["end_line"]), (1, 9))
         self.assertEqual(function["children"][0]["children"][0]["label"], "retry_connection")

@@ -27,11 +27,11 @@ class StructuralTests(unittest.TestCase):
     def test_inspection_emits_hierarchical_machine_identities(self):
         snapshot = self.snapshot(BEFORE, "before.sep")
         self.assertEqual([item.path for item in snapshot.blocks], [
-            "root", "function:main#1", "function:main#1/if:active_user#1",
+            "root", "SEP:main#1", "SEP:main#1/if:active_user#1",
         ])
         data = snapshot.to_dict()
         self.assertEqual(data["schema"], "separan.structure.v2")
-        self.assertEqual(data["blocks"][2]["parent_id"], "root/function:main#1")
+        self.assertEqual(data["blocks"][2]["parent_id"], "root/SEP:main#1")
         self.assertEqual(data["blocks"][2]["start_line"], 3)
 
     def test_comments_whitespace_and_indentation_are_not_structural_changes(self):
@@ -53,7 +53,7 @@ ignored
         after = BEFORE.replace('print "hello"', 'print "hello again"')
         report = structural_diff(self.snapshot(BEFORE, "a"), self.snapshot(after, "b"))
         self.assertEqual([(item["status"], item["path"]) for item in report["changes"]], [
-            ("modified", "function:main#1/if:active_user#1"),
+            ("modified", "SEP:main#1/if:active_user#1"),
         ])
 
     def test_scope_verification_accepts_change_inside_scope(self):
@@ -66,7 +66,7 @@ ignored
         after = BEFORE.replace('print "outside"', 'print "changed"')
         report = verify_scopes(self.snapshot(BEFORE, "a"), self.snapshot(after, "b"), [":active_user"])
         self.assertFalse(report["passed"])
-        self.assertEqual(report["violations"][0]["path"], "function:main#1")
+        self.assertEqual(report["violations"][0]["path"], "SEP:main#1")
 
     def test_scope_boundary_cannot_be_removed_or_renamed(self):
         after = BEFORE.replace("active_user", "enabled_user")
@@ -97,7 +97,7 @@ end_function:second
         snapshot = self.snapshot(source, "a")
         with self.assertRaisesRegex(ScopeResolutionError, "S402"):
             verify_scopes(snapshot, snapshot, ["same"])
-        report = verify_scopes(snapshot, snapshot, ["function:first/if:same"])
+        report = verify_scopes(snapshot, snapshot, ["SEP:first/if:same"])
         self.assertTrue(report["passed"])
 
     def test_unknown_scope_is_a_specific_error(self):
