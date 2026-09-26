@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+## [1.0.1] - 2026-09-26
+
+- Refreshes the Marketplace introduction for the complete Separan 1.0 editor,
+  project, diagnostics, execution, and review workflow.
+
+## [1.0.0] - 2026-09-26
+
+### First stable release
+
+- Updates import paths automatically when `.sep` files are renamed or moved.
+- Validates runtime-supported named arguments without counting them as positional arguments.
+- Merges inferred return types across branches, including `EMPTY` unions.
+- Diagnoses duplicate and unused functions, unused variables, and unreachable code.
+- Adds Quick Fixes for mismatched closing labels, unused imports, undefined functions,
+  and missing imported module files.
+- Adds Windows and Linux Extension Host CI, VSIX packaging, and package-content checks.
+- Refines signatures and inferred return types for commonly used numeric, string,
+  collection, date/time, random, object, and file built-ins.
+- Keeps local-variable definition, references, and rename scoped to the containing
+  function when another function shadows the same name.
+- Finds label references and applies label rename across workspace `.sep` documents.
+- Preserves list element types through immutable list operations and infers element
+  types for `first`, `last`, and `random_pick`.
+- Refines bytes, regex, environment, process, cryptography, and every error-constructor signature.
+- Refines database, YAML, XML, and mail signatures and return types, including
+  optional named arguments and `EMPTY` result unions.
+- Completes user-facing parameter names and return types for HTTP client/server,
+  cookies, authentication, sorting, and remaining temporal built-ins.
+- Adds a full-catalog regression assertion preventing `arg1`-style parameters
+  from returning to any of the 504 completion entries.
+- Expands the Extension Host regression suite to 17 tests.
+- Keeps references and rename for same-named functions isolated to the defining
+  module and files that explicitly import it.
+
 - Adds **Check Current File** to run the parser check from the editor title,
   command palette, or status bar.
 - Adds **Diagnose Runtime** for native executable setup and recovery.

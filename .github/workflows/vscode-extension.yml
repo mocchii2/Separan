@@ -1,0 +1,52 @@
+name: VS Code Extension
+
+on:
+  push:
+    paths:
+      - "vscode/**"
+      - ".github/workflows/vscode-extension.yml"
+  pull_request:
+    paths:
+      - "vscode/**"
+      - ".github/workflows/vscode-extension.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  extension-host:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: vscode
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: vscode/package-lock.json
+      - run: npm ci
+      - run: node --check extension.js
+      - name: Extension Host tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:vscode
+      - name: Extension Host tests (Windows)
+        if: runner.os == 'Windows'
+        run: npm run test:vscode
+      - name: Package VSIX
+        if: runner.os == 'Linux'
+        run: npx --no-install vsce package --out separan-language-ci.vsix
+      - name: Verify VSIX contents
+        if: runner.os == 'Linux'
+        run: unzip -l separan-language-ci.vsix | grep -E 'extension/(extension.js|data/builtins.json|syntaxes/separan.tmLanguage.json)'
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: separan-language-vsix
+          path: vscode/separan-language-ci.vsix
+

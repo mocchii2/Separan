@@ -40,6 +40,160 @@ const builtinSignatureOverrides = {
   db_connect: "db_connect(driver:, database:, host?:, port?:, user?:, password?:)", db_query: "db_query(connection, query, parameters, timeout?:)",
   exec: "exec(command, arguments, cwd?:, timeout?:)", http_get: "http_get(url, headers?:, timeout?:)",
   duration: "duration(value)", datetime_parse: "datetime_parse(value)", random_int: "random_int(minimum, maximum)",
+  len: "len(value: string | list | bytes) -> number", is_empty: "is_empty(value: value) -> boolean",
+  type: "type(value: value) -> string", is_number: "is_number(value: value) -> boolean",
+  is_string: "is_string(value: value) -> boolean", is_boolean: "is_boolean(value: value) -> boolean",
+  is_list: "is_list(value: value) -> boolean", is_object: "is_object(value: value) -> boolean",
+  is_bytes: "is_bytes(value: value) -> boolean", is_datetime: "is_datetime(value: value) -> boolean",
+  is_duration: "is_duration(value: value) -> boolean", is_secret: "is_secret(value: value) -> boolean",
+  abs: "abs(value: number) -> number", ceil: "ceil(value: number) -> number", floor: "floor(value: number) -> number",
+  round: "round(value: number) -> number", sqrt: "sqrt(value: number) -> number",
+  sin: "sin(value: number) -> number", cos: "cos(value: number) -> number", tan: "tan(value: number) -> number",
+  log: "log(value: number) -> number", log10: "log10(value: number) -> number", log2: "log2(value: number) -> number",
+  exp: "exp(value: number) -> number", pow: "pow(base: number, exponent: number) -> number",
+  min: "min(value: number, values?: number...) -> number", max: "max(value: number, values?: number...) -> number",
+  range: "range(start_or_stop: number, stop?: number, step?: number) -> list<number>",
+  number_range: "number_range(start_or_stop: number, stop?: number, step?: number) -> list<number>",
+  input: "input(prompt?: string) -> string", contains: "contains(value: string | list, search: value) -> boolean",
+  starts_with: "starts_with(value: string, prefix: string) -> boolean", ends_with: "ends_with(value: string, suffix: string) -> boolean",
+  compare: "compare(left: string, right: string) -> number", compare_ignore_case: "compare_ignore_case(left: string, right: string) -> number",
+  substring_after: "substring_after(value: string, search: string) -> string", substring_before: "substring_before(value: string, search: string) -> string",
+  count_occurrences: "count_occurrences(value: string, search: string) -> number",
+  local_datetime: "local_datetime(value: string) -> local_datetime", timezone: "timezone(value: string) -> timezone",
+  datetime_now: "datetime_now(timezone?: timezone) -> datetime", datetime_format: "datetime_format(value: datetime, format: string) -> string",
+  datetime_valid: "datetime_valid(value: string, format: string, timezone: timezone) -> boolean",
+  datetime_from_local: "datetime_from_local(value: local_datetime, timezone: timezone) -> datetime",
+  datetime_in_timezone: "datetime_in_timezone(value: datetime, timezone: timezone) -> datetime",
+  unix_time: "unix_time(value?: datetime) -> number", datetime_from_unix: "datetime_from_unix(value: number, timezone?: timezone) -> datetime",
+  unix_milliseconds_from_datetime: "unix_milliseconds_from_datetime(value: datetime) -> number",
+  unix_seconds_from_datetime: "unix_seconds_from_datetime(value: datetime) -> number",
+  datetime_year: "datetime_year(value: datetime) -> number", datetime_month: "datetime_month(value: datetime) -> number",
+  datetime_day: "datetime_day(value: datetime) -> number", datetime_hour: "datetime_hour(value: datetime) -> number",
+  datetime_minute: "datetime_minute(value: datetime) -> number", datetime_second: "datetime_second(value: datetime) -> number",
+  datetime_millisecond: "datetime_millisecond(value: datetime) -> number", datetime_weekday: "datetime_weekday(value: datetime) -> number",
+  duration_milliseconds: "duration_milliseconds(value: duration) -> number",
+  random_seed: "random_seed(seed: number) -> VOID", random_number: "random_number() -> number",
+  random_float: "random_float(minimum: number, maximum: number) -> number", random_bool: "random_bool() -> boolean",
+  random_pick: "random_pick(values: list) -> value", random_shuffle: "random_shuffle(values: list) -> list",
+  random_sample: "random_sample(values: list, count: number) -> list", secure_random_bytes: "secure_random_bytes(length: number) -> bytes",
+  secure_random_int: "secure_random_int(minimum: number, maximum: number) -> number",
+  secure_random_number: "secure_random_number(minimum: number, maximum: number) -> number",
+  secure_random_string: "secure_random_string(length: number) -> string",
+  append: "append(values: list, value: value) -> list", prepend: "prepend(values: list, value: value) -> list",
+  remove: "remove(values: list, value: value) -> list", remove_at: "remove_at(values: list, index: number) -> list",
+  size: "size(values: list) -> number", index_of: "index_of(values: list, value: value) -> number | EMPTY",
+  last_index_of: "last_index_of(values: list, value: value) -> number | EMPTY", reverse: "reverse(values: list) -> list",
+  unique: "unique(values: list) -> list", repeat: "repeat(value: string, count: number) -> string",
+  pad_left: "pad_left(value: string, width: number, fill?: string) -> string", pad_right: "pad_right(value: string, width: number, fill?: string) -> string",
+  object_remove: "object_remove(object: object, key: string) -> object", object_keys: "object_keys(object: object) -> list<string>",
+  object_values: "object_values(object: object) -> list", append_text: "append_text(path: string, text: string) -> VOID",
+  read_bytes: "read_bytes(path: string) -> bytes", write_bytes: "write_bytes(path: string, value: bytes) -> VOID",
+  file_exists: "file_exists(path: string) -> boolean", directory_exists: "directory_exists(path: string) -> boolean",
+  file_size: "file_size(path: string) -> number", copy_file: "copy_file(source: string, destination: string) -> VOID",
+  move_file: "move_file(source: string, destination: string) -> VOID", delete_file: "delete_file(path: string) -> VOID",
+  read_lines: "read_lines(path: string) -> list<string>", create_directory: "create_directory(path: string) -> VOID",
+  delete_directory: "delete_directory(path: string) -> VOID", list_directory: "list_directory(path: string) -> list<string>",
+  file_name: "file_name(path: string) -> string", file_extension: "file_extension(path: string) -> string",
+  parent_directory: "parent_directory(path: string) -> string", absolute_path: "absolute_path(path: string) -> string",
+  bytes_from_string: "bytes_from_string(value: string, encoding?: string) -> bytes",
+  string_from_bytes: "string_from_bytes(value: bytes, encoding?: string) -> string",
+  bytes_get: "bytes_get(value: bytes, index: number) -> number", slice_bytes: "slice_bytes(value: bytes, start: number, end: number) -> bytes",
+  bytes_concat: "bytes_concat(left: bytes, right: bytes) -> bytes", hex_encode: "hex_encode(value: bytes) -> string",
+  hex_decode: "hex_decode(value: string) -> bytes", bytes_from_hex: "bytes_from_hex(value: string) -> bytes",
+  bytes_to_hexadecimal: "bytes_to_hexadecimal(value: bytes) -> string", hexadecimal_to_bytes: "hexadecimal_to_bytes(value: string) -> bytes",
+  base64_encode: "base64_encode(value: bytes) -> string", base64_decode: "base64_decode(value: string) -> bytes",
+  bytes_to_base64: "bytes_to_base64(value: bytes) -> string", base64_to_bytes: "base64_to_bytes(value: string) -> bytes",
+  regex_match: "regex_match(pattern: string, text: string, ignore_case?: boolean, multiline?: boolean, dot_all?: boolean) -> boolean",
+  regex_search: "regex_search(pattern: string, text: string, ignore_case?: boolean, multiline?: boolean, dot_all?: boolean) -> boolean",
+  regex_find: "regex_find(pattern: string, text: string, ignore_case?: boolean, multiline?: boolean, dot_all?: boolean) -> regex_match_result | EMPTY",
+  regex_find_all: "regex_find_all(pattern: string, text: string, ignore_case?: boolean, multiline?: boolean, dot_all?: boolean) -> list<regex_match_result>",
+  regex_replace: "regex_replace(pattern: string, text: string, replacement: string, ignore_case?: boolean, multiline?: boolean, dot_all?: boolean) -> string",
+  regex_split: "regex_split(pattern: string, text: string, ignore_case?: boolean, multiline?: boolean, dot_all?: boolean) -> list<string>",
+  regex_text: "regex_text(match: regex_match_result) -> string", regex_start: "regex_start(match: regex_match_result) -> number",
+  regex_end: "regex_end(match: regex_match_result) -> number", regex_group: "regex_group(match: regex_match_result, index: number) -> string | EMPTY",
+  glob: "glob(pattern: string) -> list<string>", env_get: "env_get(name: string, default?: string) -> string | EMPTY",
+  env_exists: "env_exists(name: string) -> boolean", env_set: "env_set(name: string, value: string) -> VOID",
+  env_remove: "env_remove(name: string) -> VOID", command_args: "command_args() -> list<string>", script_path: "script_path() -> string",
+  arg_exists: "arg_exists(name: string, names?: string...) -> boolean", arg_value: "arg_value(name: string, default?: string) -> string | EMPTY",
+  command_exists: "command_exists(command: string) -> boolean", shell_exec: "shell_exec(command: string, cwd?: string, timeout?: duration) -> exec_result",
+  exec_checked: "exec_checked(command: string, arguments: list<string>, cwd?: string, timeout?: duration) -> exec_result",
+  sha256_hash: "sha256_hash(value: secret | string | bytes) -> bytes", sha512_hash: "sha512_hash(value: secret | string | bytes) -> bytes",
+  sha3_256_hash: "sha3_256_hash(value: secret | string | bytes) -> bytes", sha3_512_hash: "sha3_512_hash(value: secret | string | bytes) -> bytes",
+  sha256_hmac: "sha256_hmac(key: secret | string | bytes, value: secret | string | bytes) -> bytes",
+  sha512_hmac: "sha512_hmac(key: secret | string | bytes, value: secret | string | bytes) -> bytes",
+  constant_time_equal: "constant_time_equal(left: secret | string | bytes, right: secret | string | bytes) -> boolean",
+  derive_key_from_password: "derive_key_from_password(password: secret | string | bytes, salt: bytes) -> secret",
+  encrypt_authenticated: "encrypt_authenticated(key: secret | bytes, value: secret | string | bytes) -> bytes",
+  decrypt_authenticated: "decrypt_authenticated(key: secret | bytes, value: bytes) -> value",
+  encrypt_with_password: "encrypt_with_password(password: secret | string | bytes, value: secret | string | bytes) -> bytes",
+  decrypt_with_password: "decrypt_with_password(password: secret | string | bytes, value: bytes) -> value",
+  db_close: "db_close(connection: db_connection) -> VOID", db_query_one: "db_query_one(connection: db_connection, sql: string, parameters: list, timeout?: duration) -> object | EMPTY",
+  db_scalar: "db_scalar(connection: db_connection, sql: string, parameters: list, timeout?: duration) -> value",
+  db_execute: "db_execute(connection: db_connection, sql: string, parameters: list, timeout?: duration) -> number",
+  db_begin: "db_begin(connection: db_connection) -> VOID", db_commit: "db_commit(connection: db_connection) -> VOID",
+  db_rollback: "db_rollback(connection: db_connection) -> VOID", db_tables: "db_tables(connection: db_connection) -> list<string>",
+  db_columns: "db_columns(connection: db_connection, table: string) -> list<object>", db_indexes: "db_indexes(connection: db_connection, table: string) -> list<object>",
+  db_primary_key: "db_primary_key(connection: db_connection, table: string) -> object | EMPTY",
+  db_server_info: "db_server_info(connection: db_connection) -> object | EMPTY", db_version: "db_version(connection: db_connection) -> string",
+  yaml_to_object: "yaml_to_object(text: string) -> value | EMPTY", yaml_to_objects: "yaml_to_objects(text: string) -> list",
+  yaml_file_to_object: "yaml_file_to_object(path: string) -> value | EMPTY", yaml_file_to_objects: "yaml_file_to_objects(path: string) -> list",
+  object_to_yaml: "object_to_yaml(value: value, indent?: number, sort_keys?: boolean) -> string",
+  objects_to_yaml: "objects_to_yaml(values: list, indent?: number, sort_keys?: boolean) -> string",
+  object_to_yaml_file: "object_to_yaml_file(path: string, value: value, indent?: number, sort_keys?: boolean) -> VOID",
+  objects_to_yaml_file: "objects_to_yaml_file(path: string, values: list, indent?: number, sort_keys?: boolean) -> VOID",
+  yaml_validate_file: "yaml_validate_file(path: string) -> boolean",
+  xml_to_object: "xml_to_object(text: string) -> object", xml_file_to_object: "xml_file_to_object(path: string) -> object",
+  object_to_xml: "object_to_xml(value: object, indent?: number, declaration?: boolean) -> string",
+  object_to_xml_file: "object_to_xml_file(path: string, value: object, indent?: number, declaration?: boolean) -> VOID",
+  xml_document_write: "xml_document_write(path: string, document: xml_document, indent?: number, declaration?: boolean) -> VOID",
+  xml_create_element: "xml_create_element(name: string, namespace_uri?: string) -> xml_element",
+  xml_set_element_text: "xml_set_element_text(element: xml_element, text: string) -> VOID",
+  xml_children: "xml_children(element: xml_element) -> list<xml_element>", xml_child: "xml_child(element: xml_element, name: string) -> xml_element | EMPTY",
+  xml_add_child: "xml_add_child(parent: xml_element, child: xml_element) -> VOID", xml_remove_child: "xml_remove_child(parent: xml_element, child: xml_element) -> VOID",
+  xml_namespace_uri: "xml_namespace_uri(element: xml_element) -> string | EMPTY", xml_namespace_prefix: "xml_namespace_prefix(element: xml_element) -> string | EMPTY",
+  xml_escape_text: "xml_escape_text(value: string) -> string", xml_escape_attribute: "xml_escape_attribute(value: string) -> string",
+  xml_unescape: "xml_unescape(value: string) -> string",
+  mail_address: "mail_address(address: string, display_name?: string) -> mail_address", mail_create_message: "mail_create_message() -> mail_message",
+  mail_set_sender: "mail_set_sender(message: mail_message, address: string | mail_address) -> VOID",
+  mail_add_recipient: "mail_add_recipient(message: mail_message, address: string | mail_address) -> VOID",
+  mail_add_cc_recipient: "mail_add_cc_recipient(message: mail_message, address: string | mail_address) -> VOID",
+  mail_add_bcc_recipient: "mail_add_bcc_recipient(message: mail_message, address: string | mail_address) -> VOID",
+  mail_set_subject: "mail_set_subject(message: mail_message, subject: string) -> VOID",
+  mail_set_text_body: "mail_set_text_body(message: mail_message, body: string) -> VOID", mail_set_html_body: "mail_set_html_body(message: mail_message, body: string) -> VOID",
+  mail_add_attachment: "mail_add_attachment(message: mail_message, path: string, content_type?: string) -> VOID",
+  mail_add_attachment_bytes: "mail_add_attachment_bytes(message: mail_message, filename: string, content: bytes, content_type: string) -> VOID",
+  mail_add_inline_attachment: "mail_add_inline_attachment(message: mail_message, path: string, content_id: string, content_type?: string) -> VOID",
+  mail_add_inline_attachment_bytes: "mail_add_inline_attachment_bytes(message: mail_message, filename: string, content: bytes, content_type: string, content_id: string) -> VOID",
+  mail_send_message: "mail_send_message(sender: mail_sender, message: mail_message) -> mail_send_result",
+  cookie_jar: "cookie_jar() -> cookie_jar", cookie_get: "cookie_get(jar: cookie_jar, name: string) -> secret | EMPTY",
+  cookie_set: "cookie_set(jar: cookie_jar, name: string, value: secret | string | bytes, domain?: string, path?: string, secure?: boolean, http_only?: boolean, same_site?: string) -> VOID",
+  cookie_remove: "cookie_remove(jar: cookie_jar, name: string) -> VOID", cookie_clear: "cookie_clear(jar: cookie_jar) -> VOID",
+  cookie_all: "cookie_all(jar: cookie_jar) -> object", cookie_save_secure: "cookie_save_secure(path: string, jar: cookie_jar, key?: secret | bytes, password?: secret | string | bytes) -> VOID",
+  cookie_load_secure: "cookie_load_secure(path: string, key?: secret | bytes, password?: secret | string | bytes) -> cookie_jar",
+  datetime_from_unix_milliseconds: "datetime_from_unix_milliseconds(value: number, timezone: timezone) -> datetime",
+  datetime_from_unix_seconds: "datetime_from_unix_seconds(value: number, timezone: timezone) -> datetime",
+  datetime_offset: "datetime_offset(value: datetime) -> duration", datetime_timezone: "datetime_timezone(value: datetime) -> timezone",
+  hmac_sha256: "hmac_sha256(key: secret | string | bytes, message: secret | string | bytes) -> bytes",
+  jwt_sign: "jwt_sign(claims: object, key: secret | string | bytes, algorithm?: string) -> string",
+  jwt_verify: "jwt_verify(token: string, key: secret | string | bytes, algorithm?: string) -> object",
+  password_hash: "password_hash(password: secret | string | bytes) -> string", password_verify: "password_verify(password: secret | string | bytes, hash: string) -> boolean",
+  secret_get: "secret_get(name: string) -> secret", http_profile: "http_profile(name: string, language?: string, user_agent?: string, accept?: string, accept_encoding?: string) -> http_profile",
+  http_profile_headers: "http_profile_headers(profile: http_profile) -> object", http_request: "http_request(url: string, method?: string, headers?: object, body?: string | bytes, timeout?: duration) -> http_response",
+  request_method: "request_method() -> string", request_path: "request_path() -> string", request_header: "request_header(name: string) -> string | EMPTY",
+  request_param: "request_param(name: string) -> string | EMPTY", request_query: "request_query(name: string) -> string | EMPTY",
+  request_body: "request_body(encoding?: string) -> string", request_cookie: "request_cookie(name: string) -> secret | EMPTY",
+  return_http: "return_http(status?: number, content_type?: string, headers?: object, body?: string | bytes) -> VOID",
+  redirect_http: "redirect_http(location: string, status?: number) -> VOID",
+  http_set_cookie: "http_set_cookie(name: string, value: secret | string, path?: string, secure?: boolean, http_only?: boolean, same_site?: string) -> VOID",
+  http_host: "http_host(host?: string, port?: number) -> VOID", http_static: "http_static(url?: string, directory?: string) -> VOID",
+  sort_descending: "sort_descending(items: list) -> list", sort_ignore_case: "sort_ignore_case(items: list<string>) -> list<string>",
+  sort_ignore_case_descending: "sort_ignore_case_descending(items: list<string>) -> list<string>", sort_natural: "sort_natural(items: list<string>) -> list<string>",
+  sort_natural_descending: "sort_natural_descending(items: list<string>) -> list<string>", sort_natural_ignore_case: "sort_natural_ignore_case(items: list<string>) -> list<string>",
+  sort_natural_ignore_case_descending: "sort_natural_ignore_case_descending(items: list<string>) -> list<string>",
+  sort_by_descending: "sort_by_descending(items: list<object>, field: string) -> list<object>",
+  xml_remove_attribute: "xml_remove_attribute(element: xml_element, name: string, namespace_uri?: string) -> VOID",
+  network_operation_unavailable: "network_operation_unavailable(message: string) -> error",
+  mail_create_sender: "mail_create_sender(provider?: string, host?: string, port?: number, security?: string, username?: string, password?: secret, region?: string, timeout?: duration) -> mail_sender",
 };
 const builtinReturnTypeOverrides = {
   type_of: "string", length: "number", string: "string", number: "number", boolean: "boolean", format: "string",
@@ -49,9 +203,102 @@ const builtinReturnTypeOverrides = {
   read_text: "string", bytes_from_string: "bytes", string_from_bytes: "string", regex_find: "regex_match_result",
   regex_find_all: "list<regex_match_result>", db_connect: "db_connection", db_query: "list<object>", exec: "exec_result",
   http_get: "http_response", duration: "duration", datetime_parse: "datetime", random_int: "number",
+  len: "number", is_empty: "boolean", type: "string", is_number: "boolean", is_string: "boolean",
+  is_boolean: "boolean", is_list: "boolean", is_object: "boolean", is_bytes: "boolean", is_datetime: "boolean",
+  is_duration: "boolean", is_secret: "boolean", abs: "number", ceil: "number", floor: "number", round: "number",
+  sqrt: "number", sin: "number", cos: "number", tan: "number", log: "number", log10: "number", log2: "number",
+  exp: "number", pow: "number", min: "number", max: "number", range: "list<number>", number_range: "list<number>",
+  input: "string", contains: "boolean", starts_with: "boolean", ends_with: "boolean", compare: "number",
+  compare_ignore_case: "number", substring_after: "string", substring_before: "string", count_occurrences: "number",
+  local_datetime: "local_datetime", timezone: "timezone", datetime_now: "datetime", datetime_format: "string",
+  datetime_valid: "boolean", datetime_from_local: "datetime", datetime_in_timezone: "datetime", unix_time: "number",
+  datetime_from_unix: "datetime", unix_milliseconds_from_datetime: "number", unix_seconds_from_datetime: "number",
+  datetime_year: "number", datetime_month: "number", datetime_day: "number", datetime_hour: "number",
+  datetime_minute: "number", datetime_second: "number", datetime_millisecond: "number", datetime_weekday: "number",
+  duration_milliseconds: "number", random_seed: "VOID", random_number: "number", random_float: "number",
+  random_bool: "boolean", random_pick: "value", random_shuffle: "list", random_sample: "list",
+  secure_random_bytes: "bytes", secure_random_int: "number", secure_random_number: "number", secure_random_string: "string",
+  append: "list", prepend: "list", remove: "list", remove_at: "list", size: "number", index_of: "number | EMPTY",
+  last_index_of: "number | EMPTY", reverse: "list", unique: "list", repeat: "string", pad_left: "string", pad_right: "string",
+  object_remove: "object", object_keys: "list<string>", object_values: "list", append_text: "VOID", read_bytes: "bytes",
+  write_bytes: "VOID", file_exists: "boolean", directory_exists: "boolean", file_size: "number", copy_file: "VOID",
+  move_file: "VOID", delete_file: "VOID", read_lines: "list<string>", create_directory: "VOID", delete_directory: "VOID",
+  list_directory: "list<string>", file_name: "string", file_extension: "string", parent_directory: "string", absolute_path: "string",
+  bytes_get: "number", slice_bytes: "bytes", bytes_concat: "bytes", hex_encode: "string", hex_decode: "bytes",
+  bytes_from_hex: "bytes", bytes_to_hexadecimal: "string", hexadecimal_to_bytes: "bytes", base64_encode: "string",
+  base64_decode: "bytes", bytes_to_base64: "string", base64_to_bytes: "bytes", regex_match: "boolean",
+  regex_search: "boolean", regex_find: "regex_match_result | EMPTY", regex_find_all: "list<regex_match_result>",
+  regex_replace: "string", regex_split: "list<string>", regex_text: "string", regex_start: "number", regex_end: "number",
+  regex_group: "string | EMPTY", glob: "list<string>", env_get: "string | EMPTY", env_exists: "boolean", env_set: "VOID",
+  env_remove: "VOID", command_args: "list<string>", script_path: "string", arg_exists: "boolean", arg_value: "string | EMPTY",
+  command_exists: "boolean", shell_exec: "exec_result", exec_checked: "exec_result", sha256_hash: "bytes", sha512_hash: "bytes",
+  sha3_256_hash: "bytes", sha3_512_hash: "bytes", sha256_hmac: "bytes", sha512_hmac: "bytes",
+  constant_time_equal: "boolean", derive_key_from_password: "secret", encrypt_authenticated: "bytes",
+  decrypt_authenticated: "value", encrypt_with_password: "bytes", decrypt_with_password: "value",
+  db_close: "VOID", db_query_one: "object | EMPTY", db_scalar: "value", db_execute: "number", db_begin: "VOID",
+  db_commit: "VOID", db_rollback: "VOID", db_tables: "list<string>", db_columns: "list<object>", db_indexes: "list<object>",
+  db_primary_key: "object | EMPTY", db_server_info: "object | EMPTY", db_version: "string",
+  yaml_to_object: "value | EMPTY", yaml_to_objects: "list", yaml_file_to_object: "value | EMPTY", yaml_file_to_objects: "list",
+  object_to_yaml: "string", objects_to_yaml: "string", object_to_yaml_file: "VOID", objects_to_yaml_file: "VOID", yaml_validate_file: "boolean",
+  xml_to_object: "object", xml_file_to_object: "object", object_to_xml: "string", object_to_xml_file: "VOID", xml_document_write: "VOID",
+  xml_create_element: "xml_element", xml_set_element_text: "VOID", xml_children: "list<xml_element>", xml_child: "xml_element | EMPTY",
+  xml_add_child: "VOID", xml_remove_child: "VOID", xml_namespace_uri: "string | EMPTY", xml_namespace_prefix: "string | EMPTY",
+  xml_escape_text: "string", xml_escape_attribute: "string", xml_unescape: "string", mail_address: "mail_address",
+  mail_create_message: "mail_message", mail_set_sender: "VOID", mail_add_recipient: "VOID", mail_add_cc_recipient: "VOID",
+  mail_add_bcc_recipient: "VOID", mail_set_subject: "VOID", mail_set_text_body: "VOID", mail_set_html_body: "VOID",
+  mail_add_attachment: "VOID", mail_add_attachment_bytes: "VOID", mail_add_inline_attachment: "VOID",
+  mail_add_inline_attachment_bytes: "VOID", mail_send_message: "mail_send_result",
+  cookie_jar: "cookie_jar", cookie_get: "secret | EMPTY", cookie_set: "VOID", cookie_remove: "VOID", cookie_clear: "VOID",
+  cookie_all: "object", cookie_save_secure: "VOID", cookie_load_secure: "cookie_jar", datetime_from_unix_milliseconds: "datetime",
+  datetime_from_unix_seconds: "datetime", datetime_offset: "duration", datetime_timezone: "timezone", hmac_sha256: "bytes",
+  jwt_sign: "string", jwt_verify: "object", password_hash: "string", password_verify: "boolean", secret_get: "secret",
+  http_profile: "http_profile", http_profile_headers: "object", http_request: "http_response", request_method: "string",
+  request_path: "string", request_header: "string | EMPTY", request_param: "string | EMPTY", request_query: "string | EMPTY",
+  request_body: "string", request_cookie: "secret | EMPTY", return_http: "VOID", redirect_http: "VOID", http_set_cookie: "VOID",
+  http_host: "VOID", http_static: "VOID", sort_descending: "list", sort_ignore_case: "list<string>",
+  sort_ignore_case_descending: "list<string>", sort_natural: "list<string>", sort_natural_descending: "list<string>",
+  sort_natural_ignore_case: "list<string>", sort_natural_ignore_case_descending: "list<string>", sort_by_descending: "list<object>",
+  xml_remove_attribute: "VOID", network_operation_unavailable: "error",
+  mail_create_sender: "mail_sender",
 };
+const builtinNamedArguments = Object.fromEntries(Object.entries({
+  datetime: "timezone", regex_match: "dot_all ignore_case multiline", regex_search: "dot_all ignore_case multiline",
+  regex_find: "dot_all ignore_case multiline", regex_find_all: "dot_all ignore_case multiline",
+  regex_replace: "dot_all ignore_case multiline", regex_split: "dot_all ignore_case multiline",
+  env_get: "default", arg_value: "default",
+  exec: "cwd encoding env inherit_env input max_stderr_bytes max_stdout_bytes timeout",
+  exec_checked: "cwd encoding env inherit_env input max_stderr_bytes max_stdout_bytes timeout",
+  shell_exec: "cwd encoding env inherit_env input max_stderr_bytes max_stdout_bytes timeout",
+  http_profile: "accept accept_encoding language user_agent",
+  http_request: "auth body cookie_jar cookies encoding headers max_bytes max_redirects method profile redirect timeout",
+  http_get: "auth cookie_jar cookies encoding headers max_bytes max_redirects profile redirect timeout",
+  bytes_from_string: "encoding", string_from_bytes: "encoding", api_key_auth: "location",
+  jwt_sign: "algorithm", jwt_verify: "algorithm", oauth_client_credentials: "scope", mail_address: "display_name",
+  mail_add_attachment: "content_type", mail_add_inline_attachment: "content_type",
+  mail_create_sender: "host password port provider region security timeout username",
+  object_to_yaml: "indent sort_keys", object_to_yaml_file: "indent sort_keys",
+  objects_to_yaml: "indent sort_keys", objects_to_yaml_file: "indent sort_keys",
+  object_to_xml: "declaration indent", object_to_xml_file: "declaration indent",
+  xml_document_to_text: "declaration indent", xml_document_write: "declaration indent",
+  xml_create_element: "namespace_uri", xml_get_attribute: "namespace_uri", xml_set_attribute: "namespace_uri",
+  xml_remove_attribute: "namespace_uri", cookie_set: "domain http_only path same_site secure",
+  cookie_save_secure: "key password", cookie_load_secure: "key password", request_body: "encoding",
+  return_http: "body content_type headers status", redirect_http: "status",
+  http_set_cookie: "http_only path same_site secure", http_host: "host port", http_static: "directory url",
+  db_connect: "charset database driver host mode password port ssl timeout user",
+  db_query: "timeout", db_query_one: "timeout", db_scalar: "timeout", db_execute: "timeout",
+  i2c_open: "scl sda", spi_open: "chip_select clock miso mosi", uart_open: "rx tx",
+  tcp_connect: "timeout", tcp_receive: "timeout", udp_open: "local_address local_port timeout", udp_receive: "timeout",
+  wifi_start_access_point: "channel password ssid",
+  dhcp_server_start: "dns_servers gateway lease_time pool_end pool_start prefix reservations server_address",
+  dns_server_start: "catch_all records server_address",
+}).map(([name, names]) => [name, new Set(names.split(" "))]));
+for (const name of Object.keys(builtinMetadata)) if (name.endsWith("_error")) {
+  builtinSignatureOverrides[name] = `${name}(message: string) -> error`;
+  builtinReturnTypeOverrides[name] = "error";
+}
 const builtinSignatures = Object.fromEntries(Object.entries(builtinMetadata).map(([name, value]) => [name, builtinSignatureOverrides[name] || value.signature]));
-const builtinReturnTypes = Object.fromEntries(Object.entries(builtinMetadata).map(([name, value]) => [name, builtinReturnTypeOverrides[name] || value.returnType.split(" | ", 1)[0]]));
+const builtinReturnTypes = Object.fromEntries(Object.entries(builtinMetadata).map(([name, value]) => [name, builtinReturnTypeOverrides[name] || value.returnType]));
 
 function runtimeConfiguration(resource) {
   const config = vscode.workspace.getConfiguration("separan", resource);
@@ -121,6 +368,16 @@ function labelAtPosition(document, position) {
   return undefined;
 }
 
+function functionBoundaryAtPosition(document, position) {
+  const text = codeText(document.lineAt(position.line).text);
+  const found = /^\s*(?:SEP|END_SEP):([\p{L}_][\p{L}\p{M}\p{N}_]*)/u.exec(text);
+  if (!found) return undefined;
+  const start = text.indexOf(found[1], found.index); const end = start + found[1].length;
+  return start <= position.character && position.character <= end
+    ? { name: found[1], range: new vscode.Range(position.line, start, position.line, end) }
+    : undefined;
+}
+
 function identifierAtPosition(document, position) {
   const range = document.getWordRangeAtPosition(position, /[\p{L}_][\p{L}\p{M}\p{N}_]*/u);
   return range ? { name: document.getText(range), range } : undefined;
@@ -149,6 +406,12 @@ function allLabelLocations(document, name) {
     for (const match of text.matchAll(pattern)) locations.push(new vscode.Location(document.uri, new vscode.Range(line, match.index + 1, line, match.index + 1 + name.length)));
   }
   return locations;
+}
+
+async function workspaceLabelLocations(document, name) {
+  const documents = await workspaceSeparanDocuments();
+  const unique = new Map([[document.uri.toString(), document], ...documents.map((candidate) => [candidate.uri.toString(), candidate])]);
+  return [...unique.values()].flatMap((candidate) => allLabelLocations(candidate, name));
 }
 
 function functionDefinitions(document) {
@@ -230,7 +493,7 @@ async function importedFunctionLocations(targetDocument, name, sourceDocument) {
   const workspaceDocuments = await workspaceSeparanDocuments();
   const documents = new Map([[targetDocument.uri.toString(), targetDocument], [sourceDocument.uri.toString(), sourceDocument],
     ...workspaceDocuments.map((candidate) => [candidate.uri.toString(), candidate])]);
-  const locations = []; const definition = functionDefinitions(targetDocument).get(name); if (definition) locations.push(definition);
+  const locations = functionLocations(targetDocument, name);
   for (const candidate of documents.values()) for (const alias of importAliases(candidate).keys()) {
     const uri = importedUri(candidate, alias);
     if (uri && uri.fsPath.toLocaleLowerCase() === targetDocument.uri.fsPath.toLocaleLowerCase())
@@ -433,7 +696,16 @@ function inferredExpressionType(expression, customReturns = new Map(), variables
   if (/^EMPTYS$/u.test(value)) return "list";
   if (/^(?:.+)\s+(?:==|!=|<|<=|>|>=|is(?:\s+not)?)\s+(?:.+)$/u.test(value)) return "boolean";
   const call = /^((?:[\p{L}_][\p{L}\p{M}\p{N}_]*\.)?[\p{L}_][\p{L}\p{M}\p{N}_]*)\s*\(/u.exec(value);
-  if (call) return builtinReturnTypes[call[1]] || customReturns.get(call[1]);
+  if (call) {
+    const parsed = callsOnLine(value)[0]; const firstArgument = parsed && parsed.arguments[0];
+    const firstType = firstArgument && inferredExpressionType(firstArgument, customReturns, variables);
+    const preserveList = new Set(["list_append", "append", "prepend", "list_remove", "remove", "remove_at", "slice", "reverse", "sort", "sort_descending", "sort_ignore_case", "sort_ignore_case_descending", "sort_natural", "sort_natural_descending", "sort_natural_ignore_case", "sort_natural_ignore_case_descending", "unique", "random_shuffle", "random_sample"]);
+    if (preserveList.has(call[1]) && firstType && /^list(?:<.+>)?$/u.test(firstType)) return firstType;
+    if (["first", "last", "random_pick"].includes(call[1])) {
+      const element = firstType && /^list<(.+)>$/u.exec(firstType); if (element) return element[1];
+    }
+    return builtinReturnTypes[call[1]] || customReturns.get(call[1]);
+  }
   const identifier = /^([\p{L}_][\p{L}\p{M}\p{N}_]*)$/u.exec(value);
   if (identifier) return variables.get(identifier[1]);
   const member = /^([\p{L}_][\p{L}\p{M}\p{N}_]*\.[\p{L}_][\p{L}\p{M}\p{N}_]*)$/u.exec(value);
@@ -448,6 +720,23 @@ function inferredExpressionType(expression, customReturns = new Map(), variables
   return undefined;
 }
 
+function mergeInferredTypes(types) {
+  const members = [];
+  for (const type of types.filter(Boolean)) for (const member of type.split(/\s*\|\s*/u)) if (!members.includes(member)) members.push(member);
+  if (!members.length) return undefined;
+  if (members.length === 1) return members[0];
+  const concrete = members.filter((member) => member !== "EMPTY");
+  if (concrete.length === 1 && members.includes("EMPTY")) return concrete[0] + " | EMPTY";
+  return members.join(" | ");
+}
+
+function typeAccepts(expected, actual) {
+  if (!expected || !actual || expected === "value" || actual === "value") return true;
+  const expectedMembers = new Set(expected.split(/\s*\|\s*/u));
+  const actualMembers = actual.split(/\s*\|\s*/u);
+  return actualMembers.every((member) => member === "EMPTY" || expectedMembers.has(member));
+}
+
 function inferredFunctionReturns(document) {
   const result = new Map(); const functions = flattenStructures(documentStructure(document.getText()).roots).filter((entry) => entry.kind === "SEP");
   for (let pass = 0; pass < functions.length + 1; pass += 1) {
@@ -458,19 +747,21 @@ function inferredFunctionReturns(document) {
         const typed = /^([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*:\s*(.+)$/u.exec(parameter);
         if (typed) variables.set(typed[1], typed[2].trim());
       }
+      const returns = [];
       for (const line of item.source.split(/\r?\n/u)) {
         const typedAssignment = /^\s*((?:list<[^>]+>|[\p{L}_][\p{L}\p{M}\p{N}_]*))\s+([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*=\s*(.+)$/u.exec(codeText(line));
         if (typedAssignment) { variables.set(typedAssignment[2], typedAssignment[1]); continue; }
         const assignment = /^\s*([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*=\s*(.+)$/u.exec(codeText(line));
         if (assignment) {
           const type = inferredExpressionType(assignment[2], result, variables);
-          if (type) variables.set(assignment[1], type);
+          if (type) variables.set(assignment[1], mergeInferredTypes([variables.get(assignment[1]), type]));
         }
+        const returned = /^\s*return\s+(.+)$/u.exec(codeText(line));
+        if (returned) returns.push(inferredExpressionType(returned[1], result, variables));
       }
-      const expressions = [...item.source.matchAll(/^\s*return\s+(.+)$/gmu)].map((match) => codeText(match[1]));
-      const returns = expressions.map((expression) => inferredExpressionType(expression, result, variables));
-      if (returns.length && returns.every((value) => value && value === returns[0]) && result.get(item.label) !== returns[0]) {
-        result.set(item.label, returns[0]); changed = true;
+      const inferred = mergeInferredTypes(returns);
+      if (inferred && result.get(item.label) !== inferred) {
+        result.set(item.label, inferred); changed = true;
       }
     }
     if (!changed) break;
@@ -641,6 +932,37 @@ class SeparanHoverProvider {
   }
 }
 
+function localBindingAt(document, position, name) {
+  const scope = flattenStructures(documentStructure(document.getText()).roots)
+    .filter((item) => item.kind === "SEP" && item.start_line <= position.line + 1 && item.end_line >= position.line + 1)
+    .sort((left, right) => (left.end_line - left.start_line) - (right.end_line - right.start_line))[0];
+  if (!scope) return undefined;
+  const positionLine = codeText(document.lineAt(position.line).text); const after = positionLine.slice(position.character + name.length);
+  if (/^\s*\(/u.test(after)) return undefined;
+  const parameterNames = new Set(scope.parameters.map((parameter) => parameter.split(":", 1)[0].trim()));
+  let bound = parameterNames.has(name); let definition;
+  const locations = []; const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"); const pattern = new RegExp("\\b" + escaped + "\\b", "gu");
+  for (let line = scope.start_line - 1; line < Math.min(document.lineCount, scope.end_line); line += 1) {
+    const raw = document.lineAt(line).text; const text = codeText(raw);
+    const assignment = /^\s*(?:(?:list<[^>]+>|[\p{L}_][\p{L}\p{M}\p{N}_]*)\s+)?([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*=/u.exec(text);
+    const loop = /^\s*for\s+([\p{L}_][\p{L}\p{M}\p{N}_]*)\s+in\b/u.exec(text);
+    if ((assignment && assignment[1] === name) || (loop && loop[1] === name)) bound = true;
+    for (const match of text.matchAll(pattern)) {
+      const before = text[match.index - 1]; if (before === "." || before === ":" || before === "@") continue;
+      let quoted = false; let escapedCharacter = false;
+      for (let index = 0; index < match.index; index += 1) {
+        if (escapedCharacter) escapedCharacter = false;
+        else if (text[index] === "\\" && quoted) escapedCharacter = true;
+        else if (text[index] === '"') quoted = !quoted;
+      }
+      if (quoted) continue;
+      const location = new vscode.Location(document.uri, new vscode.Range(line, match.index, line, match.index + name.length)); locations.push(location);
+      if (!definition && (parameterNames.has(name) && line === scope.start_line - 1 || assignment && assignment[1] === name || loop && loop[1] === name)) definition = location;
+    }
+  }
+  return bound && locations.length ? { definition: definition || locations[0], locations } : undefined;
+}
+
 class SeparanDefinitionProvider {
   async provideDefinition(document, position) {
     const imported = importAtPosition(document, position);
@@ -651,39 +973,42 @@ class SeparanDefinitionProvider {
         return new vscode.Location(uri, new vscode.Position(0, 0));
       } catch (_) { return undefined; }
     }
+    const boundary = functionBoundaryAtPosition(document, position);
+    if (boundary) return functionDefinitions(document).get(boundary.name);
     const label = labelAtPosition(document, position);
     if (label) return allLabelLocations(document, label.name)[0];
     const qualified = qualifiedIdentifierAt(document, position);
     if (qualified) { const target = await importedDocument(document, qualified.alias); return target && functionDefinitions(target).get(qualified.name); }
     const identifier = identifierAtPosition(document, position); if (!identifier) return undefined;
+    const binding = localBindingAt(document, position, identifier.name); if (binding) return binding.definition;
     const local = functionDefinitions(document).get(identifier.name); if (local) return local;
-    for (const candidate of await workspaceSeparanDocuments()) {
-      const found = functionDefinitions(candidate).get(identifier.name); if (found) return found;
-    }
     return undefined;
   }
 }
 
 class SeparanReferenceProvider {
   async provideReferences(document, position) {
+    const boundary = functionBoundaryAtPosition(document, position);
+    if (boundary && functionDefinitions(document).has(boundary.name)) return importedFunctionLocations(document, boundary.name, document);
     const label = labelAtPosition(document, position);
-    if (label) return allLabelLocations(document, label.name);
+    if (label) return workspaceLabelLocations(document, label.name);
     const qualified = qualifiedIdentifierAt(document, position);
     if (qualified) {
       const target = await importedDocument(document, qualified.alias);
       return target ? importedFunctionLocations(target, qualified.name, document) : [];
     }
     const identifier = identifierAtPosition(document, position); if (!identifier) return [];
-    const documents = await workspaceSeparanDocuments();
-    if (![document, ...documents].some((candidate) => functionDefinitions(candidate).has(identifier.name))) return [];
-    const uniqueDocuments = new Map([[document.uri.toString(), document], ...documents.map((candidate) => [candidate.uri.toString(), candidate])]);
-    return [...uniqueDocuments.values()].flatMap((candidate) => functionLocations(candidate, identifier.name));
+    const binding = localBindingAt(document, position, identifier.name); if (binding) return binding.locations;
+    if (!functionDefinitions(document).has(identifier.name)) return [];
+    return importedFunctionLocations(document, identifier.name, document);
   }
 }
 
 class SeparanRenameProvider {
   async prepareRename(document, position) {
     const tag = tagAtPosition(document, position); if (tag) return { range: tag.range, placeholder: tag.name };
+    const boundary = functionBoundaryAtPosition(document, position);
+    if (boundary && functionDefinitions(document).has(boundary.name)) return { range: boundary.range, placeholder: boundary.name };
     const label = labelAtPosition(document, position); if (label) return { range: label.range, placeholder: label.name };
     const qualified = qualifiedIdentifierAt(document, position);
     if (qualified) {
@@ -695,31 +1020,30 @@ class SeparanRenameProvider {
     }
     const identifier = identifierAtPosition(document, position);
     if (identifier) {
+      const binding = localBindingAt(document, position, identifier.name); if (binding) return { range: identifier.range, placeholder: identifier.name };
       if (functionDefinitions(document).has(identifier.name)) return { range: identifier.range, placeholder: identifier.name };
-      for (const candidate of await workspaceSeparanDocuments()) if (functionDefinitions(candidate).has(identifier.name)) return { range: identifier.range, placeholder: identifier.name };
     }
     throw new Error("Place the cursor on a Separan label or function.");
   }
   async provideRenameEdits(document, position, newName) {
     if (!/^[\p{L}_][\p{L}\p{M}\p{N}_]*$/u.test(newName)) throw new Error("Separan labels must be valid identifiers.");
-    const tag = tagAtPosition(document, position); const label = labelAtPosition(document, position);
+    const tag = tagAtPosition(document, position); const boundary = functionBoundaryAtPosition(document, position); const label = labelAtPosition(document, position);
     const qualified = qualifiedIdentifierAt(document, position); const identifier = identifierAtPosition(document, position); let locations = [];
     if (tag) {
       const documents = await workspaceSeparanDocuments();
       const uniqueDocuments = new Map([[document.uri.toString(), document], ...documents.map((candidate) => [candidate.uri.toString(), candidate])]);
       for (const candidate of uniqueDocuments.values()) locations.push(...tagLocations(candidate, tag.name));
     }
-    else if (label) locations = allLabelLocations(document, label.name);
+    else if (boundary && functionDefinitions(document).has(boundary.name)) locations = await importedFunctionLocations(document, boundary.name, document);
+    else if (label) locations = await workspaceLabelLocations(document, label.name);
     else if (qualified) {
       const target = await importedDocument(document, qualified.alias);
       if (target && functionDefinitions(target).has(qualified.name)) locations = await importedFunctionLocations(target, qualified.name, document);
     }
     else if (identifier) {
-      const documents = await workspaceSeparanDocuments();
-      if ([document, ...documents].some((candidate) => functionDefinitions(candidate).has(identifier.name))) {
-        const uniqueDocuments = new Map([[document.uri.toString(), document], ...documents.map((candidate) => [candidate.uri.toString(), candidate])]);
-        locations = [...uniqueDocuments.values()].flatMap((candidate) => functionLocations(candidate, identifier.name));
-      }
+      const binding = localBindingAt(document, position, identifier.name);
+      if (binding) locations = binding.locations;
+      else if (functionDefinitions(document).has(identifier.name)) locations = await importedFunctionLocations(document, identifier.name, document);
     }
     if (!locations.length) return undefined;
     const edit = new vscode.WorkspaceEdit(); for (const location of locations) edit.replace(location.uri, location.range, newName); return edit;
@@ -773,6 +1097,41 @@ class SeparanFormattingProvider {
     return [vscode.TextEdit.replace(new vscode.Range(new vscode.Position(0, 0), end), formatted)];
   }
 }
+
+class SeparanCodeActionProvider {
+  provideCodeActions(document, range, context) {
+    const actions = [];
+    for (const diagnostic of context.diagnostics) {
+      if (diagnostic.code === "structure") {
+        const expected = /^Expected\s+([^:]+):([^\.]+)\./u.exec(diagnostic.message);
+        if (expected) {
+          const line = diagnostic.range.start.line; const raw = document.lineAt(line).text;
+          const indentation = /^\s*/u.exec(raw)[0]; const replacement = indentation + expected[1] + ":" + expected[2];
+          const action = new vscode.CodeAction("Replace with " + expected[1] + ":" + expected[2], vscode.CodeActionKind.QuickFix);
+          action.diagnostics = [diagnostic]; action.isPreferred = true; action.edit = new vscode.WorkspaceEdit();
+          action.edit.replace(document.uri, document.lineAt(line).range, replacement); actions.push(action);
+        }
+      } else if (diagnostic.code === "unused-import") {
+        const action = new vscode.CodeAction("Remove unused import", vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [diagnostic]; action.isPreferred = true; action.edit = new vscode.WorkspaceEdit();
+        action.edit.delete(document.uri, document.lineAt(diagnostic.range.start.line).rangeIncludingLineBreak); actions.push(action);
+      } else if (diagnostic.code === "undefined-function") {
+        const match = /^Function '([^']+)' is not defined\./u.exec(diagnostic.message); if (!match) continue;
+        const action = new vscode.CodeAction("Create function '" + match[1] + "'", vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [diagnostic]; action.edit = new vscode.WorkspaceEdit();
+        const end = document.lineAt(document.lineCount - 1).rangeIncludingLineBreak.end;
+        action.edit.insert(document.uri, end, `\nSEP:${match[1]}\nEND_SEP:${match[1]}\n`); actions.push(action);
+      } else if (diagnostic.code === "missing-import") {
+        const declaration = importDeclarations(document).find((item) => item.pathRange.intersection(diagnostic.range));
+        const uri = declaration && moduleUri(document, declaration.path); if (!uri) continue;
+        const action = new vscode.CodeAction("Create module '" + declaration.path + "'", vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [diagnostic]; action.edit = new vscode.WorkspaceEdit(); action.edit.createFile(uri, { ignoreIfExists: true }); actions.push(action);
+      }
+    }
+    return actions;
+  }
+}
+SeparanCodeActionProvider.providedCodeActionKinds = [vscode.CodeActionKind.QuickFix];
 
 async function goToMatchingLabel() {
   const editor = currentEditor(); if (!editor) return;
@@ -998,9 +1357,46 @@ async function publishAnalysisDiagnostics(document) {
   if (document.languageId !== "separan" || document.uri.scheme !== "file") return;
   const version = document.version; const items = []; const declarations = importDeclarations(document); const seen = new Map();
   const customReturns = inferredFunctionReturns(document);
-  const customFunctions = new Map();
-  for (const structure of flattenStructures(documentStructure(document.getText()).roots).filter((item) => item.kind === "SEP"))
+  const structures = flattenStructures(documentStructure(document.getText()).roots).filter((item) => item.kind === "SEP");
+  const customFunctions = new Map(); const definitionsByName = new Map();
+  for (const structure of structures) {
     customFunctions.set(structure.label, structure.parameters);
+    const previous = definitionsByName.get(structure.label) || []; previous.push(structure); definitionsByName.set(structure.label, previous);
+  }
+  for (const [name, definitions] of definitionsByName) if (definitions.length > 1) for (const structure of definitions) {
+    const line = structure.start_line - 1; const start = Math.max(0, document.lineAt(line).text.indexOf(name));
+    const diagnostic = new vscode.Diagnostic(new vscode.Range(line, start, line, start + name.length), "Function '" + name + "' is defined more than once.", vscode.DiagnosticSeverity.Error);
+    diagnostic.source = "Separan Analysis"; diagnostic.code = "duplicate-function"; items.push(diagnostic);
+  }
+  const calledFunctions = new Set(structures.flatMap((structure) => structure.calls));
+  for (const structure of structures) {
+    if (structure.label !== "main" && !structure.label.startsWith("test_") && !calledFunctions.has(structure.label)) {
+      const line = structure.start_line - 1; const start = Math.max(0, document.lineAt(line).text.indexOf(structure.label));
+      const diagnostic = new vscode.Diagnostic(new vscode.Range(line, start, line, start + structure.label.length), "Function '" + structure.label + "' is never used.", vscode.DiagnosticSeverity.Hint);
+      diagnostic.source = "Separan Analysis"; diagnostic.code = "unused-function"; diagnostic.tags = [vscode.DiagnosticTag.Unnecessary]; items.push(diagnostic);
+    }
+    const sourceLines = structure.source.split(/\r?\n/u); let terminated = false;
+    for (let offset = 1; offset < sourceLines.length - 1; offset += 1) {
+      const text = codeText(sourceLines[offset]); const trimmed = text.trim(); const absoluteLine = structure.start_line - 1 + offset;
+      if (/^(?:elseif\b|else:|catch\b|finally:|end(?:if|while|for|try|_transaction):)/u.test(trimmed)) { terminated = false; continue; }
+      if (terminated && trimmed && !/^@/u.test(trimmed)) {
+        const start = Math.max(0, document.lineAt(absoluteLine).text.search(/\S/u));
+        const diagnostic = new vscode.Diagnostic(new vscode.Range(absoluteLine, start, absoluteLine, document.lineAt(absoluteLine).text.length), "Code after return is unreachable.", vscode.DiagnosticSeverity.Warning);
+        diagnostic.source = "Separan Analysis"; diagnostic.code = "unreachable-code"; diagnostic.tags = [vscode.DiagnosticTag.Unnecessary]; items.push(diagnostic);
+      }
+      if (/^return(?:\s|$)/u.test(trimmed)) terminated = true;
+      const assignment = /^\s*(?:(?:list<[^>]+>|[\p{L}_][\p{L}\p{M}\p{N}_]*)\s+)?([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*=/u.exec(text);
+      if (assignment && !assignment[1].startsWith("_")) {
+        const escaped = assignment[1].replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+        const occurrences = [...structure.source.matchAll(new RegExp("\\b" + escaped + "\\b", "gu"))].length;
+        if (occurrences === 1) {
+          const start = Math.max(0, document.lineAt(absoluteLine).text.indexOf(assignment[1]));
+          const diagnostic = new vscode.Diagnostic(new vscode.Range(absoluteLine, start, absoluteLine, start + assignment[1].length), "Variable '" + assignment[1] + "' is never used.", vscode.DiagnosticSeverity.Hint);
+          diagnostic.source = "Separan Analysis"; diagnostic.code = "unused-variable"; diagnostic.tags = [vscode.DiagnosticTag.Unnecessary]; items.push(diagnostic);
+        }
+      }
+    }
+  }
   for (const declaration of declarations) {
     if (seen.has(declaration.alias)) {
       const diagnostic = new vscode.Diagnostic(declaration.aliasRange, "Duplicate import alias '" + declaration.alias + "'.", vscode.DiagnosticSeverity.Error);
@@ -1057,7 +1453,8 @@ async function publishAnalysisDiagnostics(document) {
         }
         continue;
       }
-      const count = call.arguments.length;
+      const namedArguments = call.arguments.map((argument) => /^([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*=/u.exec(argument)).filter(Boolean);
+      const count = metadata ? call.arguments.length - namedArguments.length : call.arguments.length;
       const minimum = metadata ? metadata.minimum : parameters.length; const maximum = metadata ? metadata.maximum : parameters.length;
       const range = new vscode.Range(line, call.start, line, call.start + call.name.length);
       if (count < minimum || count > maximum) {
@@ -1074,6 +1471,12 @@ async function publishAnalysisDiagnostics(document) {
             diagnostic.source = "Separan Analysis"; diagnostic.code = "unknown-named-argument"; items.push(diagnostic);
           }
         }
+      } else if (metadata && namedArguments.length) {
+        const accepted = builtinNamedArguments[call.name] || new Set();
+        for (const named of namedArguments) if (!accepted.has(named[1])) {
+          const diagnostic = new vscode.Diagnostic(range, "'" + call.name + "' has no named argument '" + named[1] + "'.", vscode.DiagnosticSeverity.Error);
+          diagnostic.source = "Separan Analysis"; diagnostic.code = "unknown-named-argument"; items.push(diagnostic);
+        }
       }
     }
     const typed = /^\s*((?:list<[^>]+>|[\p{L}_][\p{L}\p{M}\p{N}_]*))\s+([\p{L}_][\p{L}\p{M}\p{N}_]*)\s*=\s*(.+)$/u.exec(text);
@@ -1081,7 +1484,7 @@ async function publishAnalysisDiagnostics(document) {
     if (!assignment) continue;
     const name = typed ? typed[2] : assignment[1]; const expression = typed ? typed[3] : assignment[2];
     const actual = inferredExpressionType(expression, customReturns, variables); const expected = typed ? typed[1] : variables.get(name);
-    if (actual && actual !== "EMPTY" && expected && expected !== actual && expected !== "value") {
+    if (!typeAccepts(expected, actual)) {
       const start = text.indexOf(name); const range = new vscode.Range(line, start, line, start + name.length);
       const diagnostic = new vscode.Diagnostic(range, "Cannot assign " + actual + " to " + expected + " variable '" + name + "'.", vscode.DiagnosticSeverity.Error);
       diagnostic.source = "Separan Analysis"; diagnostic.code = "type-mismatch"; items.push(diagnostic);
@@ -1426,6 +1829,7 @@ function activate(context) {
     vscode.languages.registerRenameProvider(selector, new SeparanRenameProvider()),
     vscode.languages.registerDocumentSymbolProvider(selector, new SeparanDocumentSymbolProvider()),
     vscode.languages.registerDocumentFormattingEditProvider(selector, new SeparanFormattingProvider()),
+    vscode.languages.registerCodeActionsProvider(selector, new SeparanCodeActionProvider(), { providedCodeActionKinds: SeparanCodeActionProvider.providedCodeActionKinds }),
     vscode.languages.registerWorkspaceSymbolProvider(new SeparanWorkspaceSymbolProvider()),
     vscode.languages.registerInlayHintsProvider(selector, new SeparanInlayHintsProvider()),
     vscode.languages.registerCallHierarchyProvider(selector, new SeparanCallHierarchyProvider()),
@@ -1446,6 +1850,9 @@ function activate(context) {
       diagnosticTimer = setTimeout(() => refreshDiagnostics(event.document, false), 150);
     }),
     vscode.workspace.onDidChangeTextDocument(refreshStructureSoon),
+    vscode.workspace.onWillRenameFiles((event) => {
+      event.waitUntil(importRenameEdit(event.files));
+    }),
     vscode.workspace.onDidSaveTextDocument((document) => { if (document.languageId === "separan") { structureProvider.refresh(); semanticTagProvider.refresh(); refreshDiagnostics(document, true); } }),
     vscode.workspace.onDidCloseTextDocument((document) => { structureDiagnostics.delete(document.uri); nativeDiagnostics.delete(document.uri); analysisDiagnostics.delete(document.uri); diagnosticVersions.delete(document.uri.toString()); }),
     vscode.window.onDidChangeActiveTextEditor((editor) => { structureProvider.refresh(); updateStatus(); if (editor) refreshDiagnostics(editor.document, !editor.document.isDirty); }),

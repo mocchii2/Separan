@@ -2,7 +2,7 @@
   "name": "separan-language",
   "publisher": "separan",
   "displayName": "Separan Language",
-  "version": "0.9.8",
+  "version": "1.0.1",
   "description": "Separan language support for explicit SEP / END_SEP block identity, structural diffs, and AI edit-scope verification.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",

@@ -6,103 +6,81 @@
   <img src="https://raw.githubusercontent.com/mocchii2/Separan/main/logo/separan_logo.png" alt="Separan" width="640">
 </p>
 
-**Make AI-written code understandable and verifiable to humans.**
+**The complete Visual Studio Code environment for Separan 1.0.**
 
-Language support for the label-structured Separan programming language.
-
-## Separan at a glance
-
-- **Syntax highlighting** for keywords, values, functions, types, and labels
-- **Label-aware structure** with navigation, folding, and scope inspection
-- **Semantic tags** for related code that is separated across structures
-- **Native network API awareness** for shared DHCP/static/link-local addressing, IP, interface, DNS, TCP, UDP, Ethernet, and Wi-Fi values
-- **Automatic labeled closers** after block openers
-- **Native Problems diagnostics** from `separan --check` whenever a file is saved
-- **Local code intelligence** with completion and signatures for all 504 built-ins, plus hover, definitions, references, label/function rename, Outline, and workspace symbols
-- **Local type hints** for literals, assignments, local calls, and imported function return values
-- **Multi-file imports** with alias member completion, signature help, hover, and go-to-definition
-- **Analysis diagnostics** for missing modules, duplicate aliases, unknown imported functions, type mismatches, and built-in argument counts
-- **Document formatting** for structural indentation with spaces or tabs from the active editor settings
-- **Call Hierarchy and CodeLens** for callers, callees, reference counts, and zero-argument function execution
-- **Semantic Tags view** with workspace locations and cross-file rename
-- **`.sep` file support** in Visual Studio Code
-- **[GitHub repository](https://github.com/mocchii2/Separan)** with the interpreter, specification, and examples
+Write, understand, run, and review label-structured Separan programs with rich
+editor support that works locally—without a separate language-server process.
 
 ```separan
+SEP:main
 if user.active :active_user
-    print "active"
+    message = "Hello, " + user.name
+    print message
 endif:active_user
+END_SEP:main
 ```
 
-Related logic blocks can also declare machine-readable semantic identity:
+Named boundaries make control flow readable to humans and verifiable by tools.
+The extension understands those boundaries across an entire workspace and adds
+the navigation, analysis, refactoring, execution, and review tools expected from
+a modern language environment.
+
+## Everything needed for Separan development
+
+### Intelligent editing
+
+- Completion and signature help for **all 504 built-in functions**
+- Hover documentation, go to definition, references, workspace symbols, and Outline
+- Local type inference and inlay hints for values, lists, calls, imports, and return unions
+- Scope-safe rename for local variables, functions, labels, and semantic tags
+- Automatic labeled closers, structural formatting, snippets, and Unicode labels
+
+### Multi-file projects
+
+- Import-aware completion, hover, signatures, definitions, references, and rename
+- Correct isolation of same-named functions in different modules
+- Automatic relative-import updates when `.sep` files are moved or renamed
+- Cross-file label and semantic-tag navigation from dedicated Explorer views
+- Call Hierarchy and CodeLens for callers, callees, references, tests, and runnable functions
+
+### Diagnostics and Quick Fixes
+
+- Immediate structural diagnostics while typing
+- Native `separan --check` diagnostics in the Problems panel after saving
+- Detection of missing or cyclic imports, duplicate declarations, unknown calls,
+  invalid arguments, type mismatches, unreachable code, and unused symbols
+- Quick Fixes for mismatched closing labels, unused imports, undefined functions,
+  and missing module files
+
+### Run, test, and review
+
+- Run the current file or a zero-argument function in the integrated terminal
+- Discover and run every zero-argument `test_` function in a file
+- Inspect labeled structure, reads, writes, calls, and Git changes
+- View structural diffs and verify that an AI edit stayed inside an approved label
+- Configure the native executable, arguments, and environment per workspace
+
+## Why labels matter
+
+Separan gives important structures an explicit name at both boundaries:
 
 ```separan
-SEP:send_email
-@notification
-@email
-send_message()
-END_SEP:send_email
+SEP:process_payment
+if payment.valid :approved_payment
+    charge(payment.amount)
+    write_audit_log(payment)
+endif:approved_payment
+END_SEP:process_payment
 ```
 
-The label names the structure and its exact boundary. Even before using the
-tooling, a reader can see that this block handles an active user. The extension
-then checks that both endpoints agree and lets reviewers navigate or verify the
-same named scope.
+Names such as `:approved_payment`, `:write_audit_log`, and `:retry_connection`
+expose intent directly in source code. Readers can identify a block and its exact
+extent without reconstructing indentation or counting brackets. The extension
+uses the same identity for navigation, diagnostics, structural diffs, and
+AI edit-scope verification.
 
-AI can generate code quickly. Humans still have to understand it, review it,
-and take responsibility for it. Separan gives every important structure an
-explicit, checked name, and this extension turns those names into navigation,
-explanations, structural diffs, and automatic scope verification.
-
-Labels such as `:validate_payment`, `:write_audit_log`, and
-`:retry_connection` expose intent directly in the code. Reviewers can see what
-a block is for and where it ends without reconstructing indentation or counting
-brackets. Verification then answers the second question: **did the AI change
-only the structure it was asked to change?**
-
-## 🎯 Why Separan?
-
-When AI writes code, humans first need to understand it and then verify it.
-Traditional languages make both tasks harder:
-
-```python
-# ❌ Which code did the AI actually change?
-if check_payment():  # was this modified?
-    process()       # or this?
-    log()          # or this?
-```
-
-Separan makes verification explicit:
-
-```separan
-if check_payment() :ai_payment_scope
-process()
-log()
-endif:ai_payment_scope
-```
-
-Now you can ask: **"Did AI only modify inside `:ai_payment_scope`?"** and the extension verifies it automatically.
-
-The label also tells a human what the block means before any tool is opened.
-Separan treats human comprehension and machine verification as the same
-structural problem.
-
-## ✨ Features
-
-- **🔍 AI Edit Scope Verification** - Verify AI stayed inside a labeled block
-- **📊 Structural Diff** - See *what changed structurally*, not just textually
-- **🧭 Human-Readable Structure** - Make generated control flow explain its intent
-- **🌳 Structure Explorer** - Browse block hierarchy, reads, writes, calls, and Git changes
-- **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
-- **🔗 Semantic Tags** - Highlight, inspect, and verify semantic groups
-- **⌨️ Structural Editing** - Insert matching labeled closers automatically
-- **🧩 Code Snippets** - Expand current labeled syntax for functions, control flow, data blocks, try/catch, and HTTP routes
-- **🧹 Format Document** - Normalize decorative indentation while preserving labeled structure
-- **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
-- **🌍 Unicode Labels** - Full support for Japanese and other Unicode labels
-- **🎨 Rich Syntax Highlighting** - TextMate scopes for Separan syntax
-- **🩺 Problems Integration** - Show native E-codes at their source line and column
-- **🧭 Native-free Navigation** - Navigate and rename labels and functions without a language-server process
+Separan is designed for code that humans must understand and take responsibility
+for—even when AI helped write it.
 
 ## 🚀 Quick Start
 
