@@ -55,7 +55,7 @@ file横断semantic tag renameにも対応します。CLIのtag path検索はdire
 
 Python LSP backendはworkspace logic references（直接呼び出しとimport alias）、workspaceの
 call siteに基づくsignature引数型推論、Call Hierarchy、reference数CodeLensを実装済みです。
-`workspace/executeCommand`の`separan.runFunction`も提供し、引数なし関数にはRun Function、
+`workspace/executeCommand`の`separan.runFunction`も提供し、引数なしSEPにはRun SEP、
 `test_*`関数にはRun Test CodeLensを表示します。実行は明示操作に限り、宣言済みuser function
 だけを実行し、stdoutを返します。これらのprotocol機能は、まだpackaged VS Code extensionには
 接続されていません。

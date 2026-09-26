@@ -62,7 +62,7 @@ checks; the CLI performs recursive tag-path inspection.
 The Python LSP backend supports workspace logic references for direct calls
 and imported aliases, signature parameter inference from workspace call sites,
 Call Hierarchy, and reference-count CodeLens. It also exposes
-`separan.runFunction` through `workspace/executeCommand`; Run Function and Run
+`separan.runFunction` through `workspace/executeCommand`; Run SEP and Run
 Test CodeLens are offered for zero-argument functions (`test_*` for tests).
 Execution is explicit, limited to declared user functions, and returns captured
 stdout. These protocol features are not yet wired into the packaged VS Code

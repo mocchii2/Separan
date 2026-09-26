@@ -907,7 +907,7 @@ class SeparanCodeLensProvider {
       for (const candidate of documents.values()) references += functionLocations(candidate, structure.label).filter((location) => !(location.uri.toString() === document.uri.toString() && location.range.start.line === structure.start_line - 1)).length;
       lenses.push(new vscode.CodeLens(range, { title: `${references} reference${references === 1 ? "" : "s"}`, command: "editor.action.showReferences",
         arguments: [document.uri, new vscode.Position(structure.start_line - 1, structure.start_column - 1), await new SeparanReferenceProvider().provideReferences(document, new vscode.Position(structure.start_line - 1, structure.start_column - 1))] }));
-      if (structure.parameters.length === 0 && structure.label !== "main") lenses.push(new vscode.CodeLens(range, { title: "$(play) Run Function", command: "separan.runFunction", arguments: [document.uri, structure.label] }));
+      if (structure.parameters.length === 0 && structure.label !== "main") lenses.push(new vscode.CodeLens(range, { title: "$(play) Run SEP", command: "separan.runFunction", arguments: [document.uri, structure.label] }));
       if (structure.parameters.length === 0 && structure.label.startsWith("test_")) lenses.push(new vscode.CodeLens(range, { title: "$(beaker) Run Test", command: "separan.runFunction", arguments: [document.uri, structure.label] }));
     }
     return lenses;
@@ -1203,7 +1203,7 @@ async function runFunction(uri, name) {
   const structures = flattenStructures(documentStructure(document.getText()).roots);
   const target = structures.find((item) => item.kind === "SEP" && item.label === name);
   if (!target) return vscode.window.showErrorMessage(`Function ${name} was not found.`);
-  if (target.parameters.length) return vscode.window.showErrorMessage(`Run Function currently requires zero parameters; ${name} has ${target.parameters.length}.`);
+  if (target.parameters.length) return vscode.window.showErrorMessage(`Run SEP currently requires zero parameters; ${name} has ${target.parameters.length}.`);
   return runFunctionList(document, structures, [name], `Run ${name}`);
 }
 
