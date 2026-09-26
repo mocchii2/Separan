@@ -45,6 +45,8 @@ dispatch API: it loads an application with `--source`, reads one HTTP request
 JSON object per input line, and writes one response JSON object per output line.
 This transport is intentionally small and is the adapter boundary for future
 FastCGI and socket listeners.
+See [docs/separan-gw.md](../../docs/separan-gw.md) for the gateway contract,
+process model, and nginx/Apache adapter direction.
 The CLI enables the three local filesystem capabilities within the source
 file's directory and forwards arguments after the source path.
 Its parser builds and executes a native AST without CPython. `--check` uses the

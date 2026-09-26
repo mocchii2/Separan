@@ -87,6 +87,10 @@ The native CLI reference is available as the [separan(1) manual](docs/separan.1)
 It documents every command-line option, exit status, diagnostic format, and
 common invocation example.
 
+The initial `separan-gw` Gateway Worker is documented in
+[docs/separan-gw.md](docs/separan-gw.md). Its released transport is stdio JSON;
+FastCGI and socket adapters are the next gateway work.
+
 ## Try it in five minutes
 
 First, run a valid labeled block:
