@@ -62,6 +62,22 @@ On Linux, install the supervisor configuration at
 `/etc/separan-gw/separan-gw.conf` and keep the runtime socket at
 `/run/separan-gw/separan-gw.sock`.
 
+The systemd unit belongs at `/etc/systemd/system/separan-gw.service`. On
+Red Hat-family systems, service environment overrides conventionally live at
+`/etc/sysconfig/separan-gw`; Debian-family packages may use the equivalent
+`/etc/default/separan-gw` file. The unit should load that environment file and
+pass the configured application and listener paths to the future supervisor.
+
+Planned Linux layout:
+
+```text
+/etc/systemd/system/separan-gw.service
+/etc/separan-gw/separan-gw.conf
+/etc/sysconfig/separan-gw
+/run/separan-gw/separan-gw.sock
+/var/log/separan-gw/                 # supervisor-managed logs
+```
+
 The worker should load the application once, serve multiple requests, and exit
 nonzero after an unrecoverable application or transport error. A supervisor
 should restart it after failure and perform graceful replacement for upgrades.
