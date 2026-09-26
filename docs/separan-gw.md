@@ -58,6 +58,10 @@ separan-gw.conf
 separan-gw.sock
 ```
 
+On Linux, install the supervisor configuration at
+`/etc/separan-gw/separan-gw.conf` and keep the runtime socket at
+`/run/separan-gw/separan-gw.sock`.
+
 The worker should load the application once, serve multiple requests, and exit
 nonzero after an unrecoverable application or transport error. A supervisor
 should restart it after failure and perform graceful replacement for upgrades.
@@ -85,7 +89,7 @@ The final nginx configuration will use a FastCGI adapter socket:
 location / {
     include fastcgi_params;
     fastcgi_param SCRIPT_FILENAME /srv/app/app.sep;
-    fastcgi_pass unix:/run/separan/separan-gw.sock;
+    fastcgi_pass unix:/run/separan-gw/separan-gw.sock;
 }
 ```
 

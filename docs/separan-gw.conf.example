@@ -1,4 +1,5 @@
 # Separan Gateway Worker supervisor configuration
+# Install as /etc/separan-gw/separan-gw.conf on Linux.
 #
 # The current released separan-gw binary is a single stdio worker. These
 # settings define the supervisor contract for the upcoming socket/FastCGI
@@ -14,4 +15,4 @@ restart_backoff = 1s
 source = /srv/separan/app.sep
 
 # Planned listener. The current worker uses --stdio instead.
-listen = unix:/run/separan/separan-gw.sock
+listen = unix:/run/separan-gw/separan-gw.sock
