@@ -176,17 +176,22 @@ separan-structure inspect . --tag monitor:notification
 separan-structure verify before.sep after.sep --allow-tag monitor:notification
 ```
 
-CIやreview botでは`--json`を利用できます。VS Code v0.4拡張は編集中fileをGit `HEAD`と
+CIやreview botでは`--json`を利用できます。公開済みVS Code 1.0.1拡張は編集中fileをGit `HEAD`と
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v0.2.0-alpha.13
+## v0.2.0-alpha.14
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
 `#`／`##`コメント、厳密escape／Raw String、Semantic Tag metadata、AST表示が含まれます。
 v0.4 tooling層では、v0.1言語意味論を変えずに
 依存なしLSP、VS Code支援、構造diff、AI edit scope強制を追加しています。
+
+独立実装のnative C runtimeはPythonリファレンスとのcross-implementation適合suiteで検証されています。
+構造化diagnostic APIはsyntax、block、declaration、import、tag、HTTP routeの診断情報を提供し、
+保持したruntime instanceからも最後の失敗詳細を取得できます。現在のsuiteは2,144件を収集し、
+2,141件が成功、外部databaseが必要な3件はskipされます。VS Code拡張は`separan-language` 1.0.1として公開済みです。
 
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
@@ -204,7 +209,7 @@ Separan sourceへ移しました。
 
 ## Native LAN／Wi-Fi／DNS／TCP／UDP
 
-`0.2.0-alpha.13`のreference runtimeには、PC／server向けのcapability制御native network層を
+`0.2.0-alpha.14`のreference runtimeには、PC／server向けのcapability制御native network層を
 追加しました。曖昧なstringをすべての操作へ流さず、`ip_address`、
 `network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
 
@@ -491,7 +496,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanは現在 **v0.2.0-alpha.13** の実験的な処理系です。v1.0までは構文や
+Separanは現在 **v0.2.0-alpha.14** の実験的な処理系です。v1.0までは構文や
 診断が変更される可能性があります。現段階では本番利用ではなく、評価と
 フィードバックを目的としています。
 

@@ -18,10 +18,10 @@ The roadmap describes direction, not a compatibility promise.
 - implemented: capability-separated native interface inspection, strict IP values, deterministic DNS, and bounded TCP/UDP
 - implemented: `#`/`##` comment syntax, strict escapes, raw strings, and semantic tag metadata
 - implemented: exact semantic-tag inspection and edit-scope verification
-- implemented: reviewed Pico/Nano board profiles, logical pins, static capability validation,
+- preview scaffolding: reviewed Pico/Nano board profiles, logical pins, static capability validation,
   and portable GPIO/PWM/ADC/UART/I²C examples
-- implemented: Pico/Pico 2 C++ generation, official Pico SDK CMake/Ninja compile,
-  ELF/UF2/HEX verification, and explicit marker-checked BOOTSEL deployment
+- preview scaffolding: Pico/Pico 2 C++ generation and artifact validation exist;
+  firmware backends and deployment remain deferred
 - next: Pico W CYW43 and Arduino Core firmware backends, followed by SPI, sensor,
   Wi-Fi, and CloudWatch examples
 - implemented: LSP diagnostics recover across independent top-level declarations
@@ -37,8 +37,8 @@ The roadmap describes direction, not a compatibility promise.
 - implemented in the Python LSP backend: workspace function references,
   imported-call argument inference, Call Hierarchy, reference/test CodeLens,
   Run Current Function, and cross-file semantic-tag rename
-- next: semantic-tag workspace UI and wiring these backend requests into the
-  packaged VS Code extension
+- implemented: semantic-tag workspace UI, packaged VS Code integration, native
+  diagnostics, local providers, CodeLens, Call Hierarchy, and Extension Host tests
 
 ## v0.4 — structural AI workflows
 
@@ -56,14 +56,16 @@ The roadmap describes direction, not a compatibility promise.
 - implemented: click navigation and active-cursor scope tracking
 - implemented in the Python LSP backend: project-wide references and argument
   inference, Call Hierarchy, reference/test CodeLens, and Run Current Function
-- next: semantic-tag workspace UI and packaged extension integration
+- implemented: semantic-tag workspace UI and packaged extension integration
 
 ## v1.0 — stable language
 
 - freeze the core specification
 - implemented: publish a compatibility and versioning policy in `spec/versioning.md`
-- designate the Python implementation as the reference implementation
-- provide a complete conformance suite
+- implemented: designate the Python implementation as the normative reference
+- implemented: provide the cross-implementation conformance suite and native C
+  diagnostic regression coverage
+- next: freeze the 1.0 core specification and promote stable APIs explicitly
 
 ---
 
@@ -72,17 +74,17 @@ The roadmap describes direction, not a compatibility promise.
 - **v0.1-alpha:** 現在の処理系、ラベル検証、基本型、関数、制御構文
 - **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Semantic Tag、
   semantic scope検証、review済みPico／Nano profile、論理pin、portable Embedded sample、
-  Pico／Pico 2のC++／SDK compile／UF2書き込み、native interface／IP／DNS／TCP／UDP、
-  1,800件超の適合testとtop-level宣言単位のLSP parser recoveryを実装済み。次はPico W／Arduino
+  native interface／IP／DNS／TCP／UDP、
+  2,144件収集（2,141 passed、3 skipped）の適合testとtop-level宣言単位のLSP parser recoveryを実装済み。次はPico W／Arduino
   firmware backendとnested structureのrecoveryを含むbeta向け安定化
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
   label jump／rename、completion、signature、hint、symbol、fold、formatter）に加え、
   Python LSP backendのworkspace function references、引数型推論、Call Hierarchy、
-  reference／test CodeLens、Run Current Function、cross-file semantic tag renameを実装済み。
-  次はtag workspace UIとVS Code extensionへの接続
+  reference／test CodeLens、Run Current Function、cross-file semantic tag rename、tag workspace UI、
+  packaged VS Code extensionを実装済み
 - **v0.4:** AI edit scope、structural diff、対象外blockの無変更検証、machine-readable
   identity、独立browser adapter境界を実装済み
 - **v0.5:** 専用Structure Explorer、block別reads／writes／calls、Git変更状態、
   click移動、cursor scope追従を実装済み
-- **v1.0:** 互換性方針は`spec/versioning.md`に実装済み。仕様固定、Python Reference Implementation、
-  完全な適合suiteは継続作業
+- **v1.0:** 互換性方針、Python Reference Implementation、cross-implementation適合suiteは実装済み。
+  残りは仕様固定とstable APIの明示

@@ -23,3 +23,13 @@ A stable feature is not removed or incompatibly changed without a deprecation no
 The Python implementation is the normative behavioral reference. The conformance suite records observable behavior, including output, diagnostics, exit status, and side effects where applicable. Other implementations, including the independent C runtime, must pass the relevant conformance checks before being described as compatible.
 
 Preview features are tested for regressions but are not part of the 1.0 compatibility promise until their status is changed in the specification.
+
+## Current repository status
+
+The Python package version is `0.2.0a14`. The native C runtime is an
+independent implementation and is checked by the cross-implementation suite;
+the current repository run is 2,141 passed tests with 3 external database
+integration tests skipped. The VS Code extension is published as
+`separan-language` 1.0.1. These release numbers do not promote preview
+language features to the 1.0 compatibility promise; that requires an explicit
+core specification freeze.

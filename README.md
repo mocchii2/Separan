@@ -261,7 +261,7 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
-## v0.2.0-alpha.13
+## v0.2.0-alpha.14
 
 The current Python reference implementation includes strict label validation,
 detailed diagnostics, fixed inferred types, homogeneous lists, functions,
@@ -279,6 +279,19 @@ and Pico/Pico 2 C++ firmware generation with Pico SDK ELF/UF2/HEX builds.
 Built-ins use the same strict argument and type diagnostics as named logic
 blocks; implicit coercion remains forbidden.
 
+The independent native C runtime is checked against the Python reference by
+the cross-implementation conformance suite. Its public validation API exposes
+structured diagnostics for syntax, block, declaration, import, tag, and HTTP
+route errors, while retained runtime instances expose the last structured
+failure through the native diagnostic API. The current repository suite has
+2,144 collected tests, with 2,141 passing and 3 integration tests skipped when
+their external database is unavailable.
+
+The published VS Code extension is `separan-language` 1.0.1. It provides local
+language intelligence, native diagnostics, structural review workflows,
+semantic-tag navigation, CodeLens, Call Hierarchy, and Extension Host tests
+without a Python Language Server dependency.
+
 This release also adds the experimental [AWS Lambda runtime](spec/aws-lambda.md):
 host JSON is converted to immutable Separan values, parsed applications are
 cached across warm invocations, explicit `aws_*` adapters form the capability
@@ -288,7 +301,7 @@ suppression, and state decisions in Separan source.
 
 ## Native LAN, Wi-Fi, DNS, TCP, and UDP
 
-The `0.2.0-alpha.13` reference runtime provides a capability-gated native network
+The `0.2.0-alpha.14` reference runtime provides a capability-gated native network
 layer for desktop and server scripts. It uses dedicated `ip_address`,
 `network_interface`, `tcp_connection`, and `udp_socket` values rather than
 passing ambiguous strings through every operation.
@@ -379,9 +392,11 @@ system configurator. See the [native network specification](spec/network.md).
 
 ## One source, multiple embedded boards
 
-The embedded preview supports Raspberry Pi Pico/Pico W/Pico 2/Pico 2 W and
-Arduino Nano/Nano Every through reviewed board profiles. The portable Blink
-example names the board LED instead of copying a physical pin number:
+The embedded preview describes Raspberry Pi Pico/Pico W/Pico 2/Pico 2 W and
+Arduino Nano/Nano Every through reviewed board profiles. Firmware backends and
+deployment remain deferred; the portable Blink example documents the intended
+board-independent source shape and names the board LED instead of copying a
+physical pin number:
 
 ```separan
 SEP:main
@@ -402,8 +417,8 @@ endwhile:blink_loop
 END_SEP:main
 ```
 
-The source stays identical; only the build target changes. Pico and Pico 2 now
-run the complete C++ generation and official Pico SDK compile pipeline:
+The source is designed to stay identical when a supported firmware backend is
+connected; the build targets remain preview scaffolding for now:
 
 ```console
 separan build examples/embedded/01_blink.sep --board raspberry_pi_pico
@@ -616,11 +631,12 @@ The [reserved system context](https://github.com/mocchii2/Separan/blob/main/spec
 read-only execution metadata and its namespace boundary.
 The experimental [embedded board mapping](https://github.com/mocchii2/Separan/blob/main/spec/embedded-board-mapping.md)
 adds reviewed logical-pin profiles for Raspberry Pi Pico/Pico 2 and Arduino Nano/Nano Every,
-plus static validation and a Pico/Pico 2 C++ → Pico SDK → ELF/UF2/HEX firmware pipeline.
+plus static validation and preview firmware-generation scaffolding. Firmware backends and
+deployment remain deferred.
 
 ## Status
 
-Separan is experimental software at **v0.2.0-alpha.13**. The syntax and diagnostics
+Separan is experimental software at **v0.2.0-alpha.14**. The syntax and diagnostics
 may change before v1.0. It is ready for exploration, not production use.
 
 ## License
