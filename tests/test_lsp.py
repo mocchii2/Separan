@@ -340,7 +340,7 @@ END_SEP:main
             builtin = server.dispatch({"method": "workspace/executeCommand", "params": {
                 "command": "separan.runFunction", "arguments": [uri, "length", ["value"]],
             }})
-            self.assertIn("Unknown Separan function", builtin["error"])
+            self.assertIn("Unknown Separan SEP", builtin["error"])
 
     def test_test_function_code_lens_is_runnably_labeled(self):
         with tempfile.TemporaryDirectory() as temporary:

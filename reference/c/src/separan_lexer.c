@@ -9,7 +9,7 @@
 typedef struct { const char *spelling; const char *type; } Entry;
 
 static const Entry keywords[] = {
-    {"SEP", "FUNCTION"}, {"END_SEP", "END_FUNCTION"}, {"if", "IF"}, {"elseif", "ELSEIF"},
+    {"SEP", "SEP"}, {"END_SEP", "END_SEP"}, {"if", "IF"}, {"elseif", "ELSEIF"},
     {"else", "ELSE"}, {"endif", "ENDIF"}, {"while", "WHILE"},
     {"endwhile", "ENDWHILE"}, {"for", "FOR"}, {"in", "IN"},
     {"endfor", "ENDFOR"}, {"print", "PRINT"}, {"print_error", "PRINT_ERROR"},

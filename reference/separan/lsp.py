@@ -86,14 +86,14 @@ def _workspace_sources(server, current_uri):
     return sources
 
 
-def _function_index(source, uri, source_key):
+def _logic_index(source, uri, source_key):
     try:
         tokens = Lexer(source, uri).scan_tokens()
     except SeparanError:
         return None
     declarations, imports = {}, {}
     for index, token in enumerate(tokens):
-        if token.type == TokenType.FUNCTION and index + 2 < len(tokens):
+        if token.type == TokenType.SEP and index + 2 < len(tokens):
             if tokens[index + 1].type == TokenType.COLON and tokens[index + 2].type == TokenType.IDENTIFIER:
                 declarations.setdefault(tokens[index + 2].lexeme, []).append(index + 2)
         if token.type == TokenType.IMPORT and index + 3 < len(tokens):
@@ -145,14 +145,14 @@ def semantic_tag_workspace_edits(server, uri, old_name, new_name):
     return {"changes": changes} if changes else None
 
 
-def function_references(server, uri, line, character, include_declaration=False):
+def logic_references(server, uri, line, character, include_declaration=False):
     sources = _workspace_sources(server, uri)
     current_key = _source_key(uri)
     current = sources.get(current_key)
     if current is None:
         return []
     current_uri, current_source = current
-    current_index = _function_index(current_source, current_uri, current_key)
+    current_index = _logic_index(current_source, current_uri, current_key)
     if current_index is None:
         return []
     tokens, declarations, imports = current_index
@@ -177,7 +177,7 @@ def function_references(server, uri, line, character, include_declaration=False)
     if target is None:
         return []
     target_uri, target_source = target
-    target_index = _function_index(target_source, target_uri, target_key)
+    target_index = _logic_index(target_source, target_uri, target_key)
     if target_index is None:
         return []
     target_tokens, target_declarations, _ = target_index
@@ -189,7 +189,7 @@ def function_references(server, uri, line, character, include_declaration=False)
     if include_declaration:
         results.extend(_token_location(target_uri, target_tokens[index]) for index in declaration_indices)
     for source_key, (source_uri, source_text) in sources.items():
-        indexed = _function_index(source_text, source_uri, source_key)
+        indexed = _logic_index(source_text, source_uri, source_key)
         if indexed is None:
             continue
         source_tokens, source_declarations, source_imports = indexed
@@ -475,7 +475,7 @@ def completions(source, line, character):
         return {"isIncomplete": False, "items": [
             {"label": "@" + tag, "kind": 14, "sortText": "0" + tag,
              "textEdit": {"range": _range(line, start, character), "newText": "@" + tag},
-             "detail": "Separan function semantic tag"} for tag in known_tags
+             "detail": "Separan SEP semantic tag"} for tag in known_tags
         ]}
     for name, signature in BUILTIN_SIGNATURES.items():
         items.append({"label": name, "kind": 3, "sortText": "1" + name, "insertText": name + "($0)", "insertTextFormat": 2, "detail": signature})
@@ -606,7 +606,7 @@ def _call_hierarchy_item(info, function):
     selection_start = function.label_position.column - 1
     selection = lsp_range(selection_line, selection_start, selection_start + len(function.name))
     return {
-        "name": function.name, "kind": 12, "detail": "SEP function", "uri": info["uri"],
+        "name": function.name, "kind": 12, "detail": "SEP logic", "uri": info["uri"],
         "range": lsp_range(start_line, 0, end_character) | {
             "end": {"line": end_line, "character": end_character},
         },
@@ -627,7 +627,7 @@ def _call_hierarchy_target(programs, item):
 
 
 def prepare_call_hierarchy(server, uri, source, line, character):
-    references = function_references(server, uri, line, character, include_declaration=True)
+    references = logic_references(server, uri, line, character, include_declaration=True)
     if not references:
         return []
     name = word_at(source, line, character)
@@ -653,7 +653,7 @@ def reference_code_lenses(server, uri):
             continue
         line = function.label_position.line - 1
         character = function.label_position.column - 1
-        references = function_references(server, uri, line, character, include_declaration=False)
+        references = logic_references(server, uri, line, character, include_declaration=False)
         count = len(references)
         title = f"{count} reference" if count == 1 else f"{count} references"
         position = {"line": line, "character": character}
@@ -665,7 +665,7 @@ def reference_code_lenses(server, uri):
             },
         })
         if not function.parameters:
-            run_title = "Run Test" if function.name.startswith("test_") else "Run Function"
+            run_title = "Run Test" if function.name.startswith("test_") else "Run SEP"
             lenses.append({
                 "range": lsp_range(line, character, character + len(function.name)),
                 "command": {
@@ -678,7 +678,7 @@ def reference_code_lenses(server, uri):
 
 def run_logic(server, uri, function_name, arguments):
     if not uri.startswith("file:") or not isinstance(arguments, list):
-        return {"error": "Run Function requires a file-backed document and a JSON argument array."}
+        return {"error": "Run SEP requires a file-backed document and a JSON argument array."}
     path = _uri_to_path(uri).resolve()
     output = StringIO()
     runtime = None
@@ -688,7 +688,7 @@ def run_logic(server, uri, function_name, arguments):
         runtime = Interpreter(output=output, script_path=str(path), project_root=str(path.parent))
         runtime.run(program, invoke_main=False)
         if function_name not in runtime.functions:
-            return {"error": f"Unknown Separan function '{function_name}'.", "output": output.getvalue()}
+            return {"error": f"Unknown Separan SEP '{function_name}'.", "output": output.getvalue()}
         result = runtime.invoke(function_name, arguments)
         if type(result) in (bool, int, float, str):
             rendered_result = str(result)
@@ -759,7 +759,7 @@ def workspace_signature_help(server, uri, source, line, character):
     if current_source is None:
         return signature_help(source, line, character)
     current_uri, current_text = current_source
-    current_index = _function_index(current_text, current_uri, current_key)
+    current_index = _logic_index(current_text, current_uri, current_key)
     if current_index is None:
         return signature_help(source, line, character)
     _, _, import_paths = current_index
@@ -911,7 +911,7 @@ class Server:
             line, character = position["line"], position["character"]
             if method.endswith("references"):
                 include_declaration = params.get("context", {}).get("includeDeclaration", False)
-                return function_references(self, uri, line, character, include_declaration)
+                return logic_references(self, uri, line, character, include_declaration)
             if method.endswith("prepareCallHierarchy"):
                 return prepare_call_hierarchy(self, uri, source, line, character)
             if method.endswith("hover"): return hover(source, line, character)
@@ -944,7 +944,7 @@ class Server:
                 return None
             arguments = params.get("arguments") or []
             if len(arguments) < 2:
-                return {"error": "Run Function requires a document URI and function name."}
+                return {"error": "Run SEP requires a document URI and SEP name."}
             call_arguments = arguments[2] if len(arguments) > 2 else []
             return run_logic(self, arguments[0], arguments[1], call_arguments)
         elif method == "callHierarchy/incomingCalls":

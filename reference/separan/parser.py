@@ -13,7 +13,7 @@ class OpenBlock:
 
 
 class Parser:
-    CLOSERS = {T.ENDIF: "if", T.ENDWHILE: "while", T.ENDFOR: "for", T.END_FUNCTION: "SEP", T.END_OBJECT: "object", T.END_LIST: "list", T.ENDTRY: "try", T.END_ERROR: "error", T.END_HTTP_ROUTE: "http_route", T.END_TRANSACTION: "transaction"}
+    CLOSERS = {T.ENDIF: "if", T.ENDWHILE: "while", T.ENDFOR: "for", T.END_SEP: "SEP", T.END_OBJECT: "object", T.END_LIST: "list", T.ENDTRY: "try", T.END_ERROR: "error", T.END_HTTP_ROUTE: "http_route", T.END_TRANSACTION: "transaction"}
     ASSIGNMENTS = {
         T.EQUAL: None, T.PLUS_EQUAL: "+", T.MINUS_EQUAL: "-", T.STAR_EQUAL: "*",
         T.SLASH_EQUAL: "/", T.FLOOR_DIV_EQUAL: "//", T.PERCENT_EQUAL: "%",
@@ -65,7 +65,7 @@ class Parser:
     def _recover_top_level(self, start):
         start_token = self.tokens[start]
         outermost = self.stack[0] if self.stack else None
-        expected_kind = outermost.kind if outermost else ("SEP" if start_token.type == T.FUNCTION else None)
+        expected_kind = outermost.kind if outermost else ("SEP" if start_token.type == T.SEP else None)
         if expected_kind:
             closers = {token for token, kind in self.CLOSERS.items() if kind == expected_kind}
             while not self._at(T.EOF):
@@ -75,7 +75,7 @@ class Parser:
                     while not self._at(T.NEWLINE, T.EOF): self._advance()
                     self._newlines(); self.stack.clear()
                     return
-                if (self.current > start and token.type == T.FUNCTION
+                if (self.current > start and token.type == T.SEP
                         and token.position.line > start_token.position.line):
                     self.stack.clear()
                     return
@@ -108,7 +108,7 @@ class Parser:
             return self._http_route()
         if token.type == T.IDENTIFIER and token.lexeme == "function":
             raise error("E100", "Legacy function syntax is not supported", "Use SEP:name / END_SEP:name instead of function:name / end_function:name.", token.position, actual="function")
-        if token.type == T.FUNCTION:
+        if token.type == T.SEP:
             if not top_level:
                 raise error("E110", "Invalid nested SEP", "SEP declarations may only be defined at top level.", token.position, actual=token.lexeme)
             return self._sep()
@@ -267,8 +267,8 @@ class Parser:
             if tag.lexeme in tags:
                 raise error("E218", "Duplicate SEP tag", f"Tag '@{tag.lexeme}' is already attached to SEP '{name.lexeme}'.", tag.position, actual="@" + tag.lexeme)
             tags.append(tag.lexeme); self._line_end(); self._newlines()
-        body = self._body_until({T.END_FUNCTION})
-        self._close(T.END_FUNCTION, "SEP")
+        body = self._body_until({T.END_SEP})
+        self._close(T.END_SEP, "SEP")
         return LogicDecl(start.position, name.lexeme, params, tags, body, name.position, parameter_types)
 
     def _import(self):

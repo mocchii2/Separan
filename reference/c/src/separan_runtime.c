@@ -989,7 +989,7 @@ static Body parse_block_body(Runtime *r,separan_token *opener,const char *stop_a
     r->parse_open_line=old_line;r->parse_open_column=old_column;r->parse_open_label=old_label;return body;
 }
 static int closer_token(const char *type) {
-    const char *closers[]={"END_FUNCTION","ENDIF","ENDWHILE","ENDFOR","END_OBJECT","END_LIST","ENDTRY","END_ERROR","END_HTTP_ROUTE","END_TRANSACTION","ELSE","ELSEIF","CATCH","FINALLY"};
+    const char *closers[]={"END_SEP","ENDIF","ENDWHILE","ENDFOR","END_OBJECT","END_LIST","ENDTRY","END_ERROR","END_HTTP_ROUTE","END_TRANSACTION","ELSE","ELSEIF","CATCH","FINALLY"};
     for(size_t i=0;i<sizeof(closers)/sizeof(*closers);i++)if(!strcmp(type,closers[i]))return 1;
     return 0;
 }
@@ -1000,7 +1000,7 @@ static const char *expected_closer_type(const char *stop_a,const char *stop_b) {
 }
 static const char *closer_spelling(const char *type) {
     if(!type)return "end";
-    if(!strcmp(type,"END_FUNCTION"))return "END_SEP";
+    if(!strcmp(type,"END_SEP"))return "END_SEP";
     if(!strcmp(type,"ENDIF"))return "endif";
     if(!strcmp(type,"ENDWHILE"))return "endwhile";
     if(!strcmp(type,"ENDFOR"))return "endfor";
@@ -1110,7 +1110,7 @@ static Stmt *parse_stmt_inner(Runtime *r) {
         Stmt *s=new_stmt(15);if(at(r,"STRING"))s->expr=parse_atom(r);else fault_syntax(r,"expected import path","Expected quoted .sep path after import.");
         expect_syntax(r,"AS","Expected 'as' after import path.");if(at(r,"IDENTIFIER"))s->name=copy_text(take(r)->lexeme);else fault_syntax(r,"expected import alias","Expected import alias.");return s;
     }
-    if (accept(r, "FUNCTION")) {
+    if (accept(r, "SEP")) {
         Stmt *s = new_stmt(5);
         separan_token *block_label=NULL;
         expect_syntax(r,"COLON","Expected ':' after function.");
@@ -1148,9 +1148,9 @@ static Stmt *parse_stmt_inner(Runtime *r) {
                                 tag_token->line,tag_token->column);
             }
             char **next=realloc(s->tags,(s->tag_count+1)*sizeof(*next));if(!next)fault(r,"out of memory");else{s->tags=next;s->tags[s->tag_count++]=copy_text(tag);}expect_line_end(r);}
-        s->body = parse_block_body(r,block_label?block_label:head,"END_FUNCTION", NULL);
+        s->body = parse_block_body(r,block_label?block_label:head,"END_SEP", NULL);
         s->end_line=peek(r)->line;
-        expect_block_closer(r,"END_FUNCTION","function"); expect_block_closer_colon(r);
+        expect_block_closer(r,"END_SEP","SEP"); expect_block_closer_colon(r);
         if (s->name) check_closing_label(r,s->name,"function label mismatch",s->name_line,s->name_column);
         else if (!r->error) fault_syntax(r,"expected function label","Expected closing block label.");
         return s;
