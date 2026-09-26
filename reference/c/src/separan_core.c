@@ -1,4 +1,5 @@
 #include "separan_core.h"
+#include "separan_runtime.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -10,7 +11,6 @@
 typedef enum {
     BLOCK_NONE = 0,
     BLOCK_SEP,
-    BLOCK_FUNCTION,
     BLOCK_IF,
     BLOCK_WHILE,
     BLOCK_FOR,
@@ -36,7 +36,6 @@ typedef struct {
 static const char *block_kind_name(BlockKind kind) {
     switch (kind) {
         case BLOCK_SEP: return "SEP";
-        case BLOCK_FUNCTION: return "function";
         case BLOCK_IF: return "if";
         case BLOCK_WHILE: return "while";
         case BLOCK_FOR: return "for";
@@ -53,7 +52,6 @@ static const char *block_kind_name(BlockKind kind) {
 static const char *closer_for_kind(BlockKind kind) {
     switch (kind) {
         case BLOCK_SEP: return "END_SEP";
-        case BLOCK_FUNCTION: return "end_function";
         case BLOCK_IF: return "endif";
         case BLOCK_WHILE: return "endwhile";
         case BLOCK_FOR: return "endfor";
@@ -102,6 +100,15 @@ static int starts_with_keyword(const char *text, const char *keyword) {
         return 0;
     }
     return 1;
+}
+
+static int is_legacy_function_line(const char *text, const char *word) {
+    size_t length=strlen(word);
+    if(strncmp(text,word,length)!=0)return 0;
+    const char *cursor=text+length;
+    if(*cursor!=':'&&*cursor!=' '&&*cursor!='\t')return 0;
+    while(*cursor==' '||*cursor=='\t')cursor++;
+    return *cursor==':';
 }
 
 static char *label_after_prefix(const char *text, const char *prefix) {
@@ -186,8 +193,13 @@ static void reset_result(separan_result *result) {
     result->error_count = 0U;
     for (size_t index = 0; index < SEPARAN_MAX_ERRORS; index++) {
         result->errors[index].line_number = 0;
+        result->errors[index].column_number = 0;
+        result->errors[index].related_line_number = 0;
+        result->errors[index].related_column_number = 0;
         result->errors[index].code[0] = '\0';
+        result->errors[index].category[0] = '\0';
         result->errors[index].title[0] = '\0';
+        result->errors[index].description[0] = '\0';
         result->errors[index].expected[0] = '\0';
         result->errors[index].actual[0] = '\0';
     }
@@ -201,8 +213,13 @@ static void record_error(const char *code, const char *title, int line_number, c
     if (g_last_result.error_count < SEPARAN_MAX_ERRORS) {
         separan_error *entry = &g_last_result.errors[g_last_result.error_count++];
         entry->line_number = line_number;
+        entry->column_number = 0;
+        entry->related_line_number = 0;
+        entry->related_column_number = 0;
         snprintf(entry->code, sizeof(entry->code), "%s", code);
+        entry->category[0] = '\0';
         snprintf(entry->title, sizeof(entry->title), "%s", title);
+        entry->description[0] = '\0';
         if (expected != NULL) {
             snprintf(entry->expected, sizeof(entry->expected), "%s", expected);
         }
@@ -409,14 +426,13 @@ static int parse_line(BlockStack *stack, char *trimmed, int line_number, int *in
     if (starts_with_keyword(trimmed, "SEP:")) {
         return handle_open_block(stack, BLOCK_SEP, trimmed, line_number);
     }
-    if (starts_with_keyword(trimmed, "function:")) {
-        return handle_open_block(stack, BLOCK_FUNCTION, trimmed, line_number);
+    if (is_legacy_function_line(trimmed, "function") || is_legacy_function_line(trimmed, "end_function")) {
+        print_error("E100", "Legacy function syntax is not supported", line_number,
+                    "SEP:name / END_SEP:name", trimmed);
+        return 1;
     }
     if (starts_with_keyword(trimmed, "END_SEP:") || starts_with_keyword(trimmed, "end_SEP:") || starts_with_keyword(trimmed, "end_sep:")) {
         return handle_close_block(stack, BLOCK_SEP, trimmed, line_number);
-    }
-    if (starts_with_keyword(trimmed, "end_function:")) {
-        return handle_close_block(stack, BLOCK_FUNCTION, trimmed, line_number);
     }
     if (starts_with_keyword(trimmed, "if") && strchr(trimmed, ':') != NULL) {
         return handle_open_block(stack, BLOCK_IF, trimmed, line_number);
@@ -500,17 +516,60 @@ void separan_result_free(separan_result *result) {
     reset_result(result);
 }
 
+static void capture_validation_error(FILE *stream,int status,
+                                     const separan_runtime_diagnostic *details) {
+    if(!status)return;
+    char diagnostic[512]={0};
+    if(stream){rewind(stream);if(!fgets(diagnostic,sizeof(diagnostic),stream))diagnostic[0]=0;}
+    separan_error *entry=&g_last_result.errors[0];
+    char code[SEPARAN_CODE_LEN]={0},title[SEPARAN_MESSAGE_LEN]={0};
+    if(sscanf(diagnostic,"SEPARAN %15[^:]: %255[^\r\n]",code,title)==2){
+        snprintf(entry->code,sizeof(entry->code),"%s",code);
+        char *location=strstr(title," at line ");
+        if(!location)location=strstr(title," at line");
+        if(location){int line=0,column=0;if(sscanf(location+9,"%d, column %d",&line,&column)==2){entry->line_number=line;location[0]='\0';}}
+        snprintf(entry->title,sizeof(entry->title),"%s",title);
+    }else{
+        snprintf(entry->code,sizeof(entry->code),"E000");
+        snprintf(entry->title,sizeof(entry->title),"Validation failed");
+        snprintf(entry->actual,sizeof(entry->actual),"%s",diagnostic[0]?diagnostic:"runtime parser failed");
+    }
+    if(details){
+        if(details->line_number)entry->line_number=(int)details->line_number;
+        entry->column_number=(int)details->column_number;
+        entry->related_line_number=(int)details->related_line_number;
+        entry->related_column_number=(int)details->related_column_number;
+        if(details->category[0])snprintf(entry->category,sizeof(entry->category),"%s",details->category);
+        if(details->description[0])snprintf(entry->description,sizeof(entry->description),"%s",details->description);
+        if(details->expected[0])snprintf(entry->expected,sizeof(entry->expected),"%s",details->expected);
+        if(details->actual[0])snprintf(entry->actual,sizeof(entry->actual),"%s",details->actual);
+    }
+    g_last_result.ok=0;g_last_result.error_count=1;
+}
+
 separan_result separan_validate_source(const char *source) {
     reset_result(&g_last_result);
-    int status = separan_analyze_source(source);
-    g_last_result.ok = (status == 0);
+    if(!source){record_error("E000","Null source",0,"a valid source string","NULL");return g_last_result;}
+    FILE *diagnostics=tmpfile();
+    if(!diagnostics){record_error("E000","Validation failed",0,"an available temporary stream","tmpfile failed");return g_last_result;}
+    separan_runtime_diagnostic details={0};
+    int status=separan_check_source_detailed(source,diagnostics,&details);
+    capture_validation_error(diagnostics,status,&details);
+    fclose(diagnostics);
+    g_last_result.ok=status==0;
     return g_last_result;
 }
 
 separan_result separan_validate_path(const char *path) {
     reset_result(&g_last_result);
-    int status = separan_analyze_path(path);
-    g_last_result.ok = (status == 0);
+    if(!path){record_error("E000","Null file path",0,"a valid file path","NULL");return g_last_result;}
+    FILE *diagnostics=tmpfile();
+    if(!diagnostics){record_error("E000","Validation failed",0,"an available temporary stream","tmpfile failed");return g_last_result;}
+    separan_runtime_diagnostic details={0};
+    int status=separan_check_path_detailed(path,diagnostics,&details);
+    capture_validation_error(diagnostics,status,&details);
+    fclose(diagnostics);
+    g_last_result.ok=status==0;
     return g_last_result;
 }
 

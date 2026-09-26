@@ -5,8 +5,8 @@ from .token import SourcePosition, Token, TokenType
 
 
 KEYWORDS = {
-    "function": TokenType.FUNCTION, "sep": TokenType.FUNCTION, "SEP": TokenType.FUNCTION,
-    "end_function": TokenType.END_FUNCTION, "end_sep": TokenType.END_FUNCTION, "END_SEP": TokenType.END_FUNCTION,
+    "sep": TokenType.FUNCTION, "SEP": TokenType.FUNCTION,
+    "end_sep": TokenType.END_FUNCTION, "END_SEP": TokenType.END_FUNCTION,
     "if": TokenType.IF, "elseif": TokenType.ELSEIF, "else": TokenType.ELSE,
     "endif": TokenType.ENDIF, "while": TokenType.WHILE,
     "endwhile": TokenType.ENDWHILE, "for": TokenType.FOR, "in": TokenType.IN,

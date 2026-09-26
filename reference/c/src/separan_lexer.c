@@ -4,11 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "separan_unicode_tables.inc"
+
 typedef struct { const char *spelling; const char *type; } Entry;
 
 static const Entry keywords[] = {
-    {"function", "FUNCTION"}, {"sep", "FUNCTION"}, {"end_function", "END_FUNCTION"},
-    {"end_sep", "END_FUNCTION"}, {"if", "IF"}, {"elseif", "ELSEIF"},
+    {"sep", "FUNCTION"}, {"end_sep", "END_FUNCTION"}, {"if", "IF"}, {"elseif", "ELSEIF"},
     {"else", "ELSE"}, {"endif", "ENDIF"}, {"while", "WHILE"},
     {"endwhile", "ENDWHILE"}, {"for", "FOR"}, {"in", "IN"},
     {"endfor", "ENDFOR"}, {"print", "PRINT"}, {"print_error", "PRINT_ERROR"},
@@ -87,6 +88,93 @@ static size_t unicode_column(const char *line, size_t byte_offset) {
     return column;
 }
 
+static int in_unicode_ranges(unsigned codepoint, const UnicodeRange *ranges, size_t count) {
+    size_t low = 0, high = count;
+    while (low < high) {
+        size_t middle = low + (high - low) / 2;
+        if (codepoint < ranges[middle].first) high = middle;
+        else if (codepoint > ranges[middle].last) low = middle + 1;
+        else return 1;
+    }
+    return 0;
+}
+
+static int identifier_start(unsigned codepoint) {
+    if (codepoint < 0x80) return name_start((unsigned char)codepoint);
+    return in_unicode_ranges(codepoint, unicode_identifier_start_ranges,
+        sizeof(unicode_identifier_start_ranges) / sizeof(*unicode_identifier_start_ranges));
+}
+
+static int identifier_continue(unsigned codepoint) {
+    if (codepoint < 0x80) return name_part((unsigned char)codepoint);
+    return in_unicode_ranges(codepoint, unicode_identifier_continue_ranges,
+        sizeof(unicode_identifier_continue_ranges) / sizeof(*unicode_identifier_continue_ranges));
+}
+
+int separan_is_identifier(const char *text) {
+    if (!text || !*text) return 0;
+    size_t length = strlen(text);
+    for (size_t at = 0; at < length;) {
+        size_t width; unsigned codepoint;
+        if (!utf8_next(text, length, at, &width, &codepoint) ||
+            !(at == 0 ? identifier_start(codepoint) : identifier_continue(codepoint))) return 0;
+        at += width;
+    }
+    return 1;
+}
+
+static unsigned combining_class(unsigned codepoint) {
+    size_t low = 0, high = sizeof(unicode_combining_classes) / sizeof(*unicode_combining_classes);
+    while (low < high) {
+        size_t middle = low + (high - low) / 2;
+        if (codepoint < unicode_combining_classes[middle].codepoint) high = middle;
+        else if (codepoint > unicode_combining_classes[middle].codepoint) low = middle + 1;
+        else return unicode_combining_classes[middle].value;
+    }
+    return 0;
+}
+
+static int has_composition(unsigned first, unsigned second) {
+    /* Hangul composition is algorithmic and is omitted from UnicodeData decompositions. */
+    if (first >= 0x1100 && first <= 0x1112 && second >= 0x1161 && second <= 0x1175) return 1;
+    if (first >= 0xAC00 && first <= 0xD7A3 && (first - 0xAC00) % 28 == 0 &&
+        second >= 0x11A8 && second <= 0x11C2) return 1;
+    size_t low = 0, high = sizeof(unicode_compositions) / sizeof(*unicode_compositions);
+    while (low < high) {
+        size_t middle = low + (high - low) / 2;
+        const UnicodeComposition *item = &unicode_compositions[middle];
+        if (first < item->first || (first == item->first && second < item->second)) high = middle;
+        else if (first > item->first || (first == item->first && second > item->second)) low = middle + 1;
+        else return 1;
+    }
+    return 0;
+}
+
+static int nfc_normalized(const char *text, size_t length) {
+    unsigned starter = 0, previous_class = 0;
+    int have_starter = 0;
+    for (size_t at = 0; at < length;) {
+        size_t width; unsigned codepoint;
+        if (!utf8_next(text, length, at, &width, &codepoint)) return 0;
+        if (in_unicode_ranges(codepoint, unicode_nfc_no_ranges,
+            sizeof(unicode_nfc_no_ranges) / sizeof(*unicode_nfc_no_ranges))) return 0;
+        unsigned current_class = combining_class(codepoint);
+        if (current_class && previous_class > current_class) return 0;
+        if (have_starter && has_composition(starter, codepoint) &&
+            (previous_class == 0 || previous_class < current_class)) return 0;
+        if (!current_class) { starter = codepoint; have_starter = 1; }
+        previous_class = current_class;
+        at += width;
+    }
+    return 1;
+}
+
+static int identifier_at(const char *text, size_t length, size_t at, int first,
+                         size_t *width, unsigned *codepoint) {
+    if (!utf8_next(text, length, at, width, codepoint)) return -1;
+    return first ? identifier_start(*codepoint) : identifier_continue(*codepoint);
+}
+
 static const char *keyword_type(const char *start, size_t length) {
     for (size_t i = 0; i < sizeof(keywords) / sizeof(*keywords); i++) {
         const char *word = keywords[i].spelling;
@@ -126,6 +214,7 @@ int separan_lex(const char *source, separan_tokens *result) {
     const char *cursor = source;
     size_t line = 1;
     int in_comment = 0;
+    size_t comment_open_line = 0, comment_open_column = 0;
     char *comment_label = NULL;
     while (*cursor) {
         const char *start = cursor;
@@ -140,17 +229,12 @@ int separan_lex(const char *source, separan_tokens *result) {
             size_t label_length = end - offset - 2;
             int delimiter = 1;
             for (size_t j = offset + 2; j < end;) {
-                unsigned char part = (unsigned char)start[j];
-                if (part < 0x80) { if (!name_part(part)) delimiter = 0; j++; }
-                else {
-                    size_t width; unsigned codepoint;
-                    if (!utf8_next(start, end, j, &width, &codepoint) ||
-                        (codepoint >= 0x300 && codepoint <= 0x36F)) { delimiter = 0; break; }
-                    j += width;
-                }
+                size_t width; unsigned codepoint;
+                int valid = identifier_at(start, end, j, j == offset + 2, &width, &codepoint);
+                if (valid <= 0) { delimiter = 0; break; }
+                j += width;
             }
-            if (label_length && (unsigned char)start[offset + 2] < 0x80 &&
-                !name_start((unsigned char)start[offset + 2])) delimiter = 0;
+            if (delimiter && !nfc_normalized(start + offset + 2, label_length)) delimiter = 0;
             if (delimiter) {
                 newline_column = unicode_column(start, offset);
                 if (!in_comment) {
@@ -158,6 +242,8 @@ int separan_lex(const char *source, separan_tokens *result) {
                     if (!comment_label) goto memory_error;
                     memcpy(comment_label, start + offset + 2, label_length);
                     comment_label[label_length] = '\0';
+                    comment_open_line = line;
+                    comment_open_column = unicode_column(start, offset);
                     in_comment = 1;
                 } else if (strlen(comment_label) == label_length &&
                            memcmp(comment_label, start + offset + 2, label_length) == 0) {
@@ -175,13 +261,31 @@ int separan_lex(const char *source, separan_tokens *result) {
                 if (c == ' ' || c == '\t') { i++; continue; }
                 if (c == '#') break;
                 size_t first = i;
+                size_t token_column = first;
                 const char *type = NULL;
                 if (c == '@') {
                     i++;
-                    if (i >= length || !name_start((unsigned char)start[i])) {
+                    size_t width; unsigned codepoint;
+                    int valid = i < length ? identifier_at(start, length, i, 1, &width, &codepoint) : 0;
+                    if (valid <= 0) {
                         free(comment_label); return fail(result, "E216", line, first + 1);
                     }
-                    while (i < length && (name_part((unsigned char)start[i]) || start[i] == ':')) i++;
+                    for (;;) {
+                        while (i < length) {
+                            valid = identifier_at(start, length, i, i == first + 1 || start[i - 1] == ':',
+                                                  &width, &codepoint);
+                            if (valid < 0) { free(comment_label); return fail(result, "E216", line, first + 1); }
+                            if (!valid) break;
+                            i += width;
+                        }
+                        if (i >= length || start[i] != ':') break;
+                        i++;
+                        valid = i < length ? identifier_at(start, length, i, 1, &width, &codepoint) : 0;
+                        if (valid <= 0) { free(comment_label); return fail(result, "E216", line, first + 1); }
+                    }
+                    if (!nfc_normalized(start + first + 1, i - first - 1)) {
+                        free(comment_label); return fail(result, "E216", line, first + 1);
+                    }
                     type = "TAG";
                     first++;
                 } else if (c == '"' || (c == 'r' && i + 1 < length && start[i + 1] == '"')) {
@@ -245,24 +349,27 @@ int separan_lex(const char *source, separan_tokens *result) {
                     type = "NUMBER";
                 } else if (name_start(c) || c >= 0x80) {
                     int non_ascii = 0;
+                    if (c >= 0x80) {
+                        size_t width; unsigned codepoint;
+                        int valid = identifier_at(start, length, i, 1, &width, &codepoint);
+                        if (valid < 0) { free(comment_label); return fail(result, "E101", line, unicode_column(start, i)); }
+                        if (!valid) { free(comment_label); return fail(result, "E100", line, unicode_column(start, i)); }
+                    }
                     while (i < length) {
-                        unsigned char part = (unsigned char)start[i];
-                        if (part < 0x80) { if (!name_part(part)) break; i++; }
-                        else {
-                            size_t width; unsigned codepoint;
-                            if (!utf8_next(start, length, i, &width, &codepoint)) {
-                                free(comment_label); return fail(result, "E101", line, unicode_column(start, i));
-                            }
-                            if (codepoint >= 0x300 && codepoint <= 0x36F) {
-                                free(comment_label); return fail(result, "E102", line, unicode_column(start, first));
-                            }
-                            non_ascii = 1; i += width;
-                        }
+                        size_t width; unsigned codepoint;
+                        int valid = identifier_at(start, length, i, i == first, &width, &codepoint);
+                        if (valid < 0) { free(comment_label); return fail(result, "E101", line, unicode_column(start, i)); }
+                        if (!valid) break;
+                        if (codepoint >= 0x80) non_ascii = 1;
+                        i += width;
                     }
                     int after_colon = result->count &&
                         !strcmp(result->tokens[result->count - 1].type, "COLON");
                     if (non_ascii && !after_colon) {
                         free(comment_label); return fail(result, "E101", line, unicode_column(start, first));
+                    }
+                    if (non_ascii && !nfc_normalized(start + first, i - first)) {
+                        free(comment_label); return fail(result, "E102", line, unicode_column(start, first));
                     }
                     type = non_ascii ? "LABEL" : keyword_type(start + first, i - first);
                     if ((i - first == 4 && memcmp(start + first, "null", 4) == 0) ||
@@ -279,7 +386,7 @@ int separan_lex(const char *source, separan_tokens *result) {
                     if (!type) { free(comment_label); return fail(result, "E100", line, first + 1); }
                 }
                 if (!append(result, type, start + first, i - first, line,
-                            unicode_column(start, first))) goto memory_error;
+                            unicode_column(start, token_column))) goto memory_error;
             }
         }
         if (!append(result, "NEWLINE", "\n", 1, line,
@@ -288,7 +395,7 @@ int separan_lex(const char *source, separan_tokens *result) {
         if (*cursor == '\n') cursor++;
         line++;
     }
-    if (in_comment) { free(comment_label); return fail(result, "E106", line - 1, 1); }
+    if (in_comment) { free(comment_label); return fail(result, "E106", comment_open_line, comment_open_column); }
     if (!append(result, "EOF", "", 0, line, 1)) goto memory_error;
     return 0;
 memory_error:

@@ -84,7 +84,7 @@ class NetworkServiceTests(unittest.TestCase):
         return caught.exception
 
     def test_access_point_requires_secret_and_reports_redacted_status(self):
-        source = '''function:main
+        source = '''SEP:main
 wifi = wifi_open()
 password = secret_from_environment("SETUP_PASSWORD")
 wifi_start_access_point(wifi, ssid = "Separan-Device", password = password, channel = 6)
@@ -93,7 +93,7 @@ print status.state
 print status.ssid
 print status.client_count
 wifi_stop_access_point(wifi)
-end_function:main
+END_SEP:main
 '''
         output = self.run_source(source, environment={"SETUP_PASSWORD": "setup-pass"})
         self.assertEqual(output, "running\nSeparan-Device\n2\n")
@@ -102,25 +102,25 @@ end_function:main
         self.assertNotIn("setup-pass", output)
 
     def test_access_point_rejects_open_or_short_password_and_bad_channel(self):
-        def program(body): return f"function:main\nwifi = wifi_open()\n{body}\nend_function:main\n"
+        def program(body): return f"SEP:main\nwifi = wifi_open()\n{body}\nEND_SEP:main\n"
         self.assert_error(program('wifi_start_access_point(wifi, ssid = "Setup", password = "plaintext")'), "E201")
         self.assert_error(program('password = secret_from_environment("P")\nwifi_start_access_point(wifi, ssid = "Setup", password = password)'), "E984", environment={"P": "short"})
         self.assert_error(program('password = secret_from_environment("P")\nwifi_start_access_point(wifi, ssid = "Setup", password = password, channel = 0)'), "E984", environment={"P": "long-enough"})
 
     def test_access_point_rejects_duplicate_start_on_one_interface(self):
-        source = '''function:main
+        source = '''SEP:main
 wifi = wifi_open()
 password = secret_from_environment("P")
 wifi_start_access_point(wifi, ssid = "Setup", password = password)
 wifi_start_access_point(wifi, ssid = "Setup-2", password = password)
-end_function:main
+END_SEP:main
 '''
         self.assert_error(source, "E984", environment={"P": "long-enough"})
 
     def test_dhcp_server_configuration_status_leases_and_cleanup(self):
         source = '''object:empty
 end_object:empty
-function:main
+SEP:main
 wifi = wifi_open()
 reserved = object_set(empty, "AA:BB:CC:DD:EE:90", "192.168.4.90")
 dhcp = dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = 24, pool_start = "192.168.4.10", pool_end = "192.168.4.50", gateway = "192.168.4.1", dns_servers = ["192.168.4.1"], lease_time = duration("1h"), reservations = reserved)
@@ -128,7 +128,7 @@ print dhcp_server_status(dhcp)
 leases = dhcp_server_leases(dhcp)
 print leases[0].address
 print leases[0].hostname
-end_function:main
+END_SEP:main
 '''
         output = self.run_source(source)
         self.assertEqual(output, "running\n192.168.4.10\nphone\n")
@@ -141,12 +141,12 @@ end_function:main
         def source(extra="", pool_end="192.168.4.50", prefix=24):
             return f'''object:empty
 end_object:empty
-function:main
+SEP:main
 wifi = wifi_open()
 reserved = empty
 {extra}
 dhcp_server_start(wifi, server_address = "192.168.4.1", prefix = {prefix}, pool_start = "192.168.4.10", pool_end = "{pool_end}", lease_time = duration("1h"), reservations = reserved)
-end_function:main
+END_SEP:main
 '''
         self.assert_error(source(pool_end="192.168.5.10"), "E982")
         self.assert_error(source(pool_end="192.168.4.9"), "E982")
@@ -158,14 +158,14 @@ end_function:main
     def test_dns_server_normalizes_records_and_requires_explicit_catch_all(self):
         source = '''object:empty
 end_object:empty
-function:main
+SEP:main
 wifi = wifi_open()
 records = object_set(empty, "Setup.Separan.", "192.168.4.1")
 dns = dns_server_start(wifi, server_address = "192.168.4.1", records = records, catch_all = true)
 print dns_server_status(dns)
 dns_server_stop(dns)
 print dns_server_status(dns)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(self.run_source(source), "running\nstopped\n")
         configuration = next(item[2] for item in self.adapter.operations if item[0] == "dns_start")
@@ -174,11 +174,11 @@ end_function:main
     def test_dns_server_rejects_invalid_names_records_and_adapter_results(self):
         source = '''object:empty
 end_object:empty
-function:main
+SEP:main
 wifi = wifi_open()
 records = object_set(empty, "bad_name", "192.168.4.1")
 dns_server_start(wifi, server_address = "192.168.4.1", records = records)
-end_function:main
+END_SEP:main
 '''
         self.assert_error(source, "E983")
         limited = replace(self.host, max_dns_server_records=0)
@@ -186,16 +186,16 @@ end_function:main
         self.assert_error(source, "E975", capabilities=limited)
         empty = '''object:records
 end_object:records
-function:main
+SEP:main
 wifi = wifi_open()
 dns_server_start(wifi, server_address = "192.168.4.1", records = records)
-end_function:main
+END_SEP:main
 '''
         self.assert_error(empty, "E983")
 
     def test_service_hosting_is_a_separate_capability(self):
         inspect_only = replace(RuntimeCapabilities.local(ROOT), inspect_network=True, configure_network=True)
-        caught = self.assert_error('function:main\nwifi = wifi_open()\npassword = secret_from_environment("P")\nwifi_start_access_point(wifi, ssid = "Setup", password = password)\nend_function:main\n', "E720", capabilities=inspect_only, environment={"P": "long-enough"})
+        caught = self.assert_error('SEP:main\nwifi = wifi_open()\npassword = secret_from_environment("P")\nwifi_start_access_point(wifi, ssid = "Setup", password = password)\nEND_SEP:main\n', "E720", capabilities=inspect_only, environment={"P": "long-enough"})
         self.assertIn("host local network services", str(caught))
 
     def test_missing_adapter_operation_is_explicit(self):
@@ -203,16 +203,16 @@ end_function:main
             def interfaces(inner): return self.adapter.interfaces()
         source = '''object:empty
 end_object:empty
-function:main
+SEP:main
 wifi = wifi_open()
 records = object_set(empty, "setup.separan", "192.168.4.1")
 dns_server_start(wifi, server_address = "192.168.4.1", records = records)
-end_function:main
+END_SEP:main
 '''
         self.assert_error(source, "E978", adapter=InspectionOnly())
 
     def test_service_errors_are_catchable_as_network_error(self):
-        source = '''function:main
+        source = '''SEP:main
 try :host
 wifi = wifi_open()
 password = secret_from_environment("P")
@@ -220,7 +220,7 @@ wifi_start_access_point(wifi, ssid = "Setup", password = password, channel = 20)
 catch network_error :host
 print "caught"
 endtry:host
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(self.run_source(source, environment={"P": "long-enough"}), "caught\n")
 

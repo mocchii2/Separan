@@ -20,14 +20,14 @@ class ConstTests(unittest.TestCase):
 
     def test_global_and_local_constants(self):
         source = '''const app_name = "Separan"
-function:main
+SEP:main
 const max_retry = 3
 retry = 0
 retry = retry + 1
 print app_name
 print max_retry
 print retry
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "Separan\n3\n1\n")
 
@@ -42,7 +42,7 @@ end_function:main
         self.assertEqual(error.related.line, 1)
 
     def test_local_constant_reassignment_is_error(self):
-        source = 'function:main\nconst limit = 10\nlimit = 20\nend_function:main\n'
+        source = 'SEP:main\nconst limit = 10\nlimit = 20\nEND_SEP:main\n'
         self.assert_error(source, "E211")
 
     def test_duplicate_const_and_mutable_name_are_errors(self):
@@ -54,7 +54,7 @@ end_function:main
         self.assert_error('const values = [1, "x"]\n', "E203")
 
     def test_function_scope_can_shadow_global_const_without_mutating_it(self):
-        source = 'const value = 1\nfunction:main\nvalue = 2\nprint value\nend_function:main\nprint value\n'
+        source = 'const value = 1\nSEP:main\nvalue = 2\nprint value\nEND_SEP:main\nprint value\n'
         self.assertEqual(execute(source)[1], "1\n2\n")
 
     def test_const_requires_name_equals_and_value(self):

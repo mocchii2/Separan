@@ -1,4 +1,8 @@
 *.vsix
+*.tgz
+.gitignore
+.vscode-test/**
+test/**
 package-lock.json
 node_modules/.bin/**
 node_modules/**/test/**

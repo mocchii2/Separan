@@ -11,10 +11,10 @@ BLOCK_KINDS = {
     "transaction": ("end_transaction", 5),
 }
 CLOSER_KIND = {closer: kind for kind, (closer, _) in BLOCK_KINDS.items()}
-CLOSER_KIND.update({"END_SEP": "SEP", "end_sep": "SEP", "end_function": "SEP"})
+CLOSER_KIND.update({"END_SEP": "SEP", "end_sep": "SEP"})
 LABEL = r"[^\s:()]+"
-OPEN_RE = re.compile(r"^\s*(SEP|sep|function|if|while|for|object|list|try|error|http_route|transaction)\b.*?:(" + LABEL + r")\s*(?:\([^\n]*\))?\s*$")
-CLOSE_RE = re.compile(r"^\s*(END_SEP|end_sep|end_function|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):(" + LABEL + r")\s*$")
+OPEN_RE = re.compile(r"^\s*(SEP|sep|if|while|for|object|list|try|error|http_route|transaction)\b.*?:(" + LABEL + r")\s*(?:\([^\n]*\))?\s*$")
+CLOSE_RE = re.compile(r"^\s*(END_SEP|end_sep|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):(" + LABEL + r")\s*$")
 BRANCH_RE = re.compile(r"^\s*(elseif\b.*?|else|catch\b.*?|finally):(" + LABEL + r")\s*$")
 ASSIGN_RE = re.compile(r"^\s*(const\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$")
 SCALAR_TYPE_PATTERN = r"(?:number|string|boolean|object|bytes|datetime|local_datetime|timezone|duration|secret|regex_match_result|exec_result|http_profile|http_response|http_auth|oauth_token|cookie_jar|mail_address|mail_message|mail_sender|mail_send_result|xml_document|xml_element|db_connection|board|pin|embedded_bus|ip_address|network_interface|tcp_connection|udp_socket|dhcp_server|dns_server)"
@@ -285,7 +285,7 @@ def analyze_blocks(source):
         if opened:
             kind = opened.group(1)
             label = opened.group(2) if opened.lastindex and opened.lastindex >= 2 else opened.group(0).split(":")[-1].strip()
-            normalized_kind = "SEP" if kind.lower().replace("_", "") in {"sep", "function"} else kind
+            normalized_kind = "SEP" if kind.lower().replace("_", "") == "sep" else kind
             label_start = text.rfind(":" + label) + 1
             item = Block(normalized_kind, label, number, label_start, BLOCK_KINDS.get(normalized_kind, (None, 12))[1], stack[-1] if stack else None)
             item.occurrences.append(LabelOccurrence(number, label_start, label_start + len(label), "open"))
@@ -301,7 +301,7 @@ def analyze_blocks(source):
             closer = closed.group(1)
             label = closed.group(2) if closed.lastindex and closed.lastindex >= 2 else closed.group(0).split(":")[-1].strip()
             start = text.rfind(":" + label) + 1
-            expected_kind = CLOSER_KIND.get(closer, "SEP" if closer.lower().replace("_", "") in {"endsep", "endfunction"} else closer)
+            expected_kind = CLOSER_KIND.get(closer, "SEP" if closer.lower().replace("_", "") == "endsep" else closer)
             if stack and stack[-1].kind == expected_kind and stack[-1].label == label:
                 item = stack.pop(); item.end_line = number
                 item.occurrences.append(LabelOccurrence(number, start, start + len(label), "close"))
@@ -376,7 +376,7 @@ def variables(source):
                 parameter_type = "list" if declared and declared.startswith("list") else declared or "unknown"
                 result.append(Variable(parameter, parameter_type, number, start, False, scope_stack[-1], True))
             continue
-        if re.match(r"^\s*(?:end_function|end_sep|END_SEP):", code):
+        if re.match(r"^\s*(?:end_sep|END_SEP):", code):
             if len(scope_stack) > 1: scope_stack.pop()
             continue
         opened_object = re.match(r"^\s*object:([A-Za-z_][A-Za-z0-9_]*)", code)
@@ -425,7 +425,7 @@ def scope_at(source, line):
         if comment_label is not None: continue
         code = _code_text(text); opened = FUNCTION_RE.match(code)
         if opened: scope = "logic " + opened.group(1)
-        elif re.match(r"^\s*(?:end_function|end_sep|END_SEP):", code): scope = "global"
+        elif re.match(r"^\s*(?:end_sep|END_SEP):", code): scope = "global"
     return scope
 
 

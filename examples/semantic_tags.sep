@@ -13,9 +13,9 @@ Tags are metadata and this comment is ignored by the runtime.
 
 path = r"C:\App\logs\application.log" # Backslashes stay literal.
 print "監視対象:\n" + path
-end_SEP:notification_path
+END_SEP:notification_path
 
 SEP:main
 @example
 notification_path()
-end_SEP:main
+END_SEP:main

@@ -1,0 +1,84 @@
+name: Database integration
+
+on:
+  push:
+    paths:
+      - "reference/separan/db/**"
+      - "reference/separan/capabilities.py"
+      - "reference/separan/cli.py"
+      - "tests/test_database.py"
+      - "tests/test_database_integration.py"
+      - "pyproject.toml"
+      - ".github/workflows/database-integration.yml"
+  pull_request:
+    paths:
+      - "reference/separan/db/**"
+      - "reference/separan/capabilities.py"
+      - "reference/separan/cli.py"
+      - "tests/test_database.py"
+      - "tests/test_database_integration.py"
+      - "pyproject.toml"
+      - ".github/workflows/database-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-databases:
+    runs-on: ubuntu-latest
+    services:
+      postgresql:
+        image: postgres:17
+        env:
+          POSTGRES_DB: separan
+          POSTGRES_USER: separan
+          POSTGRES_PASSWORD: separan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U separan -d separan"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: separan
+          MYSQL_USER: separan
+          MYSQL_PASSWORD: separan
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install database drivers and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[postgresql,mysql]" pytest
+
+      - name: Run SQLite and external database tests
+        env:
+          SEPARAN_TEST_DATABASE_REQUIRED: postgresql,mysql
+          SEPARAN_TEST_POSTGRESQL_HOST: 127.0.0.1
+          SEPARAN_TEST_POSTGRESQL_PORT: "5432"
+          SEPARAN_TEST_POSTGRESQL_DATABASE: separan
+          SEPARAN_TEST_POSTGRESQL_USER: separan
+          SEPARAN_TEST_POSTGRESQL_PASSWORD: separan
+          SEPARAN_TEST_MYSQL_HOST: 127.0.0.1
+          SEPARAN_TEST_MYSQL_PORT: "3306"
+          SEPARAN_TEST_MYSQL_DATABASE: separan
+          SEPARAN_TEST_MYSQL_USER: separan
+          SEPARAN_TEST_MYSQL_PASSWORD: separan
+        run: python -m pytest -q tests/test_database.py tests/test_database_integration.py

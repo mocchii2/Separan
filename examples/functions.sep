@@ -1,8 +1,8 @@
 SEP:add(a, b)
 return a + b
-end_SEP:add
+END_SEP:add
 
 SEP:main
 print add(20, 22)
-end_SEP:main
+END_SEP:main
 

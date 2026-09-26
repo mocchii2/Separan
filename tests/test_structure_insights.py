@@ -3,7 +3,7 @@ import unittest
 from separan.structure_insights import document_structure
 
 
-SOURCE = '''function:main(value)
+SOURCE = '''SEP:main(value)
 config = read_text(path)
 if user.active :active_user
 result = notify(user.name)
@@ -11,7 +11,7 @@ while retrying :retry_connection
 attempt = reconnect(server)
 endwhile:retry_connection
 endif:active_user
-end_function:main
+END_SEP:main
 '''
 
 

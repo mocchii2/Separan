@@ -3,7 +3,7 @@ if age is EMPTY :age_missing
 return "Age unknown"
 endif:age_missing
 return "Age " + string(age)
-end_SEP:show_age
+END_SEP:show_age
 
 SEP:main
 number age = EMPTY
@@ -14,4 +14,4 @@ print show_age(age)
 
 age = EMPTY
 print age is EMPTY
-end_SEP:main
+END_SEP:main

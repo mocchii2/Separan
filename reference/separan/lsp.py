@@ -6,19 +6,28 @@ import os
 import re
 import sys
 import unicodedata
+from dataclasses import fields, is_dataclass
+from io import StringIO
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from .ast_nodes import (
+    BinaryExpr, CallExpr, EmptyTestExpr, EmptysTestExpr, FunctionDecl, GroupExpr,
+    ImportStmt, ListExpr, LiteralExpr, MemberCallExpr, MemberExpr, UnaryExpr, VariableExpr,
+)
 from .errors import SeparanError
 from .builtins import BUILTINS
+from .interpreter import Interpreter
 from .lexer import Lexer
 from .parser import Parser
+from .token import TokenType
 from .embedded import BOARD_PROFILES
 from .structural import ScopeResolutionError, inspect_source, structural_diff, verify_scopes, verify_tag_scope
 from .structure_insights import document_structure
 from .lsp_analysis import (
     BLOCK_KINDS, BUILTIN_SIGNATURES, analyze_blocks, block_at, format_source,
-    lsp_range, resolve_variable, static_type_diagnostics, variable_at, variables, word_at,
+    _literal_type, lsp_range, resolve_variable, scope_at, static_type_diagnostics,
+    variable_at, variables, word_at,
 )
 
 for _builtin_name in BUILTINS:
@@ -43,29 +52,197 @@ def _uri_to_path(uri):
     return Path(path)
 
 
+def _source_key(uri):
+    return _uri_to_path(uri).resolve() if uri.startswith("file:") else uri
+
+
+def _workspace_sources(server, current_uri):
+    sources = {}
+    roots = server.workspace_roots
+    if not roots and current_uri.startswith("file:"):
+        roots = [_uri_to_path(current_uri).resolve().parent]
+    excluded = {".git", ".venv", "venv", "node_modules", "__pycache__", "dist"}
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for directory, children, filenames in os.walk(root):
+            children[:] = [name for name in children if name not in excluded]
+            for filename in filenames:
+                if not filename.endswith(".sep"):
+                    continue
+                path = Path(directory) / filename
+                try:
+                    sources[path.resolve()] = (path.resolve().as_uri(), path.read_text(encoding="utf-8"))
+                except (OSError, UnicodeDecodeError):
+                    continue
+    for uri, source in server.documents.items():
+        sources[_source_key(uri)] = (uri, source)
+    current_key = _source_key(current_uri)
+    if current_key not in sources:
+        try:
+            sources[current_key] = (current_uri, server.source(current_uri))
+        except (OSError, UnicodeDecodeError):
+            pass
+    return sources
+
+
+def _function_index(source, uri, source_key):
+    try:
+        tokens = Lexer(source, uri).scan_tokens()
+    except SeparanError:
+        return None
+    declarations, imports = {}, {}
+    for index, token in enumerate(tokens):
+        if token.type == TokenType.FUNCTION and index + 2 < len(tokens):
+            if tokens[index + 1].type == TokenType.COLON and tokens[index + 2].type == TokenType.IDENTIFIER:
+                declarations.setdefault(tokens[index + 2].lexeme, []).append(index + 2)
+        if token.type == TokenType.IMPORT and index + 3 < len(tokens):
+            path_token, as_token, alias_token = tokens[index + 1:index + 4]
+            if (isinstance(source_key, Path) and path_token.type == TokenType.STRING
+                    and as_token.type == TokenType.AS and alias_token.type == TokenType.IDENTIFIER):
+                imports[alias_token.lexeme] = (source_key.parent / path_token.literal).resolve()
+    return tokens, declarations, imports
+
+
+def _token_location(uri, token):
+    line = token.position.line - 1
+    start = token.position.column - 1
+    return {"uri": uri, "range": lsp_range(line, start, start + len(token.lexeme))}
+
+
+def _valid_semantic_tag(tag):
+    return bool(tag) and all(
+        segment.isidentifier() and unicodedata.is_normalized("NFC", segment)
+        for segment in tag.split(":")
+    )
+
+
+def semantic_tag_workspace_edits(server, uri, old_name, new_name):
+    if not _valid_semantic_tag(new_name):
+        return None
+    changes = {}
+    for source_uri, source in _workspace_sources(server, uri).values():
+        try:
+            tokens = Lexer(source, source_uri).scan_tokens()
+        except SeparanError:
+            continue
+        try:
+            program = Parser(tokens).parse()
+        except SeparanError:
+            program = None
+        if program and new_name != old_name:
+            if any(old_name in item.tags and new_name in item.tags
+                   for item in program.statements if isinstance(item, FunctionDecl)):
+                return None
+        edits = []
+        for token in tokens:
+            if token.type == TokenType.TAG and token.lexeme == old_name:
+                line = token.position.line - 1
+                start = token.position.column
+                edits.append({"range": lsp_range(line, start, start + len(old_name)), "newText": new_name})
+        if edits:
+            changes[source_uri] = edits
+    return {"changes": changes} if changes else None
+
+
+def function_references(server, uri, line, character, include_declaration=False):
+    sources = _workspace_sources(server, uri)
+    current_key = _source_key(uri)
+    current = sources.get(current_key)
+    if current is None:
+        return []
+    current_uri, current_source = current
+    current_index = _function_index(current_source, current_uri, current_key)
+    if current_index is None:
+        return []
+    tokens, declarations, imports = current_index
+    selected_index = next((index for index, token in enumerate(tokens)
+                           if token.type == TokenType.IDENTIFIER and token.position.line - 1 == line
+                           and token.position.column - 1 <= character <= token.position.column - 1 + len(token.lexeme)), None)
+    if selected_index is None:
+        return []
+    selected = tokens[selected_index]
+    target_key = current_key
+    name = selected.lexeme
+    if selected_index >= 2 and tokens[selected_index - 1].type == TokenType.DOT:
+        alias = tokens[selected_index - 2]
+        if alias.type != TokenType.IDENTIFIER or alias.lexeme not in imports:
+            return []
+        target_key = imports[alias.lexeme]
+    elif selected_index + 1 >= len(tokens) or tokens[selected_index + 1].type != TokenType.LPAREN:
+        if selected_index not in declarations.get(name, ()):
+            return []
+
+    target = sources.get(target_key)
+    if target is None:
+        return []
+    target_uri, target_source = target
+    target_index = _function_index(target_source, target_uri, target_key)
+    if target_index is None:
+        return []
+    target_tokens, target_declarations, _ = target_index
+    declaration_indices = target_declarations.get(name, ())
+    if not declaration_indices:
+        return []
+
+    results = []
+    if include_declaration:
+        results.extend(_token_location(target_uri, target_tokens[index]) for index in declaration_indices)
+    for source_key, (source_uri, source_text) in sources.items():
+        indexed = _function_index(source_text, source_uri, source_key)
+        if indexed is None:
+            continue
+        source_tokens, source_declarations, source_imports = indexed
+        if source_key == target_key:
+            declaration_set = set(source_declarations.get(name, ()))
+            for index, token in enumerate(source_tokens):
+                if (token.type == TokenType.IDENTIFIER and token.lexeme == name and index not in declaration_set
+                        and index + 1 < len(source_tokens) and source_tokens[index + 1].type == TokenType.LPAREN
+                        and not (index and source_tokens[index - 1].type == TokenType.DOT)):
+                    results.append(_token_location(source_uri, token))
+        for alias, imported_key in source_imports.items():
+            if imported_key != target_key:
+                continue
+            for index in range(len(source_tokens) - 3):
+                if (source_tokens[index].type == TokenType.IDENTIFIER and source_tokens[index].lexeme == alias
+                        and source_tokens[index + 1].type == TokenType.DOT
+                        and source_tokens[index + 2].type == TokenType.IDENTIFIER
+                        and source_tokens[index + 2].lexeme == name
+                        and source_tokens[index + 3].type == TokenType.LPAREN):
+                    results.append(_token_location(source_uri, source_tokens[index + 2]))
+    return results
+
+
+def _diagnostic_from_error(exc, uri):
+    line = max(0, exc.position.line - 1)
+    start = max(0, exc.position.column - 1)
+    width = max(1, len(exc.actual or ""))
+    replacement = None
+    if exc.code == "E104" and exc.expected and ":" in exc.expected:
+        replacement = exc.expected.split(":", 1)[1]
+        width = max(1, len((exc.actual or "").split(":", 1)[-1]))
+    elif exc.code == "E105" and exc.expected:
+        replacement = exc.expected
+    item = {"range": _range(line, start, start + width), "severity": 1,
+            "code": exc.code, "source": "separan", "message": f"{exc.category}: {exc.description}"}
+    if exc.expected and exc.actual:
+        item["message"] += f"\nExpected: {exc.expected}\nActual: {exc.actual}"
+        if replacement is not None:
+            item["data"] = {"replacement": replacement, "title": exc.expected, "actual": exc.actual}
+    if exc.related is not None:
+        item["relatedInformation"] = [{"location": {"uri": uri, "range": _range(exc.related.line - 1, exc.related.column - 1, exc.related.column)}, "message": "Opened here"}]
+    return item
+
+
 def diagnostic(source, uri):
     try:
-        Parser(Lexer(source, uri).scan_tokens()).parse()
-        return static_type_diagnostics(source)
+        tokens = Lexer(source, uri).scan_tokens()
     except SeparanError as exc:
-        line = max(0, exc.position.line - 1)
-        start = max(0, exc.position.column - 1)
-        width = max(1, len(exc.actual or ""))
-        replacement = None
-        if exc.code == "E104" and exc.expected and ":" in exc.expected:
-            replacement = exc.expected.split(":", 1)[1]
-            width = max(1, len((exc.actual or "").split(":", 1)[-1]))
-        elif exc.code == "E105" and exc.expected:
-            replacement = exc.expected
-        item = {"range": _range(line, start, start + width), "severity": 1,
-                "code": exc.code, "source": "separan", "message": f"{exc.category}: {exc.description}"}
-        if exc.expected and exc.actual:
-            item["message"] += f"\nExpected: {exc.expected}\nActual: {exc.actual}"
-            if replacement is not None:
-                item["data"] = {"replacement": replacement, "title": exc.expected, "actual": exc.actual}
-        if exc.related is not None:
-            item["relatedInformation"] = [{"location": {"uri": uri, "range": _range(exc.related.line - 1, exc.related.column - 1, exc.related.column)}, "message": "Opened here"}]
-        return [item]
+        return [_diagnostic_from_error(exc, uri)]
+    _, parse_errors = Parser(tokens).parse_with_diagnostics()
+    if parse_errors:
+        return [_diagnostic_from_error(exc, uri) for exc in parse_errors]
+    return static_type_diagnostics(source)
 
 
 def blocks(source):
@@ -128,10 +305,10 @@ def semantic_tokens(source):
     for item in known: variables_by_name.setdefault(item.name, []).append(item)
     scopes, scope = [], "global"
     for text in lines:
-        opened = re.match(r"^\s*(?:SEP|sep|function):([A-Za-z_][A-Za-z0-9_]*)", text)
+        opened = re.match(r"^\s*(?:SEP|sep):([A-Za-z_][A-Za-z0-9_]*)", text)
         if opened: scope = "logic " + opened.group(1)
         scopes.append(scope)
-        if re.match(r"^\s*(?:END_SEP|end_sep|end_function):", text): scope = "global"
+        if re.match(r"^\s*(?:END_SEP|end_sep):", text): scope = "global"
     def add(line, start, length, token_type, modifiers=0):
         cells = {(line, index) for index in range(start, start + length)}
         if length <= 0 or cells & occupied: return
@@ -245,7 +422,7 @@ def definition(source, line, character, uri):
     if variable: return {"uri": uri, "range": lsp_range(variable.line, variable.start, variable.start + len(variable.name))}
     word = word_at(source, line, character)
     if word:
-        pattern = re.compile(r"^\s*(?:SEP|sep|function):" + re.escape(word[0]) + r"\b")
+        pattern = re.compile(r"^\s*(?:SEP|sep):" + re.escape(word[0]) + r"\b")
         for number, text in enumerate(source.splitlines()):
             found = pattern.match(text)
             if found:
@@ -302,7 +479,7 @@ def completions(source, line, character):
         ]}
     for name, signature in BUILTIN_SIGNATURES.items():
         items.append({"label": name, "kind": 3, "sortText": "1" + name, "insertText": name + "($0)", "insertTextFormat": 2, "detail": signature})
-    for function in re.finditer(r"^\s*(?:SEP|sep|function):([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?", source, re.MULTILINE):
+    for function in re.finditer(r"^\s*(?:SEP|sep):([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?", source, re.MULTILINE):
         name, params = function.group(1), function.group(2) or ""
         items.append({"label": name, "kind": 3, "sortText": "1" + name, "insertText": name + "($0)", "insertTextFormat": 2, "detail": f"{name}({params}) -> inferred"})
     if re.search(r"\bif\b.*\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$", prefix):
@@ -319,11 +496,324 @@ def signature_help(source, line, character):
     if not match: return None
     label = BUILTIN_SIGNATURES.get(match.group(1))
     if label is None:
-        function = re.search(r"^\s*(?:SEP|sep|function):" + re.escape(match.group(1)) + r"(?:\(([^)]*)\))?", source, re.MULTILINE)
+        function = re.search(r"^\s*(?:SEP|sep):" + re.escape(match.group(1)) + r"(?:\(([^)]*)\))?", source, re.MULTILINE)
         if not function: return None
         label = f"{match.group(1)}({function.group(1) or ''}) -> inferred"
     active = match.group(2).count(",")
     return {"signatures": [{"label": label}], "activeSignature": 0, "activeParameter": active}
+
+
+def _call_expressions(value):
+    if isinstance(value, (CallExpr, MemberCallExpr)):
+        yield value
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            yield from _call_expressions(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _call_expressions(item)
+    elif is_dataclass(value):
+        for item in fields(value):
+            if item.name != "position":
+                yield from _call_expressions(getattr(value, item.name))
+
+
+def _argument_type(expression, source, known_variables):
+    if isinstance(expression, LiteralExpr):
+        value = expression.value
+        if type(value) is bool: return "boolean"
+        if type(value) in (int, float): return "number"
+        if isinstance(value, str): return "string"
+        return "unknown"
+    if isinstance(expression, ListExpr): return "list"
+    if isinstance(expression, GroupExpr): return _argument_type(expression.expression, source, known_variables)
+    if isinstance(expression, UnaryExpr):
+        return "boolean" if expression.operator == "not" else _argument_type(expression.operand, source, known_variables)
+    if isinstance(expression, (EmptyTestExpr, EmptysTestExpr)): return "boolean"
+    if isinstance(expression, VariableExpr):
+        line = expression.position.line - 1
+        item = resolve_variable(known_variables, expression.name, line, scope_at(source, line))
+        return item.type if item and item.type != "unknown" else "unknown"
+    if isinstance(expression, MemberExpr) and isinstance(expression.target, VariableExpr):
+        line = expression.position.line - 1
+        item = resolve_variable(known_variables, expression.target.name, line, scope_at(source, line))
+        if item:
+            return item.members.get(expression.name, "unknown")
+    if isinstance(expression, CallExpr):
+        return _literal_type(expression.callee + "()")
+    if isinstance(expression, MemberCallExpr):
+        return _literal_type(expression.name + "()")
+    if isinstance(expression, BinaryExpr):
+        if expression.operator in ("==", "!=", ">", ">=", "<", "<=", "in", "not in", "&&", "||"):
+            return "boolean"
+        left = _argument_type(expression.left, source, known_variables)
+        right = _argument_type(expression.right, source, known_variables)
+        if expression.operator == "+" and left == right == "string": return "string"
+        if left == right == "number": return "number"
+    return "unknown"
+
+
+def _workspace_programs(sources):
+    programs = {}
+    for source_key, (source_uri, source_text) in sources.items():
+        try:
+            program = Parser(Lexer(source_text, source_uri).scan_tokens()).parse()
+        except SeparanError:
+            continue
+        functions = {item.name: item for item in program.statements if isinstance(item, FunctionDecl)}
+        imports = {
+            item.alias: (source_key.parent / item.path).resolve()
+            for item in program.statements
+            if isinstance(item, ImportStmt) and isinstance(source_key, Path)
+        }
+        programs[source_key] = {
+            "uri": source_uri, "source": source_text, "program": program,
+            "functions": functions, "imports": imports,
+        }
+    return programs
+
+
+def _called_function(expression, source_key, imports):
+    if isinstance(expression, CallExpr):
+        return source_key, expression.callee
+    if isinstance(expression, MemberCallExpr) and isinstance(expression.target, VariableExpr):
+        target_key = imports.get(expression.target.name)
+        if target_key is not None:
+            return target_key, expression.name
+    return None
+
+
+def _call_range(expression):
+    if isinstance(expression, CallExpr):
+        line = expression.position.line - 1
+        start = expression.position.column - 1
+        return lsp_range(line, start, start + len(expression.callee))
+    line = expression.position.line - 1
+    start = expression.target.position.column - 1
+    end = expression.position.column + len(expression.name)
+    return lsp_range(line, start, end)
+
+
+def _call_hierarchy_item(info, function):
+    source = info["source"]
+    lines = source.splitlines()
+    start_line = function.position.line - 1
+    matching = [block for block in analyze_blocks(source)[1]
+                if block.kind == "SEP" and block.label == function.name and block.line == start_line]
+    end_line = matching[0].end_line if matching and matching[0].end_line is not None else start_line
+    end_character = len(lines[end_line]) if end_line < len(lines) else 0
+    selection_line = function.label_position.line - 1
+    selection_start = function.label_position.column - 1
+    selection = lsp_range(selection_line, selection_start, selection_start + len(function.name))
+    return {
+        "name": function.name, "kind": 12, "detail": "SEP function", "uri": info["uri"],
+        "range": lsp_range(start_line, 0, end_character) | {
+            "end": {"line": end_line, "character": end_character},
+        },
+        "selectionRange": selection,
+        "data": {"uri": info["uri"], "name": function.name},
+    }
+
+
+def _call_hierarchy_target(programs, item):
+    data = item.get("data") or {}
+    uri, name = data.get("uri"), data.get("name")
+    if not uri or not name:
+        return None
+    key = _source_key(uri)
+    info = programs.get(key)
+    function = info["functions"].get(name) if info else None
+    return (key, info, function) if function is not None else None
+
+
+def prepare_call_hierarchy(server, uri, source, line, character):
+    references = function_references(server, uri, line, character, include_declaration=True)
+    if not references:
+        return []
+    name = word_at(source, line, character)
+    if not name:
+        return []
+    declaration = references[0]
+    sources = _workspace_sources(server, uri)
+    programs = _workspace_programs(sources)
+    info = programs.get(_source_key(declaration["uri"]))
+    function = info["functions"].get(name[0]) if info else None
+    return [_call_hierarchy_item(info, function)] if function is not None else []
+
+
+def reference_code_lenses(server, uri):
+    source = server.source(uri)
+    try:
+        program = Parser(Lexer(source, uri).scan_tokens()).parse()
+    except SeparanError:
+        return []
+    lenses = []
+    for function in program.statements:
+        if not isinstance(function, FunctionDecl):
+            continue
+        line = function.label_position.line - 1
+        character = function.label_position.column - 1
+        references = function_references(server, uri, line, character, include_declaration=False)
+        count = len(references)
+        title = f"{count} reference" if count == 1 else f"{count} references"
+        position = {"line": line, "character": character}
+        lenses.append({
+            "range": lsp_range(line, character, character + len(function.name)),
+            "command": {
+                "title": title, "command": "editor.action.showReferences",
+                "arguments": [uri, position, references],
+            },
+        })
+        if not function.parameters:
+            run_title = "Run Test" if function.name.startswith("test_") else "Run Function"
+            lenses.append({
+                "range": lsp_range(line, character, character + len(function.name)),
+                "command": {
+                    "title": run_title, "command": "separan.runFunction",
+                    "arguments": [uri, function.name, []],
+                },
+            })
+    return lenses
+
+
+def run_function(server, uri, function_name, arguments):
+    if not uri.startswith("file:") or not isinstance(arguments, list):
+        return {"error": "Run Function requires a file-backed document and a JSON argument array."}
+    path = _uri_to_path(uri).resolve()
+    output = StringIO()
+    runtime = None
+    try:
+        source = server.source(uri)
+        program = Parser(Lexer(source, str(path)).scan_tokens()).parse()
+        runtime = Interpreter(output=output, script_path=str(path), project_root=str(path.parent))
+        runtime.run(program, invoke_main=False)
+        if function_name not in runtime.functions:
+            return {"error": f"Unknown Separan function '{function_name}'.", "output": output.getvalue()}
+        result = runtime.invoke(function_name, arguments)
+        if type(result) in (bool, int, float, str):
+            rendered_result = str(result)
+        else:
+            rendered_result = f"<{type(result).__name__}>"
+        return {"output": output.getvalue(), "result": rendered_result}
+    except (SeparanError, OSError, UnicodeDecodeError) as exc:
+        return {"error": str(exc), "output": output.getvalue()}
+    finally:
+        if runtime is not None:
+            runtime.close_resources()
+
+
+def incoming_call_hierarchy(server, item):
+    programs = _workspace_programs(_workspace_sources(server, item.get("uri", "")))
+    target = _call_hierarchy_target(programs, item)
+    if target is None:
+        return []
+    target_key, _, target_function = target
+    incoming = []
+    for source_key, info in programs.items():
+        for function in info["program"].statements:
+            if not isinstance(function, FunctionDecl):
+                continue
+            ranges = []
+            for expression in _call_expressions(function.body):
+                callee = _called_function(expression, source_key, info["imports"])
+                if callee == (target_key, target_function.name):
+                    ranges.append(_call_range(expression))
+            if ranges:
+                incoming.append({"from": _call_hierarchy_item(info, function), "fromRanges": ranges})
+    return incoming
+
+
+def outgoing_call_hierarchy(server, item):
+    programs = _workspace_programs(_workspace_sources(server, item.get("uri", "")))
+    target = _call_hierarchy_target(programs, item)
+    if target is None:
+        return []
+    source_key, info, function = target
+    grouped = {}
+    for expression in _call_expressions(function.body):
+        callee = _called_function(expression, source_key, info["imports"])
+        if callee is None:
+            continue
+        callee_key, callee_name = callee
+        callee_info = programs.get(callee_key)
+        callee_function = callee_info["functions"].get(callee_name) if callee_info else None
+        if callee_function is None:
+            continue
+        key = (callee_key, callee_name)
+        if key not in grouped:
+            grouped[key] = {"to": _call_hierarchy_item(callee_info, callee_function), "fromRanges": []}
+        grouped[key]["fromRanges"].append(_call_range(expression))
+    return list(grouped.values())
+
+
+def workspace_signature_help(server, uri, source, line, character):
+    lines = source.splitlines()
+    prefix = lines[line][:character] if line < len(lines) else ""
+    call = re.search(r"([A-Za-z_][A-Za-z0-9_]*)\(([^()]*)$", prefix)
+    if not call:
+        return None
+    name = call.group(1)
+    current_key = _source_key(uri)
+    sources = _workspace_sources(server, uri)
+    current_source = sources.get(current_key)
+    if current_source is None:
+        return signature_help(source, line, character)
+    current_uri, current_text = current_source
+    current_index = _function_index(current_text, current_uri, current_key)
+    if current_index is None:
+        return signature_help(source, line, character)
+    _, _, import_paths = current_index
+    target_key = current_key
+    qualified = re.search(r"([A-Za-z_][A-Za-z0-9_]*)\.$", prefix[:call.start(1)])
+    if qualified:
+        target_key = import_paths.get(qualified.group(1))
+        if target_key is None:
+            return signature_help(source, line, character)
+
+    programs = _workspace_programs(sources)
+
+    target = programs.get(target_key)
+    function = target["functions"].get(name) if target else None
+    if function is None:
+        return signature_help(source, line, character)
+
+    observed = {parameter: set() for parameter in function.parameters}
+    for source_key, info in programs.items():
+        source_text = info["source"]
+        known_variables = variables(source_text)
+        for expression in _call_expressions(info["program"]):
+            arguments = expression.arguments
+            matches = (source_key == target_key and isinstance(expression, CallExpr)
+                       and expression.callee == name)
+            if isinstance(expression, MemberCallExpr) and isinstance(expression.target, VariableExpr):
+                matches = expression.name == name and info["imports"].get(expression.target.name) == target_key
+            if not matches:
+                continue
+            for parameter, argument in zip(function.parameters, arguments):
+                inferred = _argument_type(argument, source_text, known_variables)
+                if inferred not in ("unknown", "EMPTY"):
+                    observed[parameter].add(inferred)
+
+    target_source = target["source"]
+    declaration_line = target_source.splitlines()[function.position.line - 1]
+    header = re.search(r"^\s*(?:SEP|sep):" + re.escape(name) + r"\(([^)]*)\)", declaration_line)
+    original_parameters = {}
+    if header:
+        for parameter in header.group(1).split(","):
+            parameter = parameter.strip()
+            if parameter:
+                original_parameters[parameter.split(":", 1)[0].strip()] = parameter
+    rendered_parameters = []
+    for parameter in function.parameters:
+        if parameter in function.parameter_types:
+            rendered_parameters.append(original_parameters.get(parameter, parameter))
+            continue
+        types = sorted(observed[parameter])
+        annotation = " | ".join(types)
+        rendered_parameters.append(f"{parameter}: {annotation}" if annotation else parameter)
+    active = call.group(2).count(",")
+    return {"signatures": [{"label": f"{name}({', '.join(rendered_parameters)}) -> inferred"}],
+            "activeSignature": 0, "activeParameter": active}
 
 
 def inlay_hints(source, requested_range):
@@ -353,6 +843,7 @@ class Server:
         self.reader = reader or sys.stdin.buffer
         self.writer = writer or sys.stdout.buffer
         self.documents = {}
+        self.workspace_roots = []
         self.shutdown_requested = False
         self.initialization_options = {}
 
@@ -375,8 +866,24 @@ class Server:
         method, params = message.get("method"), message.get("params", {})
         if method == "initialize":
             self.initialization_options = params.get("initializationOptions") or {}
+            folders = params.get("workspaceFolders") or []
+            self.workspace_roots = [
+                _uri_to_path(folder["uri"]).resolve() for folder in folders
+                if folder.get("uri", "").startswith("file:")
+            ]
+            if not self.workspace_roots:
+                root_uri = params.get("rootUri")
+                root_path = params.get("rootPath")
+                if root_uri and root_uri.startswith("file:"):
+                    self.workspace_roots = [_uri_to_path(root_uri).resolve()]
+                elif root_path:
+                    self.workspace_roots = [Path(root_path).resolve()]
             return {"capabilities": {"textDocumentSync": 1, "documentSymbolProvider": True, "foldingRangeProvider": True,
                     "hoverProvider": True, "definitionProvider": True, "renameProvider": {"prepareProvider": True},
+                    "referencesProvider": True,
+                    "callHierarchyProvider": True,
+                    "codeLensProvider": {"resolveProvider": False},
+                    "executeCommandProvider": {"commands": ["separan.runFunction"]},
                     "documentHighlightProvider": True, "completionProvider": {"triggerCharacters": [":", "_", "@"]},
                     "signatureHelpProvider": {"triggerCharacters": ["(", ","]}, "codeActionProvider": True,
                     "documentFormattingProvider": True, "inlayHintProvider": True,
@@ -398,14 +905,21 @@ class Server:
             source = self.source(uri)
             return document_symbols(source) if method.endswith("documentSymbol") else folding_ranges(source)
         elif method in ("textDocument/hover", "textDocument/definition", "textDocument/documentHighlight",
-                        "textDocument/completion", "textDocument/signatureHelp", "textDocument/prepareRename"):
+                        "textDocument/completion", "textDocument/signatureHelp", "textDocument/prepareRename",
+                        "textDocument/references", "textDocument/prepareCallHierarchy"):
             uri = params["textDocument"]["uri"]; source = self.source(uri); position = params["position"]
             line, character = position["line"], position["character"]
+            if method.endswith("references"):
+                include_declaration = params.get("context", {}).get("includeDeclaration", False)
+                return function_references(self, uri, line, character, include_declaration)
+            if method.endswith("prepareCallHierarchy"):
+                return prepare_call_hierarchy(self, uri, source, line, character)
             if method.endswith("hover"): return hover(source, line, character)
             if method.endswith("definition"): return definition(source, line, character, uri)
             if method.endswith("documentHighlight"): return highlights(source, line, character)
             if method.endswith("completion"): return completions(source, line, character)
-            if method.endswith("signatureHelp"): return signature_help(source, line, character)
+            if method.endswith("signatureHelp"):
+                return workspace_signature_help(self, uri, source, line, character)
             tag = _tag_at(source, line, character)
             if tag:
                 return {"range": lsp_range(line, tag[1], tag[2]), "placeholder": tag[0]}
@@ -414,18 +928,29 @@ class Server:
         elif method == "textDocument/rename":
             uri = params["textDocument"]["uri"]; position = params["position"]
             new_name = params["newName"]
-            if not new_name.isidentifier() or not unicodedata.is_normalized("NFC", new_name): return None
             tag = _tag_at(self.source(uri), position["line"], position["character"])
             if tag:
-                edits = []
-                for number, text in enumerate(self.source(uri).splitlines()):
-                    found = re.match(r"^\s*@" + re.escape(tag[0]) + r"(?=\s|#|$)", text)
-                    if found:
-                        start = found.end() - len(tag[0]); edits.append({"range": lsp_range(number, start, start + len(tag[0])), "newText": new_name})
-                return {"changes": {uri: edits}}
+                return semantic_tag_workspace_edits(self, uri, tag[0], new_name)
+            if not new_name.isidentifier() or not unicodedata.is_normalized("NFC", new_name): return None
             return label_edits(self.source(uri), position["line"], position["character"], new_name, uri)
         elif method == "textDocument/semanticTokens/full":
             return semantic_tokens(self.source(params["textDocument"]["uri"]))
+        elif method == "textDocument/codeLens":
+            return reference_code_lenses(self, params["textDocument"]["uri"])
+        elif method == "codeLens/resolve":
+            return params["item"]
+        elif method == "workspace/executeCommand":
+            if params.get("command") != "separan.runFunction":
+                return None
+            arguments = params.get("arguments") or []
+            if len(arguments) < 2:
+                return {"error": "Run Function requires a document URI and function name."}
+            call_arguments = arguments[2] if len(arguments) > 2 else []
+            return run_function(self, arguments[0], arguments[1], call_arguments)
+        elif method == "callHierarchy/incomingCalls":
+            return incoming_call_hierarchy(self, params.get("item", {}))
+        elif method == "callHierarchy/outgoingCalls":
+            return outgoing_call_hierarchy(self, params.get("item", {}))
         elif method == "textDocument/inlayHint":
             if self.initialization_options.get("inlayHints", True) is False: return []
             return inlay_hints(self.source(params["textDocument"]["uri"]), params["range"])

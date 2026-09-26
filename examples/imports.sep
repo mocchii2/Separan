@@ -3,4 +3,4 @@ import "module_math.sep" as math
 SEP:main
 print math.add(10, 20)
 print math.version
-end_SEP:main
+END_SEP:main

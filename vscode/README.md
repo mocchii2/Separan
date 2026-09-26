@@ -13,11 +13,18 @@ Language support for the label-structured Separan programming language.
 ## Separan at a glance
 
 - **Syntax highlighting** for keywords, values, functions, types, and labels
-- **Label-aware structure** with diagnostics, navigation, Outline, folding, and rename
+- **Label-aware structure** with navigation, folding, and scope inspection
 - **Semantic tags** for related code that is separated across structures
 - **Native network API awareness** for shared DHCP/static/link-local addressing, IP, interface, DNS, TCP, UDP, Ethernet, and Wi-Fi values
-- **Pico firmware commands** for explicit Pico/Pico 2 C++ project generation and SDK builds
-- **`:end` structural completion** that opens automatically and orders valid closers from the innermost open block
+- **Automatic labeled closers** after block openers
+- **Native Problems diagnostics** from `separan --check` whenever a file is saved
+- **Local code intelligence** with completion and signatures for all 504 built-ins, plus hover, definitions, references, label/function rename, Outline, and workspace symbols
+- **Local type hints** for literals, assignments, local calls, and imported function return values
+- **Multi-file imports** with alias member completion, signature help, hover, and go-to-definition
+- **Analysis diagnostics** for missing modules, duplicate aliases, unknown imported functions, type mismatches, and built-in argument counts
+- **Document formatting** for structural indentation with spaces or tabs from the active editor settings
+- **Call Hierarchy and CodeLens** for callers, callees, reference counts, and zero-argument function execution
+- **Semantic Tags view** with workspace locations and cross-file rename
 - **`.sep` file support** in Visual Studio Code
 - **[GitHub repository](https://github.com/mocchii2/Separan)** with the interpreter, specification, and examples
 
@@ -87,14 +94,15 @@ structural problem.
 - **🧭 Human-Readable Structure** - Make generated control flow explain its intent
 - **🌳 Structure Explorer** - Browse block hierarchy, reads, writes, calls, and Git changes
 - **🏷️ Label Navigation** - Jump between matching labels instantly (Ctrl+Shift+])
-- **🔗 Semantic Tags** - Highlight, complete, rename, inspect, and verify semantic groups
-- **⌨️ Structural Completion** - Type `:end` to automatically choose a valid closer with its opening line
-- **⚡ Live Diagnostics** - Catch label mismatches, type errors, scope violations instantly
+- **🔗 Semantic Tags** - Highlight, inspect, and verify semantic groups
+- **⌨️ Structural Editing** - Insert matching labeled closers automatically
+- **🧩 Code Snippets** - Expand current labeled syntax for functions, control flow, data blocks, try/catch, and HTTP routes
+- **🧹 Format Document** - Normalize decorative indentation while preserving labeled structure
 - **🤖 AI-Verifiable Syntax** - No implicit conversions, no indentation tricks
 - **🌍 Unicode Labels** - Full support for Japanese and other Unicode labels
-- **💡 Type Hints** - Inline type inference
-- **🎨 Rich Syntax Highlighting** - Semantic tokens for precision highlighting
-- **🔌 Logical Pin Assistance** - Complete and inspect board-profile-aware `pin.*` names
+- **🎨 Rich Syntax Highlighting** - TextMate scopes for Separan syntax
+- **🩺 Problems Integration** - Show native E-codes at their source line and column
+- **🧭 Native-free Navigation** - Navigate and rename labels and functions without a language-server process
 
 ## 🚀 Quick Start
 
@@ -104,13 +112,10 @@ structural problem.
 code --install-extension separan.separan-language
 ```
 
-### 2. Install the Separan reference runtime
+### 2. Install the native Separan runtime
 
-Install the Separan reference implementation from PyPI:
-
-```bash
-python -m pip install separan
-```
+Build or install the native executable and make `separan` available on PATH.
+You can also set its absolute path in `separan.executablePath`.
 
 ### 3. Create a `.sep` file
 
@@ -143,13 +148,15 @@ The extension checks: ✅ Did AI only change inside this label?
 | Command | Shortcut | Purpose |
 |---------|----------|---------|
 | Separan: Run File | - | Execute `.sep` file |
+| Separan: Check Current File | - | Save and parse-check the active `.sep` file |
+| Separan: Diagnose Runtime | - | Verify the selected native executable and show its help output |
+| Separan: Run Current Function | - | Run the zero-argument function under the cursor through a temporary native wrapper |
+| Separan: Run Tests in Current File | - | Run every zero-argument function whose name begins with `test_` |
 | Separan: Go to Matching Label | Ctrl+Shift+] | Jump to closing label |
 | Separan: Go to Label | - | Browse all labeled blocks |
 | Separan: Copy AI Edit Scope | - | Copy scope instruction for AI |
 | **Separan: Verify AI Edit Scope Against HEAD** | - | **Verify AI stayed in scope** |
 | **Separan: Show Structural Diff** | - | **See structural changes** |
-| Separan: Show AST | - | Debug: print syntax tree |
-| Separan: Run Tests | - | Run language tests |
 
 ## 🌳 Structure Explorer
 
@@ -176,11 +183,17 @@ compared with `HEAD`.
 
 ```json
 {
-  "separan.pythonPath": "python",        // Python executable
-  "separan.autoCloseLabels": true,       // Auto-complete block closers
-  "separan.inlayHints.types": true       // Show inferred types
+  "separan.executablePath": "separan",   // Native Separan executable
+  "separan.runtimeArguments": [],         // Arguments before source/--check
+  "separan.environment": {},              // Extra process environment variables
+  "separan.autoCloseLabels": true,        // Auto-complete block closers
+  "separan.inlayHints.types": true        // Lightweight local type hints
 }
 ```
+
+Run and check commands use VS Code process tasks. They start
+in the active file's workspace folder, appear in the integrated terminal, and
+use the configured native executable, arguments, and environment without shell interpolation.
 
 ## 🔐 Use Cases
 
@@ -204,7 +217,7 @@ it does not by itself establish regulatory compliance.
 ## 📝 Requirements
 
 - VS Code 1.75.0 or later
-- Python 3.10 or later (with `separan` package installed)
+- Native Separan executable available on PATH or configured with `separan.executablePath`
 - Git (for Structural Diff feature)
 
 ## 🏷️ About Labels

@@ -36,13 +36,13 @@ class ImportTests(unittest.TestCase):
 
     def test_module_exports_custom_error_constructor(self):
         source = '''import "math.sep" as math
-function:main
+SEP:main
 try :math_failure
 throw math.math_error("failed")
 catch math_error :math_failure
 print "caught"
 endtry:math_failure
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(self.run_source(source), "caught\n")
 

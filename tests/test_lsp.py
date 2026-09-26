@@ -1,6 +1,7 @@
 import io
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "reference"))
 
 from separan.ast_printer import format_ast
+from separan.errors import SeparanError
 from separan.lexer import Lexer
 from separan.lsp import (
     Server, TOKEN_MODIFIERS, TOKEN_TYPES, completions, definition, diagnostic,
@@ -19,11 +21,11 @@ from separan.lsp_analysis import format_source, variables
 from separan.parser import Parser
 
 
-SOURCE = '''function:main
+SOURCE = '''SEP:main
 if true :active
 print "ok"
 endif:active
-end_function:main
+END_SEP:main
 '''
 
 
@@ -34,6 +36,30 @@ class LspTests(unittest.TestCase):
         self.assertEqual(errors[0]["code"], "E104")
         self.assertEqual(errors[0]["range"]["start"], {"line": 3, "character": 6})
         self.assertEqual(errors[0]["source"], "separan")
+
+    def test_parser_recovery_reports_independent_function_errors(self):
+        source = '''SEP:first
+print (1 + )
+END_SEP:first
+SEP:second
+print (2 + )
+END_SEP:second
+'''
+        errors = diagnostic(source, "file:///recovery.sep")
+        self.assertEqual([item["code"] for item in errors], ["E100", "E100"])
+        self.assertEqual([item["range"]["start"]["line"] for item in errors], [1, 4])
+        with self.assertRaises(SeparanError):
+            Parser(Lexer(source, "recovery.sep").scan_tokens()).parse()
+
+    def test_parser_recovery_keeps_next_declaration_after_late_import(self):
+        source = '''value = 1
+import "late.sep" as late
+SEP:second
+print (2 + )
+END_SEP:second
+'''
+        errors = diagnostic(source, "file:///late-import-recovery.sep")
+        self.assertEqual([item["code"] for item in errors], ["E702", "E100"])
 
     def test_document_symbols_preserve_block_hierarchy(self):
         symbols = document_symbols(SOURCE)
@@ -71,12 +97,269 @@ END_SEP:main
         initialized = server.dispatch({"method": "initialize", "params": {}})
         self.assertTrue(initialized["capabilities"]["documentSymbolProvider"])
         self.assertTrue(initialized["capabilities"]["hoverProvider"])
+        self.assertTrue(initialized["capabilities"]["referencesProvider"])
         self.assertTrue(initialized["capabilities"]["renameProvider"]["prepareProvider"])
         self.assertTrue(initialized["capabilities"]["semanticTokensProvider"]["full"])
         server.dispatch({"method": "textDocument/didOpen", "params": {"textDocument": {"uri": "file:///test.sep", "text": SOURCE}}})
         payload = output.getvalue().split(b"\r\n\r\n", 1)[1]
         notification = json.loads(payload)
         self.assertEqual(notification["params"]["diagnostics"], [])
+
+    def test_workspace_references_resolve_imported_function_calls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module_path = root / "math.sep"
+            caller_path = root / "app.sep"
+            module_source = "SEP:add(a, b)\nreturn a + b\nEND_SEP:add\n"
+            caller_source = '''import "math.sep" as math
+SEP:main
+print math.add(1, 2)
+print math.add(3, 4)
+print "math.add"
+# math.add(5, 6)
+END_SEP:main
+'''
+            module_path.write_text(module_source, encoding="utf-8")
+            caller_path.write_text(caller_source, encoding="utf-8")
+            module_uri, caller_uri = module_path.as_uri(), caller_path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "references"}],
+            }})
+            server.documents[caller_uri] = caller_source
+            call_line = caller_source.splitlines()[2]
+            references = server.dispatch({"method": "textDocument/references", "params": {
+                "textDocument": {"uri": caller_uri},
+                "position": {"line": 2, "character": call_line.index("add") + 1},
+                "context": {"includeDeclaration": True},
+            }})
+            self.assertEqual(references, [
+                {"uri": module_uri, "range": {"start": {"line": 0, "character": 4}, "end": {"line": 0, "character": 7}}},
+                {"uri": caller_uri, "range": {"start": {"line": 2, "character": 11}, "end": {"line": 2, "character": 14}}},
+                {"uri": caller_uri, "range": {"start": {"line": 3, "character": 11}, "end": {"line": 3, "character": 14}}},
+            ])
+            calls_only = server.dispatch({"method": "textDocument/references", "params": {
+                "textDocument": {"uri": caller_uri},
+                "position": {"line": 2, "character": call_line.index("add") + 1},
+                "context": {"includeDeclaration": False},
+            }})
+            self.assertEqual(calls_only, references[1:])
+
+    def test_signature_help_infers_imported_function_parameter_types(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module_path = root / "math.sep"
+            caller_path = root / "app.sep"
+            peer_path = root / "peer.sep"
+            module_path.write_text(
+                "SEP:combine(left: number, right)\nreturn left\nEND_SEP:combine\n", encoding="utf-8",
+            )
+            caller_source = '''import "math.sep" as math
+SEP:main
+print math.combine(unknown_left, unknown_right)
+END_SEP:main
+'''
+            peer_path.write_text('''import "math.sep" as functions
+SEP:main
+number_value = 1
+text_value = "value"
+print functions.combine(number_value, text_value)
+END_SEP:main
+''', encoding="utf-8")
+            caller_path.write_text(caller_source, encoding="utf-8")
+            caller_uri = caller_path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "inference"}],
+            }})
+            server.documents[caller_uri] = caller_source
+            call_line = caller_source.splitlines()[2]
+            response = server.dispatch({"method": "textDocument/signatureHelp", "params": {
+                "textDocument": {"uri": caller_uri},
+                "position": {"line": 2, "character": call_line.index("math.combine(") + len("math.combine(")},
+            }})
+            self.assertEqual(
+                response["signatures"][0]["label"],
+                "combine(left: number, right: string) -> inferred",
+            )
+
+    def test_semantic_tag_rename_updates_workspace_files_only(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            first_path = root / "first.sep"
+            second_path = root / "second.sep"
+            first_source = "SEP:first\n@notification\nEND_SEP:first\n"
+            second_source = '''SEP:second
+@notification
+print "@notification"
+# @notification
+END_SEP:second
+'''
+            first_path.write_text(first_source, encoding="utf-8")
+            second_path.write_text(second_source, encoding="utf-8")
+            first_uri, second_uri = first_path.as_uri(), second_path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "tags"}],
+            }})
+            server.documents[first_uri] = first_source
+            edits = server.dispatch({"method": "textDocument/rename", "params": {
+                "textDocument": {"uri": first_uri},
+                "position": {"line": 1, "character": 3},
+                "newName": "alerts:mail",
+            }})
+            self.assertEqual(edits, {"changes": {
+                first_uri: [{"range": {"start": {"line": 1, "character": 1}, "end": {"line": 1, "character": 13}}, "newText": "alerts:mail"}],
+                second_uri: [{"range": {"start": {"line": 1, "character": 1}, "end": {"line": 1, "character": 13}}, "newText": "alerts:mail"}],
+            }})
+
+    def test_semantic_tag_rename_rejects_same_function_collision(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = "SEP:main\n@notification\n@alerts\nEND_SEP:main\n"
+            path = root / "main.sep"
+            path.write_text(source, encoding="utf-8")
+            uri = path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "tag-collision"}],
+            }})
+            server.documents[uri] = source
+            self.assertIsNone(server.dispatch({"method": "textDocument/rename", "params": {
+                "textDocument": {"uri": uri}, "position": {"line": 1, "character": 3},
+                "newName": "alerts",
+            }}))
+
+    def test_call_hierarchy_reports_workspace_incoming_and_outgoing_calls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = '''SEP:leaf(value)
+return value
+END_SEP:leaf
+SEP:main
+print leaf(1)
+print leaf(2)
+END_SEP:main
+'''
+            path = root / "calls.sep"
+            path.write_text(source, encoding="utf-8")
+            uri = path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            initialized = server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "calls"}],
+            }})
+            self.assertTrue(initialized["capabilities"]["callHierarchyProvider"])
+            server.documents[uri] = source
+
+            leaf = server.dispatch({"method": "textDocument/prepareCallHierarchy", "params": {
+                "textDocument": {"uri": uri}, "position": {"line": 0, "character": 5},
+            }})[0]
+            incoming = server.dispatch({"method": "callHierarchy/incomingCalls", "params": {"item": leaf}})
+            self.assertEqual([(item["from"]["name"], len(item["fromRanges"])) for item in incoming], [("main", 2)])
+
+            main = server.dispatch({"method": "textDocument/prepareCallHierarchy", "params": {
+                "textDocument": {"uri": uri}, "position": {"line": 3, "character": 5},
+            }})[0]
+            outgoing = server.dispatch({"method": "callHierarchy/outgoingCalls", "params": {"item": main}})
+            self.assertEqual([(item["to"]["name"], len(item["fromRanges"])) for item in outgoing], [("leaf", 2)])
+
+    def test_call_hierarchy_resolves_imported_module_calls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module_path = root / "module.sep"
+            caller_path = root / "caller.sep"
+            module_path.write_text("SEP:helper(value)\nreturn value\nEND_SEP:helper\n", encoding="utf-8")
+            caller_source = '''import "module.sep" as module
+SEP:main
+print module.helper(1)
+END_SEP:main
+'''
+            caller_path.write_text(caller_source, encoding="utf-8")
+            uri = caller_path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "module-calls"}],
+            }})
+            server.documents[uri] = caller_source
+            helper = server.dispatch({"method": "textDocument/prepareCallHierarchy", "params": {
+                "textDocument": {"uri": uri}, "position": {"line": 2, "character": 15},
+            }})[0]
+            self.assertEqual(helper["name"], "helper")
+            incoming = server.dispatch({"method": "callHierarchy/incomingCalls", "params": {"item": helper}})
+            self.assertEqual(incoming[0]["from"]["name"], "main")
+            main = server.dispatch({"method": "textDocument/prepareCallHierarchy", "params": {
+                "textDocument": {"uri": uri}, "position": {"line": 1, "character": 5},
+            }})[0]
+            outgoing = server.dispatch({"method": "callHierarchy/outgoingCalls", "params": {"item": main}})
+            self.assertEqual(outgoing[0]["to"]["name"], "helper")
+
+    def test_reference_code_lens_counts_workspace_calls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module_path = root / "math.sep"
+            caller_path = root / "app.sep"
+            module_source = "SEP:combine(left, right)\nreturn left\nEND_SEP:combine\n"
+            caller_source = '''import "math.sep" as math
+SEP:main
+print math.combine(1, 2)
+print math.combine(3, 4)
+END_SEP:main
+'''
+            module_path.write_text(module_source, encoding="utf-8")
+            caller_path.write_text(caller_source, encoding="utf-8")
+            uri = module_path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "lenses"}],
+            }})
+            server.documents[uri] = module_source
+            lenses = server.dispatch({"method": "textDocument/codeLens", "params": {
+                "textDocument": {"uri": uri},
+            }})
+            self.assertEqual(len(lenses), 1)
+            self.assertEqual(lenses[0]["command"]["title"], "2 references")
+            self.assertEqual(lenses[0]["command"]["command"], "editor.action.showReferences")
+            self.assertEqual(len(lenses[0]["command"]["arguments"][2]), 2)
+
+    def test_run_function_execute_command_invokes_current_source_function(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "run.sep"
+            source = 'SEP:run_me()\nprint "ran"\nEND_SEP:run_me\n'
+            path.write_text(source, encoding="utf-8")
+            uri = path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "run-function"}],
+            }})
+            server.documents[uri] = source
+            result = server.dispatch({"method": "workspace/executeCommand", "params": {
+                "command": "separan.runFunction", "arguments": [uri, "run_me", []],
+            }})
+            self.assertEqual(result["output"], "ran\n")
+            builtin = server.dispatch({"method": "workspace/executeCommand", "params": {
+                "command": "separan.runFunction", "arguments": [uri, "length", ["value"]],
+            }})
+            self.assertIn("Unknown Separan function", builtin["error"])
+
+    def test_test_function_code_lens_is_runnably_labeled(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "test_cases.sep"
+            source = 'SEP:test_basic()\nprint "passed"\nEND_SEP:test_basic\n'
+            path.write_text(source, encoding="utf-8")
+            uri = path.as_uri()
+            server = Server(io.BytesIO(), io.BytesIO())
+            server.dispatch({"method": "initialize", "params": {
+                "workspaceFolders": [{"uri": root.as_uri(), "name": "test-lens"}],
+            }})
+            server.documents[uri] = source
+            lenses = server.dispatch({"method": "textDocument/codeLens", "params": {
+                "textDocument": {"uri": uri},
+            }})
+            run_test = next(item for item in lenses if item["command"]["title"] == "Run Test")
+            self.assertEqual(run_test["command"]["command"], "separan.runFunction")
+            self.assertEqual(run_test["command"]["arguments"], [uri, "test_basic", []])
 
     @unittest.skipUnless(sys.platform == "win32", "Windows-only URI normalization")
     def test_windows_file_uris_are_readable_by_the_core(self):
@@ -95,14 +378,14 @@ END_SEP:main
         self.assertEqual(json.loads(payload)["id"], 7)
 
     def test_label_hover_matching_definition_and_scoped_rename(self):
-        source = '''function:main
+        source = '''SEP:main
 if true :same
 print "first"
 endif:same
 if true :same
 print "second"
 endif:same
-end_function:main
+END_SEP:main
 '''
         label_hover = hover(source, 1, 11)
         self.assertIn("Block: `if`", label_hover["contents"]["value"])
@@ -132,14 +415,14 @@ print user
         self.assertIn("`name`: string", object_hover); self.assertIn("`age`: number", object_hover)
 
     def test_variable_definition_respects_function_scope(self):
-        source = '''function:first
+        source = '''SEP:first
 value = 1
 print value
-end_function:first
-function:second
+END_SEP:first
+SEP:second
 value = "two"
 print value
-end_function:second
+END_SEP:second
 '''
         first = definition(source, 2, 7, "file:///x.sep")["range"]["start"]["line"]
         second = definition(source, 6, 7, "file:///x.sep")["range"]["start"]["line"]
@@ -148,7 +431,7 @@ end_function:second
         self.assertEqual(definition(reassigned, 2, 7, "file:///x.sep")["range"]["start"]["line"], 0)
 
     def test_completion_signature_help_and_inlay_hints(self):
-        source = 'function:main\nif true :active\nend\n'
+        source = 'SEP:main\nif true :active\nend\n'
         labels = [item["label"] for item in completions(source, 2, 3)["items"]]
         self.assertEqual(labels[0], "endif:active")
         self.assertIn("substring", labels)
@@ -157,7 +440,7 @@ end_function:second
         self.assertIn("end?: number", signature["signatures"][0]["label"])
         oauth_signature = signature_help('token = oauth_client_credentials("https://auth.test/token", ', 0, 61)
         self.assertIn("client_secret: secret", oauth_signature["signatures"][0]["label"])
-        user_signature = signature_help('function:add(a, b)\nend_function:add\nprint add(1, ', 2, 13)
+        user_signature = signature_help('SEP:add(a, b)\nEND_SEP:add\nprint add(1, ', 2, 13)
         self.assertIn("add(a, b)", user_signature["signatures"][0]["label"])
         hints = inlay_hints('count = 10\nname = "Alice"\n', {"start": {"line": 0}, "end": {"line": 2}})
         self.assertEqual([hint["label"] for hint in hints], [": number", ": string"])
@@ -203,14 +486,14 @@ ap = wifi_access_point_status(wifi)
         self.assertEqual(inferred, {"dhcp": "dhcp_server", "dns": "dns_server", "state": "string", "leases": "list", "ap": "object"})
 
     def test_structural_end_and_tag_completion(self):
-        source = 'function:main\n@notification\nif true :active\n:end\n'
+        source = 'SEP:main\n@notification\nif true :active\n:end\n'
         items = completions(source, 3, 4)["items"]
         self.assertEqual([item["label"] for item in items[:2]], ["endif:active", "END_SEP:main"])
         self.assertEqual(items[0]["textEdit"]["newText"], "endif:active")
         self.assertIn("opened at line 3", items[0]["detail"])
-        tags = completions(source + 'function:other\n@not', 5, 4)["items"]
+        tags = completions(source + 'SEP:other\n@not', 5, 4)["items"]
         self.assertEqual(tags[0]["label"], "@notification")
-        hierarchical = 'function:first\n@monitor:notification:decision\nend_function:first\nfunction:other\n@monitor:n'
+        hierarchical = 'SEP:first\n@monitor:notification:decision\nEND_SEP:first\nSEP:other\n@monitor:n'
         tags = completions(hierarchical, 4, len("@monitor:n"))["items"]
         self.assertEqual(tags[0]["label"], "@monitor:notification:decision")
 
@@ -259,12 +542,12 @@ packet = udp_receive(udp)
         })
 
     def test_semantic_tokens_include_typed_variables_parameters_and_labels(self):
-        source = '''function:main(value)
+        source = '''SEP:main(value)
 const count = 10
 if true :active
 print count
 endif:active
-end_function:main
+END_SEP:main
 '''
         encoded = semantic_tokens(source)["data"]; decoded = []; line = start = 0
         for index in range(0, len(encoded), 5):
@@ -290,12 +573,12 @@ end_function:main
         actions = server.dispatch({"method": "textDocument/codeAction", "params": {"textDocument": {"uri": "file:///label.sep"}, "context": {"diagnostics": [mismatch]}}})
         self.assertEqual(actions[0]["title"], "Replace with endif:active")
         self.assertEqual(actions[0]["edit"]["changes"]["file:///label.sep"][0]["newText"], "active")
-        kind = diagnostic('function:main\nif true :active\nendwhile:active\nend_function:main\n', "file:///kind.sep")[0]
+        kind = diagnostic('SEP:main\nif true :active\nendwhile:active\nEND_SEP:main\n', "file:///kind.sep")[0]
         self.assertEqual(kind["code"], "E105")
         self.assertEqual(kind["data"]["replacement"], "endif:active")
 
     def test_formatter_preserves_structural_ast(self):
-        source = 'function:main\nif true :x\nprint "ok"\nelse:x\nprint "no"\nendif:x\nend_function:main\n'
+        source = 'SEP:main\nif true :x\nprint "ok"\nelse:x\nprint "no"\nendif:x\nEND_SEP:main\n'
         formatted = format_source(source)
         before = format_ast(Parser(Lexer(source).scan_tokens()).parse())
         after = format_ast(Parser(Lexer(formatted).scan_tokens()).parse())
@@ -303,14 +586,14 @@ end_function:main
         self.assertIn('        print "ok"', formatted)
 
     def test_multiline_comment_content_is_not_editor_structure(self):
-        source = '''function:main
+        source = '''SEP:main
 ##note
 if true :fake
 endif:fake
 ##note
 if true :real # inline comment
 endif:real
-end_function:main
+END_SEP:main
 '''
         symbols = document_symbols(source)
         self.assertEqual([item["name"] for item in symbols[0]["children"]], ["real"])
@@ -328,7 +611,7 @@ end_function:main
             "scopes": [scope["path"]],
         }})
         self.assertTrue(verified["passed"])
-        changed_outside = SOURCE.replace("function:main", "function:renamed").replace("end_function:main", "end_function:renamed")
+        changed_outside = SOURCE.replace("SEP:main", "SEP:renamed").replace("END_SEP:main", "END_SEP:renamed")
         rejected = server.dispatch({"method": "separan/verifyScope", "params": {
             "uri": "file:///x.sep", "before": SOURCE, "after": changed_outside,
             "scopes": [scope["path"]],
@@ -336,12 +619,12 @@ end_function:main
         self.assertFalse(rejected["passed"])
 
     def test_v05_document_structure_request_exposes_human_insights(self):
-        source = '''function:main
+        source = '''SEP:main
 string value = load(source)
 if value is not EMPTY :loaded
 print value
 endif:loaded
-end_function:main
+END_SEP:main
 '''
         server = Server(io.BytesIO(), io.BytesIO()); uri = "file:///structure.sep"
         server.documents[uri] = source
@@ -359,20 +642,22 @@ object:user
 string name = EMPTY
 end_object:user
 print user
-function:show(value: number, items: list<string>)
+SEP:show(value: number, items: list<string>)
 print type_of(value)
-end_function:show
+END_SEP:show
 '''
-        self.assertIn("Type: `number`", hover(source, 0, 8)["contents"]["value"])
+        line = source.splitlines()[5]
+        value_start = line.index("value")
+        items_start = line.index("items")
+        self.assertIn("Type: `number`", hover(source, 5, value_start)["contents"]["value"])
         self.assertIn("`name`: string", hover(source, 4, 7)["contents"]["value"])
-        self.assertIn("Type: `number`", hover(source, 5, 15)["contents"]["value"])
-        self.assertIn("Type: `list`", hover(source, 5, 30)["contents"]["value"])
+        self.assertIn("Type: `list`", hover(source, 5, items_start + 2)["contents"]["value"])
 
     def test_recursive_list_types_and_shape_signatures_are_visible(self):
         source = '''list<list<number>> matrix = [[1], [2, 3]]
-function:show(rows: list<list<string>>)
+SEP:show(rows: list<list<string>>)
 print rows
-end_function:show
+END_SEP:show
 '''
         inferred = {item.name: item.type for item in variables(source)}
         self.assertEqual(inferred, {"matrix": "list", "rows": "list"})

@@ -1,0 +1,87 @@
+{
+  "SEP function": {
+    "prefix": "sep",
+    "description": "Create a named Separan function",
+    "body": [
+      "SEP:${1:name}(${2})",
+      "${0}",
+      "END_SEP:${1:name}"
+    ]
+  },
+  "Main function": {
+    "prefix": "main",
+    "description": "Create the Separan entry point",
+    "body": [
+      "SEP:main",
+      "${0}",
+      "END_SEP:main"
+    ]
+  },
+  "Labeled if": {
+    "prefix": "iflabel",
+    "description": "Create a labeled if block",
+    "body": [
+      "if ${1:condition} :${2:condition_name}",
+      "${0}",
+      "endif:${2:condition_name}"
+    ]
+  },
+  "Labeled while": {
+    "prefix": "whilelabel",
+    "description": "Create a labeled while block",
+    "body": [
+      "while ${1:condition} :${2:loop_name}",
+      "${0}",
+      "endwhile:${2:loop_name}"
+    ]
+  },
+  "Labeled for": {
+    "prefix": "forlabel",
+    "description": "Create a labeled for block",
+    "body": [
+      "for ${1:item} in ${2:items} :${3:loop_name}",
+      "${0}",
+      "endfor:${3:loop_name}"
+    ]
+  },
+  "Object block": {
+    "prefix": "objectlabel",
+    "description": "Create a named object block",
+    "body": [
+      "object:${1:name}",
+      "${2:field} = ${3:value}",
+      "${0}",
+      "end_object:${1:name}"
+    ]
+  },
+  "List block": {
+    "prefix": "listlabel",
+    "description": "Create a named list block",
+    "body": [
+      "list:${1:name}",
+      "${2:value}",
+      "${0}",
+      "end_list:${1:name}"
+    ]
+  },
+  "Try catch": {
+    "prefix": "trylabel",
+    "description": "Create a labeled try/catch block",
+    "body": [
+      "try :${1:operation}",
+      "${2}",
+      "catch ${3:runtime_error} :${1:operation}",
+      "${0}",
+      "endtry:${1:operation}"
+    ]
+  },
+  "HTTP route": {
+    "prefix": "route",
+    "description": "Create a named HTTP route",
+    "body": [
+      "http_route ${1:GET} ${2:\"/path\"} :${3:route_name}",
+      "${0}",
+      "end_http_route:${3:route_name}"
+    ]
+  }
+}

@@ -9,7 +9,8 @@ variableと分離し、Semantic Tokenではソースを書き換えずに推論�
 
 - `#`／`##` comment、Raw／escape string、label、tagのsyntax highlight、
   quote／bracket matching、comment toggle、auto indentation
-- parser診断と単純な固定bindingの型診断
+- 独立したtop-level宣言間でerror recoveryしつつruntime parserはstrictのまま保つparser診断と、
+  単純な固定bindingの型診断
 - `E104`／`E105` label・block kind mismatch Quick Fix
 - nested Outline、breadcrumb、label単位folding
 - label／variable Hover、object member表示、secretのredact
@@ -46,12 +47,18 @@ baselineと現在の本文をLanguage Serverへ渡し、両方をparseしてか�
 空白・commentだけの差は無視し、選択subtree外のAST変更はFAILします。短いlabelが曖昧なら、
 Copy AI Edit Scopeが出す完全pathを要求します。
 
-Semantic TagはParser連動structure metadataに含まれます。LSPは同一documentのtag completion／
-renameと`separan/verifyTagScope`を提供します。workspace tag treeとfile横断renameは安定した
-workspace indexが必要な将来UIですが、CLIのtag path検索はdirectoryを再帰走査できます。
+Semantic TagはParser連動structure metadataに含まれます。LSPは同一documentのtag completionと
+`separan/verifyTagScope`を提供します。Python LSP backendはtoken単位の編集と衝突検査を行う
+file横断semantic tag renameにも対応します。CLIのtag path検索はdirectoryを再帰走査できます。
 
 ## 計画中の高度な機能
 
-program全体の関数引数推論、参照／test CodeLens、call hierarchy、Run Current Functionは
-計画中です。安定したproject indexを必要とするため、v0.5の保証機能とはしません。
+Python LSP backendはworkspace function references（直接呼び出しとimport alias）、workspaceの
+call siteに基づくsignature引数型推論、Call Hierarchy、reference数CodeLensを実装済みです。
+`workspace/executeCommand`の`separan.runFunction`も提供し、引数なし関数にはRun Function、
+`test_*`関数にはRun Test CodeLensを表示します。実行は明示操作に限り、宣言済みuser function
+だけを実行し、stdoutを返します。これらのprotocol機能は、まだpackaged VS Code extensionには
+接続されていません。
+
+semantic tag workspace treeとpackaged extensionのprovider接続は引き続き計画中です。
 詳細は[Structure Explorer仕様](structure-explorer.ja.md)を参照してください。

@@ -19,11 +19,10 @@ logic boundaries. The conceptual callable unit is `SEP` (Separate Logic):
 `SEP:name` opens a named logic block and `END_SEP:name` closes it.
 
 This is a named Separan logic unit whose structure is explicit and
-self-identifying. The current reference implementation may keep compatibility
-syntax during early development, but the language definition is centered on
-`SEP` as a reusable and independently scoped behavior boundary. All currently
-open structure identifiers share one namespace and must be unique. Closed labels
-may be reused.
+self-identifying. The language definition is centered on `SEP` as a reusable
+and independently scoped behavior boundary. All currently open structure
+identifiers share one namespace and must be unique. Closed labels may be
+reused.
 
 ## v0.2 alpha syntax
 
@@ -50,6 +49,7 @@ may be reused.
 
 The complete rules are in [Explicit Type Declarations](type-declarations.md).
 The staged absence model is defined in [EMPTY, EMPTYS, and VOID](empty-values.md).
+Release compatibility and versioning rules are in [Versioning and Compatibility Policy](versioning.md).
 
 ## Operators
 

@@ -2,22 +2,54 @@
 
 This directory contains the native structural core for Separan. It validates the same named-boundary rules used by the Python reference implementation: block labels, nested block structure, branch identity, and unmatched or duplicate open labels.
 
-The C CLI now executes a core subset: assignments, numeric/string/boolean/list
-expressions, `SEP` functions, `if`/`elseif`/`else`, `while`, `for`, `return`,
-`const`, object/list blocks, member access, and `print`. It includes a small set
-of list, string, conversion, numeric, bytes, JSON, and root-scoped file built-ins.
+The native runtime must remain an independent C implementation. Shipping or
+embedding CPython, launching the Python reference runtime, and delegating
+language or built-in behavior to Python are outside the parity design.
+
+The C CLI executes the current language statement and expression surface:
+assignments, typed declarations, `SEP` functions, labeled control flow,
+errors, transactions, imports, HTTP routes, object/list blocks, member access,
+EMPTY/EMPTYS, and the current operator set. It includes native list,
+collection, object, string, math, deterministic and secure random, SHA-2/SHA-3,
+bytes, JSON, XML escaping, fixed-offset date/time, CLI argument, environment,
+standard-input, and root-scoped file built-ins.
 The file built-ins currently cover text and bytes reads/writes, directory and
-file discovery, copying, moving, and removal. Networking, databases, process
-execution, and the remaining Python APIs are not implemented.
+file discovery (including globbing), copying, moving, and removal. The complete
+15-function database surface is available through the public
+`separan_database_adapter` host interface. It supports connection lifecycle,
+queries, scalar and execute results, transactions, metadata, and stable
+E900--E907 error classes while keeping database credentials and native handles
+inside the host driver. SQLite, PostgreSQL, MySQL, and Oracle adapters therefore
+share one UTF-8 JSON boundary without Python delegation. The four process APIs
+(`exec`, `exec_checked`, `shell_exec`, and `command_exists`) are likewise
+available through `separan_process_adapter`, including binary output, duration,
+timeout state, and E800--E809 process error classes.
+The public `separan_host_adapter` covers the capability-gated HTTP client and
+server, authentication, mail, cookie storage, embedded hardware, networking,
+network service, cryptography, regex, YAML, and XML APIs. Calls use one JSON
+request containing positional `arguments` and `named` arguments; hosts return a
+JSON value or a stable Separan error code and message. This keeps operating
+system, TLS, device, and service dependencies outside the language runtime.
 Hosts embedding the C library can call `separan_run_source_with_options` with
-`separan_runtime_options` to set a filesystem root and deny read, write, or
-path-discovery capabilities. The CLI enables these three local capabilities
-within the source file's directory.
-Its parser builds an AST for that subset. It does not yet provide the complete
-Python language or runtime APIs. Use `--check` for the older structural-only
-validator; an `OK` result from that mode does not mean a program is executable.
+`separan_runtime_options` to set a filesystem root, deny read, write, or
+path-discovery and environment capabilities, and supply the script path and command arguments.
+They can also retain parsed state with `separan_runtime_create`, call named
+Separan functions through `separan_runtime_invoke_json`, and dispatch labeled
+HTTP routes through `separan_runtime_dispatch_http_json`. Both invocation APIs
+use allocated UTF-8 JSON results released by `separan_runtime_release_string`.
+Native HTTP dispatch implements route validation and duplicate detection,
+path parameters, query/header/body/cookie access, HEAD fallback, responses,
+redirects, and response cookies without a Python process or web framework.
+The CLI enables the three local filesystem capabilities within the source
+file's directory and forwards arguments after the source path.
+Its parser builds and executes a native AST without CPython. `--check` uses the
+same lexer, parser, declaration validation, and label validation without
+executing top-level statements or `main`; host adapters are therefore not
+required for syntax checking.
 Cross-implementation lexer, structure, and execution checks live in
 `tests/test_c_conformance.py`.
+`python reference/c/generate_unicode_tables.py --check` verifies that the
+checked-in lexer tables match the Unicode database bundled with Python.
 Run `python reference/c/parity_status.py` from the repository root to list
 Python built-ins that have no C dispatch yet. This is a name inventory, not a
 semantic equivalence claim.
@@ -26,22 +58,73 @@ semantic equivalence claim.
 
 1. Extend the cross-implementation checks to compare parser, diagnostics,
    stdout, stderr, exit status, and observable side effects.
-2. Complete the C lexer (full Unicode normalization and all string semantics), then expand
-   the AST/parser to the remaining statements and expressions. The execution
-   path uses `separan_lex`; `--check` still uses the older line scanner.
-3. Expand values, environments, calls, control flow, and built-ins to the full
-   Python semantics. The current number value uses a C `double` with an
-   integer/float display flag, so large integer precision and integer-only API
-   checks still differ. Gate each feature with the same source programs on both CLIs.
+2. Keep lexer and parser conformance aligned as the grammar evolves. Both
+   execution and `--check` use generated Unicode 15.1 identifier,
+   combining-class, and composition tables and validate NFC labels, comment
+   delimiters, and semantic tag paths without a runtime dependency.
+3. Close the remaining value-level edge cases. The runtime preserves arbitrary
+   precision integers separately from floating-point values across literals,
+   JSON, comparisons, formatting, core arithmetic, base conversion, aggregate
+   sums, factorial, GCD, and LCM. Fixed-width host APIs continue to validate
+   their documented bounds before converting an integer.
 4. Port capability-gated system APIs and language tooling, using the existing
    specification and Python tests as the behavior contract.
+
+Phase 4's runtime API surface is now connected through the database, process,
+and general host adapters. The C registry is checked against the Python
+reference signatures so newly added or changed host APIs fail conformance tests
+until the native boundary is updated.
+
+The executable parser is also checked against the shared negative language
+corpus. All cases that do not require a configured host value currently match
+the Python E-code. Regex adapter results are validated and retained as native
+`regex_match_result` values with `text`, `start`, `end`, and `group()` access;
+malformed fixed-shape results are rejected at the adapter boundary.
+HTTP responses, mail addresses, and mail send results are likewise validated,
+retain their public Separan type names, and expose only their documented
+members instead of becoming unrestricted generic objects.
+
+The native registry now covers all 504 Python reference built-in names. The
+final core additions include all public error constructors and the mutating
+`list_insert`, `list_remove_horizontal`, and `list_remove_vertical` shape
+operations. Name coverage remains an inventory; cross-implementation tests are
+the semantic parity gate.
+
+The executable parser/runtime also supports labeled `try`, ordered `catch`,
+`finally`, `throw`, and top-level custom `error` declarations. Explicit error
+values preserve category inheritance for the authentication, cryptography,
+mail, YAML, XML, and network families; an uncaught explicit error exits with
+E760. Native type, value, index, file, JSON, database, process, and general host
+adapter failures enter the same catch path while retaining their original
+E-code when they remain uncaught.
+
+`print_error` writes a value and newline to the configured error stream. A
+labeled `transaction connection :label` block begins a database transaction,
+commits after normal completion (including `return`), and rolls back when the
+body raises or throws before control reaches `end_transaction:label`.
+
+Explicit scalar and recursive `list<type>` declarations are checked by the C
+runtime for variables, constants, function parameters, and object fields.
+Typed `EMPTY`, `is EMPTY`, `is not EMPTY`, `EMPTYS`, and indexed list
+assignment retain declared slot types and container shapes.
+JSON `null` values cross the native JSON boundary as EMPTY values. Mixed and
+all-null arrays preserve or adopt their element type, and encode back to
+`null` without losing list shape.
+The executable expression layer includes right-associative `??`, membership
+with `in` and `not in`, numeric and list compound assignments, and the
+`front`/`back` selectors used by list shape operations.
+
+Namespaced imports support relative `.sep` modules, exported functions,
+constants, and custom error constructors. Module `main` functions are not run
+on import, canonical module instances are cached for the execution, and import
+order, traversal, cycles, and private members produce E701--E706 diagnostics.
+Embedding hosts enable this separately with the `import_modules` option.
 
 ## Coverage
 
 The current C core checks the structural contract that the Python implementation enforces:
 
 - `SEP:name` / `END_SEP:name`
-- compatibility `function:name` / `end_function:name`
 - `if ... :label` / `elseif ... :label` / `else:label` / `endif:label`
 - `while ... :label` / `endwhile:label`
 - `for ... :label` / `endfor:label`
@@ -56,11 +139,35 @@ The current C core checks the structural contract that the Python implementation
 Use a C compiler such as GCC or Clang to build the CLI or the reusable native library:
 
 ```console
-gcc -std=c11 -Wall -Wextra -Iinclude src/main.c src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c -o separan_core -lm
+gcc -O1 -std=c11 -Wall -Wextra -Iinclude src/main.c src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c -o separan_core -lm
 make all
 ```
 
 The native library is exported as `libseparan.a` and exposes the public result API in `include/separan_core.h`.
+`separan_validate_source` and `separan_validate_path` use the same native parser as
+the CLI `--check` command and return its first structured diagnostic.
+For labeled function, branch, and block closer mismatches, `expected` and
+`actual` carry the complete closer text (for example, `END_SEP:main` and
+`END_SEP:wrong`, or `endif:active` and `endif:wrong`); related position points
+to the original block label.
+The result also exposes one-based primary and related line/column positions.
+E105 block-kind and nesting mismatches include the expected closer, actual
+closer, and the innermost opening block location. E107 unexpected closers
+include their actual closer text and primary position without an expected or
+related location. E106 unclosed blocks report the expected closer and opening
+position; E109 duplicate labels report the duplicated label and the original
+opener position. E100 expected-expression errors expose the Python-compatible
+category and description, plus the offending token as `actual` and its
+one-based source position. E100 trailing-token errors expose the matching
+`Unexpected token` category, statement-boundary description, actual token, and
+position. Missing closing delimiters for grouped expressions and direct/member
+calls, list/index brackets, typed-list angle brackets, function/constant/import
+separators, missing declaration names, block opener/closer labels, and
+catch/branch labels expose Python-compatible `Syntax error` categories and
+descriptions. E128 invalid `is` operands and EMPTY/EMPTYS equality comparisons
+expose state-test guidance, expected form, actual token, and source position.
+`separan_analyze_source` and `separan_analyze_path` remain legacy structural-only
+scanner entry points for ABI compatibility; new callers should use `separan_validate_*`.
 
 ```c
 #include "separan_core.h"

@@ -16,4 +16,4 @@ print last_index_of("one two one", "one")
 print repeat("ab", 3)
 print pad_left("7", 3, "0")
 print pad_right("Separan", 10, ".")
-end_SEP:main
+END_SEP:main

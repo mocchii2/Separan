@@ -18,21 +18,21 @@ class ProcessExecutionTests(unittest.TestCase):
         self.capability = replace(RuntimeCapabilities.local(ROOT), allowed_commands=frozenset({self.executable}))
 
     def test_exec_uses_direct_argv_and_returns_fixed_result(self):
-        source = f'''function:main
+        source = f'''SEP:main
 result = exec("{self.command}", ["-c", "import sys;print(sys.argv[1])", "& del * | echo unsafe"])
 print result.exit_code
 print result.stdout
 print result.stderr
 print result.timed_out
 print length(result.stdout_bytes)
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=self.capability)[1]
         process_line = "& del * | echo unsafe" + os.linesep
         self.assertEqual(output, f"0\n{process_line}\n\nfalse\n{len(process_line.encode())}\n")
 
     def test_nonzero_result_and_checked_error(self):
-        source = f'''function:main
+        source = f'''SEP:main
 result = exec("{self.command}", ["-c", "raise SystemExit(7)"])
 print result.exit_code
 try :checked
@@ -40,37 +40,37 @@ exec_checked("{self.command}", ["-c", "raise SystemExit(4)"])
 catch command_error :checked
 print "failed"
 endtry:checked
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability)[1], "7\nfailed\n")
 
     def test_undecodable_output_is_typed_empty_while_bytes_are_retained(self):
-        source = f'''function:main
+        source = f'''SEP:main
 result = exec("{self.command}", ["-c", "import sys;sys.stdout.buffer.write(bytes([255]))"])
 print result.stdout is EMPTY
 print length(result.stdout_bytes)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability)[1], "true\n1\n")
 
     def test_timeout_and_output_limit(self):
-        source = f'''function:main
+        source = f'''SEP:main
 result = exec("{self.command}", ["-c", "import time;time.sleep(1)"], timeout = duration("10ms"))
 print result.timed_out
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability)[1], "true\n")
         with self.assertRaises(SeparanError) as caught:
             execute(f'print exec("{self.command}", ["-c", "print(12345)"], max_stdout_bytes = 2)\n', capabilities=self.capability)
         self.assertEqual(caught.exception.code, "E805")
 
-        caught_source = f'''function:main
+        caught_source = f'''SEP:main
 try :timeout
 exec_checked("{self.command}", ["-c", "import time;time.sleep(1)"], timeout = duration("10ms"))
 catch process_error :timeout
 print "timed out"
 endtry:timeout
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(caught_source, capabilities=self.capability)[1], "timed out\n")
 

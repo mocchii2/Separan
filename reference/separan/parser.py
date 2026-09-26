@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from .ast_nodes import *
-from .errors import error
+from .errors import SeparanError, error
 from .token import Token, TokenType as T
 
 
@@ -45,6 +45,48 @@ class Parser:
             statements.append(stmt); self._newlines()
         return Program(self._peek().position, statements)
 
+    def parse_with_diagnostics(self):
+        self._newlines(); statements = []; diagnostics = []; seen_executable = False
+        while not self._at(T.EOF):
+            start = self.current
+            try:
+                if self._peek().type in self.CLOSERS:
+                    self._unexpected_or_nesting(self._peek())
+                stmt = self._statement(top_level=True)
+                if isinstance(stmt, ImportStmt) and seen_executable:
+                    raise error("E702", "Late import", "Imports must appear before other top-level declarations and statements.", stmt.position)
+                if not isinstance(stmt, ImportStmt): seen_executable = True
+                statements.append(stmt); self._newlines()
+            except SeparanError as exc:
+                diagnostics.append(exc)
+                self._recover_top_level(start)
+        return Program(self._peek().position, statements), diagnostics
+
+    def _recover_top_level(self, start):
+        start_token = self.tokens[start]
+        outermost = self.stack[0] if self.stack else None
+        expected_kind = outermost.kind if outermost else ("function" if start_token.type == T.FUNCTION else None)
+        if expected_kind:
+            closers = {token for token, kind in self.CLOSERS.items() if kind == expected_kind}
+            while not self._at(T.EOF):
+                token = self._peek()
+                if token.type in closers:
+                    self._advance()
+                    while not self._at(T.NEWLINE, T.EOF): self._advance()
+                    self._newlines(); self.stack.clear()
+                    return
+                if (self.current > start and token.type == T.FUNCTION
+                        and token.position.line > start_token.position.line):
+                    self.stack.clear()
+                    return
+                self._advance()
+            self.stack.clear()
+            return
+        while (not self._at(T.NEWLINE, T.EOF)
+               and self._peek().position.line == start_token.position.line):
+            self._advance()
+        self._newlines()
+
     def _statement(self, top_level=False):
         token = self._peek()
         if token.type == T.TAG:
@@ -64,6 +106,8 @@ class Parser:
         if token.type == T.HTTP_ROUTE:
             if not top_level: raise error("E890", "Nested HTTP route", "HTTP routes may only be declared at top level.", token.position)
             return self._http_route()
+        if token.type == T.IDENTIFIER and token.lexeme == "function":
+            raise error("E100", "Legacy function syntax is not supported", "Use SEP:name / END_SEP:name instead of function:name / end_function:name.", token.position, actual="function")
         if token.type == T.FUNCTION:
             if not top_level:
                 raise error("E110", "Invalid nested function", "Functions may only be defined at top level in v0.1.", token.position, actual=token.lexeme)
@@ -401,7 +445,7 @@ class Parser:
 
     @staticmethod
     def _closer_text(kind, label):
-        return f"{'end_function' if kind == 'function' else 'endif' if kind == 'if' else 'end_' + kind if kind in ('object', 'list', 'error', 'http_route', 'transaction') else 'end' + kind}:{label}"
+        return f"{'END_SEP' if kind == 'function' else 'endif' if kind == 'if' else 'end_' + kind if kind in ('object', 'list', 'error', 'http_route', 'transaction') else 'end' + kind}:{label}"
 
     def _top_error(self, token):
         raise error("E110", "Invalid top-level statement", "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.", token.position, actual=token.lexeme)

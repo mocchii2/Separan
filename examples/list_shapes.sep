@@ -17,4 +17,4 @@ list_remove_horizontal(matrix, 0, back, 1)
 list_remove_vertical(matrix, 0, front, 1)
 print matrix
 
-end_SEP:main
+END_SEP:main

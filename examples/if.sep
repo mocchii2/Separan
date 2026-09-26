@@ -7,5 +7,5 @@ print "ok"
 else:score_check
 print "retry"
 endif:score_check
-end_SEP:main
+END_SEP:main
 

@@ -5,5 +5,5 @@ count = 10
 if count > 5 :count_check
 print "Hello, " + name
 endif:count_check
-end_SEP:main
+END_SEP:main
 

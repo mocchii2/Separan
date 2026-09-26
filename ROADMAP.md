@@ -24,15 +24,21 @@ The roadmap describes direction, not a compatibility promise.
   ELF/UF2/HEX verification, and explicit marker-checked BOOTSEL deployment
 - next: Pico W CYW43 and Arduino Core firmware backends, followed by SPI, sensor,
   Wi-Fi, and CloudWatch examples
-- next: stabilize preview APIs and strengthen parser recovery before beta
+- implemented: LSP diagnostics recover across independent top-level declarations
+  without changing strict runtime parsing
+- next: stabilize preview APIs and strengthen recovery for malformed/incomplete
+  nested structures before beta
 
 ## v0.3 — language tooling
 
 - dependency-free LSP editor core implements diagnostics, mismatch Quick Fixes,
   typed Semantic Tokens, Hover, definition, scoped label rename, completion,
   signature help, inlay hints, symbols, folding, and AST-preserving formatting
-- next: project-wide argument inference, references/test CodeLens, and
-  Run Current block; semantic tag workspace UI and cross-file rename
+- implemented in the Python LSP backend: workspace function references,
+  imported-call argument inference, Call Hierarchy, reference/test CodeLens,
+  Run Current Function, and cross-file semantic-tag rename
+- next: semantic-tag workspace UI and wiring these backend requests into the
+  packaged VS Code extension
 
 ## v0.4 — structural AI workflows
 
@@ -48,12 +54,14 @@ The roadmap describes direction, not a compatibility promise.
 - implemented: direct reads, writes, calls, and function parameters per named block
 - implemented: Git `HEAD` structural status and a removed-block review group
 - implemented: click navigation and active-cursor scope tracking
-- next: project-wide references, call hierarchy, test CodeLens, and function argument inference
+- implemented in the Python LSP backend: project-wide references and argument
+  inference, Call Hierarchy, reference/test CodeLens, and Run Current Function
+- next: semantic-tag workspace UI and packaged extension integration
 
 ## v1.0 — stable language
 
 - freeze the core specification
-- publish a compatibility and versioning policy
+- implemented: publish a compatibility and versioning policy in `spec/versioning.md`
 - designate the Python implementation as the reference implementation
 - provide a complete conformance suite
 
@@ -65,12 +73,16 @@ The roadmap describes direction, not a compatibility promise.
 - **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Semantic Tag、
   semantic scope検証、review済みPico／Nano profile、論理pin、portable Embedded sample、
   Pico／Pico 2のC++／SDK compile／UF2書き込み、native interface／IP／DNS／TCP／UDP、
-  1,800件超の適合testを実装済み。次はPico W／Arduino firmware backendとbeta向け安定化
+  1,800件超の適合testとtop-level宣言単位のLSP parser recoveryを実装済み。次はPico W／Arduino
+  firmware backendとnested structureのrecoveryを含むbeta向け安定化
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
-  label jump／rename、completion、signature、hint、symbol、fold、formatter）は実装済み。
-  次はproject全体推論、CodeLens、専用structure view
+  label jump／rename、completion、signature、hint、symbol、fold、formatter）に加え、
+  Python LSP backendのworkspace function references、引数型推論、Call Hierarchy、
+  reference／test CodeLens、Run Current Function、cross-file semantic tag renameを実装済み。
+  次はtag workspace UIとVS Code extensionへの接続
 - **v0.4:** AI edit scope、structural diff、対象外blockの無変更検証、machine-readable
   identity、独立browser adapter境界を実装済み
 - **v0.5:** 専用Structure Explorer、block別reads／writes／calls、Git変更状態、
   click移動、cursor scope追従を実装済み
-- **v1.0:** 仕様固定、互換性方針、Python Reference Implementation
+- **v1.0:** 互換性方針は`spec/versioning.md`に実装済み。仕様固定、Python Reference Implementation、
+  完全な適合suiteは継続作業

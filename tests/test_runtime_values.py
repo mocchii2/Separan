@@ -25,8 +25,8 @@ class RuntimeValueTests(unittest.TestCase):
 
     def test_function_fallthrough_and_bare_return_produce_void(self):
         for source in (
-            "function:work\nend_function:work\n",
-            "function:work\nreturn\nend_function:work\n",
+            "SEP:work\nEND_SEP:work\n",
+            "SEP:work\nreturn\nEND_SEP:work\n",
         ):
             runtime = Interpreter()
             runtime.run(program(source), invoke_main=False)
@@ -34,7 +34,7 @@ class RuntimeValueTests(unittest.TestCase):
 
     def test_void_cannot_be_assigned_or_printed(self):
         for statement in ("result = work()", "print work()"):
-            source = f"function:work\nend_function:work\nfunction:main\n{statement}\nend_function:main\n"
+            source = f"SEP:work\nEND_SEP:work\nSEP:main\n{statement}\nEND_SEP:main\n"
             with self.subTest(statement=statement), self.assertRaises(SeparanError) as caught:
                 Interpreter().run(program(source))
             self.assertIn(caught.exception.code, ("E126", "E127"))

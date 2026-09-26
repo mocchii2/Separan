@@ -11,7 +11,7 @@ from separan.errors import SeparanError
 
 class OperatorTests(unittest.TestCase):
     def output(self, body):
-        return execute(f"function:main\n{body}end_function:main\n")[1]
+        return execute(f"SEP:main\n{body}END_SEP:main\n")[1]
 
     def error(self, body, code):
         with self.assertRaises(SeparanError) as caught:
@@ -28,16 +28,16 @@ class OperatorTests(unittest.TestCase):
         self.error("print 7 // 0\n", "E301")
 
     def test_empty_coalescing_is_right_associative_and_short_circuits(self):
-        source = '''function:fail
+        source = '''SEP:fail
 print "called"
 return 9
-end_function:fail
-function:main
+END_SEP:fail
+SEP:main
 print 1 ?? fail()
 number first = EMPTY
 number second = EMPTY
 print first ?? second ?? 3
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "1\n3\n")
         self.assertEqual(self.output('print false ?? true\nprint 0 ?? 2\nprint "" ?? "fallback"\n'), "false\n0\n\n")

@@ -74,7 +74,7 @@ print pin_exists("GP25")
         with self.assertRaisesRegex(SeparanError, "E960"):
             execute("print pin.D0\n")
         with self.assertRaisesRegex(SeparanError, "E962"):
-            execute('board = board_select("arduino_nano")\nfunction:main\nanalog_read(pin.D8)\nend_function:main\n')
+            execute('board = board_select("arduino_nano")\nSEP:main\nanalog_read(pin.D8)\nEND_SEP:main\n')
         output = execute('board = board_select("arduino_nano")\nprint pin_has(pin.A6, "digital_output")\n')[1]
         self.assertEqual(output, "false\n")
 
@@ -83,25 +83,25 @@ print pin_exists("GP25")
         capabilities = replace(RuntimeCapabilities.local(ROOT), embedded_io=True,
                                embedded_boards=frozenset({"raspberry_pi_pico"}))
         source = '''board = board_select("raspberry_pi_pico")
-function:main
+SEP:main
 gpio_set_mode(pin.LED_BUILTIN, "output")
 gpio_write(pin.LED_BUILTIN, true)
 i2c = i2c_open(0)
 print i2c.kind
 print i2c.index
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=capabilities, embedded_adapter=adapter)[1]
         self.assertEqual(output.splitlines(), ["i2c", "0"])
         self.assertEqual([item[0] for item in adapter.operations], ["gpio_set_mode", "gpio_write", "i2c_open"])
         denied = replace(capabilities, embedded_boards=frozenset({"arduino_nano"}))
         with self.assertRaisesRegex(SeparanError, "E720"):
-            execute('board = board_select("raspberry_pi_pico")\nfunction:main\ngpio_read(pin.D0)\nend_function:main\n', capabilities=denied, embedded_adapter=adapter)
+            execute('board = board_select("raspberry_pi_pico")\nSEP:main\ngpio_read(pin.D0)\nEND_SEP:main\n', capabilities=denied, embedded_adapter=adapter)
 
     def test_bus_route_must_match_peripheral_instance(self):
         adapter = ValidationEmbeddedAdapter()
         capabilities = replace(RuntimeCapabilities.local(ROOT), embedded_io=True)
-        source = 'board = board_select("raspberry_pi_pico")\nfunction:main\ni2c_open(0, sda = pin.D2, scl = pin.D3)\nend_function:main\n'
+        source = 'board = board_select("raspberry_pi_pico")\nSEP:main\ni2c_open(0, sda = pin.D2, scl = pin.D3)\nEND_SEP:main\n'
         with self.assertRaisesRegex(SeparanError, "E963"):
             execute(source, capabilities=capabilities, embedded_adapter=adapter)
 
@@ -109,7 +109,7 @@ end_function:main
         adapter = ValidationEmbeddedAdapter()
         capabilities = replace(RuntimeCapabilities.local(ROOT), embedded_io=True)
         source = '''board = board_select("arduino_nano")
-function:main
+SEP:main
 delay_milliseconds(500)
 i2c = i2c_open(0)
 print i2c_probe(i2c, 42)
@@ -117,7 +117,7 @@ serial = uart_open(0)
 uart_write(serial, "hello")
 print uart_read_line(serial)
 print number_range(1, 4)
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=capabilities, embedded_adapter=adapter)[1]
         self.assertEqual(output.splitlines(), ["false", "", "[1, 2, 3]"])
@@ -184,14 +184,14 @@ end_function:main
         self.assertIn("sep_fn_blink_once();", generated)
 
     def test_other_board_profiles_do_not_claim_a_firmware_backend(self):
-        source = "function:main\nend_function:main\n"
+        source = "SEP:main\nEND_SEP:main\n"
         program = Parser(Lexer(source).scan_tokens()).parse()
         with temporary_directory() as temporary:
             with self.assertRaisesRegex(SeparanError, "E966"):
                 generate_pico_project(program, source, Path("main.sep"), "arduino_nano", Path(temporary))
 
     def test_sdk_builder_uses_direct_process_arguments_and_requires_artifacts(self):
-        source = "function:main\nend_function:main\n"
+        source = "SEP:main\nEND_SEP:main\n"
         program = Parser(Lexer(source).scan_tokens()).parse()
         with temporary_directory() as temporary:
             root = Path(temporary)
@@ -247,14 +247,14 @@ end_function:main
 
     def test_static_validator_rejects_literal_hardware_mistakes(self):
         cases = (
-            ('function:main\ngpio_set_mode(pin.D0, "maybe")\nend_function:main\n', "E965"),
-            ('function:main\ngpio_write(pin.D0, 1)\nend_function:main\n', "E201"),
-            ('function:main\npwm_write(pin.D3, 2)\nend_function:main\n', "E965"),
-            ('function:main\ni2c_open(-1)\nend_function:main\n', "E963"),
-            ('function:main\ndelay_milliseconds(-1)\nend_function:main\n', "E965"),
-            ('function:main\ni2c_probe(bus, 128)\nend_function:main\n', "E965"),
-            ('function:main\nled = pin.D8\nanalog_read(led)\nend_function:main\n', "E962"),
-            ('function:main\nanalog_read(sensor)\nend_function:main\nsensor = pin.D8\n', "E962"),
+            ('SEP:main\ngpio_set_mode(pin.D0, "maybe")\nEND_SEP:main\n', "E965"),
+            ('SEP:main\ngpio_write(pin.D0, 1)\nEND_SEP:main\n', "E201"),
+            ('SEP:main\npwm_write(pin.D3, 2)\nEND_SEP:main\n', "E965"),
+            ('SEP:main\ni2c_open(-1)\nEND_SEP:main\n', "E963"),
+            ('SEP:main\ndelay_milliseconds(-1)\nEND_SEP:main\n', "E965"),
+            ('SEP:main\ni2c_probe(bus, 128)\nEND_SEP:main\n', "E965"),
+            ('SEP:main\nled = pin.D8\nanalog_read(led)\nEND_SEP:main\n', "E962"),
+            ('SEP:main\nanalog_read(sensor)\nEND_SEP:main\nsensor = pin.D8\n', "E962"),
         )
         for source, code in cases:
             with self.subTest(code=code, source=source):

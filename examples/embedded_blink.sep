@@ -20,4 +20,4 @@ delay_milliseconds(500)
 
 endwhile:blink_loop
 
-end_SEP:main
+END_SEP:main

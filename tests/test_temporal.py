@@ -195,7 +195,7 @@ print datetime_from_unix(1.25, "+09:00")
     def test_temporal_builtin_names_are_reserved(self):
         for name in ("datetime", "local_datetime", "timezone", "duration", "datetime_now"):
             with self.subTest(name=name):
-                self.assert_error(f"function:{name}\nend_function:{name}\n", "E209")
+                self.assert_error(f"SEP:{name}\nEND_SEP:{name}\n", "E209")
 
     @unittest.skipUnless(has_tzdb(), "IANA tzdb is not installed")
     def test_iana_timezone_and_dst_diagnostics(self):

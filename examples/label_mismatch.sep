@@ -3,4 +3,4 @@ SEP:main
 if true :check
 print "ok"
 endif:wrong
-end_SEP:main
+END_SEP:main

@@ -20,6 +20,7 @@ typedef struct {
 
 /* Returns zero on success. The caller owns the result and must free it. */
 int separan_lex(const char *source, separan_tokens *result);
+int separan_is_identifier(const char *text);
 void separan_tokens_free(separan_tokens *result);
 
 #endif

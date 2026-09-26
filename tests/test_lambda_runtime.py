@@ -26,14 +26,14 @@ class Context:
 
 class LambdaRuntimeTests(unittest.TestCase):
     def test_application_invokes_separan_handler_and_converts_values(self):
-        source = '''function:handler(event, context)
+        source = '''SEP:handler(event, context)
 object:result
 message = event.message
 request_id = context.aws_request_id
 remaining = context.remaining_time_milliseconds
 end_object:result
 return result
-end_function:handler
+END_SEP:handler
 '''
         application = LambdaApplication(source)
         self.assertEqual(
@@ -45,9 +45,9 @@ end_function:handler
     def test_host_function_is_explicit_and_cannot_replace_builtin(self):
         calls = []
         function = HostFunction("host_echo", 1, 1, lambda arguments, named: calls.append(arguments[0]) or arguments[0])
-        source = '''function:handler(event, context)
+        source = '''SEP:handler(event, context)
 return host_echo(event.value)
-end_function:handler
+END_SEP:handler
 '''
         self.assertEqual("ok", LambdaApplication(source, host_functions={"host_echo": function}).handle({"value": "ok"}))
         self.assertEqual(["ok"], calls)
@@ -56,9 +56,9 @@ end_function:handler
 
     def test_host_failure_is_a_separan_diagnostic(self):
         function = HostFunction("fail_host", 0, 0, lambda arguments, named: (_ for _ in ()).throw(RuntimeError("boom")))
-        source = '''function:handler(event, context)
+        source = '''SEP:handler(event, context)
 return fail_host()
-end_function:handler
+END_SEP:handler
 '''
         with self.assertRaises(SeparanError) as caught:
             LambdaApplication(source, host_functions={"fail_host": function}).handle({})
@@ -74,11 +74,11 @@ end_function:handler
     def test_host_empty_and_void_results_remain_distinct(self):
         missing = HostFunction("host_missing", 0, 0, lambda arguments, named: None)
         mutate = HostFunction("host_mutate", 0, 0, lambda arguments, named: VOID)
-        source = '''function:handler(event, context)
+        source = '''SEP:handler(event, context)
 string value = host_missing()
 host_mutate()
 return value is EMPTY
-end_function:handler
+END_SEP:handler
 '''
         application = LambdaApplication(source, host_functions={"host_missing": missing, "host_mutate": mutate})
         self.assertTrue(application.handle({}))
@@ -86,7 +86,7 @@ end_function:handler
     def test_package_contains_source_entrypoint_and_runtime(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); source = root / "app.sep"; output = root / "app.zip"
-            source.write_text("function:handler(event, context)\nreturn EMPTY\nend_function:handler\n", encoding="utf-8")
+            source.write_text("SEP:handler(event, context)\nreturn EMPTY\nEND_SEP:handler\n", encoding="utf-8")
             build_lambda_package(source, output, install_dependencies=False)
             with zipfile.ZipFile(output) as archive:
                 names = set(archive.namelist())

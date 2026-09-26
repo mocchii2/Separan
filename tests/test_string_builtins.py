@@ -79,7 +79,7 @@ print clip_utf8("日本", 0)
         for name in ("trim", "upper", "lower", "contains", "starts_with", "ends_with", "split", "join", "replace", "substring", "clip_utf8"):
             with self.subTest(name=name):
                 with self.assertRaises(SeparanError) as caught:
-                    execute(f"function:{name}\nend_function:{name}\n")
+                    execute(f"SEP:{name}\nEND_SEP:{name}\n")
                 self.assertEqual(caught.exception.code, "E209")
 
     def test_string_indexes_return_number_or_empty(self):

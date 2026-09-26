@@ -12,7 +12,7 @@ from separan.errors import SeparanError
 class SystemContextTests(unittest.TestCase):
     def test_stable_read_only_execution_context(self):
         script = ROOT / "examples" / "context.sep"
-        source = '''function:main
+        source = '''SEP:main
 print type_of(system)
 print system.version
 print system.engine
@@ -26,7 +26,7 @@ print system.cpu_count > 0
 print system.pid > 0
 print is_empty(system.hostname)
 print system
-end_function:main
+END_SEP:main
 '''
         output = execute(source, script_path=str(script), command_arguments=["server1", "--debug"])[1].splitlines()
         self.assertEqual(output[:4], ["system", "0.2.0-alpha.13", "python-reference", "context.sep"])
@@ -50,9 +50,9 @@ print system.script_dir is EMPTY
         cases = (
             ("system = 1\n", "E215"),
             ("const system = 1\n", "E215"),
-            ("function:system\nend_function:system\n", "E215"),
-            ("function:test(system)\nend_function:test\n", "E215"),
-            ("function:main\nsystem.os = \"linux\"\nend_function:main\n", "E214"),
+            ("SEP:system\nEND_SEP:system\n", "E215"),
+            ("SEP:test(system)\nEND_SEP:test\n", "E215"),
+            ("SEP:main\nsystem.os = \"linux\"\nEND_SEP:main\n", "E214"),
         )
         for source, code in cases:
             with self.subTest(source=source):

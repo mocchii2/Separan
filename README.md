@@ -142,15 +142,13 @@ ends. Indentation is decoration. Every block carries an explicit identity, and
 its opener and closer must agree.
 
 Design note: the conceptual callable unit is `SEP` (Separate Logic). The
-preferred canonical shape is `SEP:name` / `END_SEP:name`, because it makes the
-meaning of a reusable logic unit explicit in the syntax itself.
+canonical shape is `SEP:name` / `END_SEP:name`, because it makes the meaning
+of a reusable logic unit explicit in the syntax itself.
 
 This is a named logic boundary that describes a separate, independently scoped
-unit of behavior. In practice, it is the named boundary for Separan, but the
+unit of behavior. In practice, it is the named boundary for Separan, and the
 syntax stays explicit and structural: `SEP:name` opens the unit and
-`END_SEP:name` closes it. The reference implementation may still use
-compatibility syntax during early development, but the language identity is
-intentionally built around `SEP` and `END_SEP`.
+`END_SEP:name` closes it.
 
 Variables may use inferred or explicit fixed types. Explicit declarations always
 include an initializer, so a forgotten value cannot silently become an

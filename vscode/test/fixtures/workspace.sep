@@ -1,0 +1,3 @@
+SEP:workspace_fixture
+print "fixture"
+END_SEP:workspace_fixture

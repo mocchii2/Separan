@@ -55,7 +55,7 @@ print regex_split("[,;]", "a,b;c")
         self.assert_error('print glob("../*.sep")\n', "E840")
 
     def test_environment_is_explicit_and_mutable_in_runtime(self):
-        source = '''function:main
+        source = '''SEP:main
 print env_get("MISSING") is EMPTY
 print env_get("MISSING", default = "production")
 print env_exists("MODE")
@@ -63,7 +63,7 @@ env_set("MODE", "test")
 print env_get("MODE")
 env_remove("MODE")
 print env_exists("MODE")
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, environment_variables={})[1], "true\nproduction\nfalse\ntest\nfalse\n")
 

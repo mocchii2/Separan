@@ -114,7 +114,7 @@ print base64_to_bytes(bytes_to_base64(b)) == b
         self.assert_error("decrypt_with_password", "E922", "wrong", encrypted)
 
     def test_crypto_authentication_error_is_catchable(self):
-        source = '''function:main
+        source = '''SEP:main
 key = bytes_from_string("0123456789abcdef0123456789abcdef")
 wrong = bytes_from_string("abcdef0123456789abcdef0123456789")
 encrypted = encrypt_authenticated(key, "message")
@@ -123,7 +123,7 @@ print decrypt_authenticated(wrong, encrypted)
 catch crypto_error :decrypt
 print "rejected"
 endtry:decrypt
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "rejected\n")
 

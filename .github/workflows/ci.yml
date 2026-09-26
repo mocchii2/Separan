@@ -1,0 +1,240 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . pytest
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+  native-strict:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Clang
+        if: matrix.compiler == 'clang'
+        run: sudo apt-get update && sudo apt-get install --yes clang
+
+      - name: Compile native CLI and runtime API tests with strict warnings
+        env:
+          CC: ${{ matrix.compiler }}
+        run: |
+          "$CC" -O1 -std=c11 -Wall -Wextra -Werror -pedantic \
+            -I reference/c/include \
+            reference/c/src/main.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/separan"
+          "$CC" -O1 -std=c11 -Wall -Wextra -Werror -pedantic \
+            -I reference/c/include \
+            reference/c/test_runtime_api.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/test_runtime_api"
+          "$CC" -O1 -std=c11 -Wall -Wextra -Werror -pedantic \
+            -I reference/c/include \
+            reference/c/test_library_api.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/test_library_api"
+
+      - name: Run runtime API stress and adapter tests
+        run: "$RUNNER_TEMP/test_runtime_api"
+
+      - name: Run structured library validation and diagnostic tests
+        run: "$RUNNER_TEMP/test_library_api"
+
+      - name: Run CLI smoke checks
+        run: |
+          "$RUNNER_TEMP/separan" --check examples/hello.sep
+          "$RUNNER_TEMP/separan" examples/hello.sep
+
+  native-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Verify generated Unicode tables
+        run: python reference/c/generate_unicode_tables.py --check
+
+      - name: Build runtime API tests with address and undefined behavior sanitizers
+        run: |
+          cc -O1 -g -std=c11 -Wall -Wextra -Werror -pedantic \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I reference/c/include \
+            reference/c/test_runtime_api.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/test_runtime_api_sanitized"
+
+      - name: Run runtime API and repeated-call stress tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: "$RUNNER_TEMP/test_runtime_api_sanitized"
+
+      - name: Build and run sanitized CLI smoke test
+        run: |
+          cc -O1 -g -std=c11 -Wall -Wextra -Werror -pedantic \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I reference/c/include \
+            reference/c/src/main.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/separan_sanitized"
+          ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 \
+            "$RUNNER_TEMP/separan_sanitized" --check examples/hello.sep
+
+  native-linux-distribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Build native Linux executable
+        run: |
+          cc -O1 -std=c11 -Wall -Wextra -Werror -pedantic \
+            -I reference/c/include \
+            reference/c/src/main.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/separan"
+
+      - name: Package native Linux tarball
+        run: |
+          python reference/c/build_linux_tarball.py \
+            --binary "$RUNNER_TEMP/separan" \
+            --output-dir "$RUNNER_TEMP/linux-dist"
+
+      - name: Extract and execute packaged binary
+        run: |
+          mkdir "$RUNNER_TEMP/linux-package"
+          tar -xzf "$RUNNER_TEMP/linux-dist/separan-linux-x86_64.tar.gz" \
+            -C "$RUNNER_TEMP/linux-package"
+          test -x "$RUNNER_TEMP/linux-package/separan"
+          "$RUNNER_TEMP/linux-package/separan" --check examples/hello.sep
+          output="$("$RUNNER_TEMP/linux-package/separan" examples/hello.sep)"
+          test "$output" = "hello"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: separan-linux-x86_64
+          path: ${{ runner.temp }}/linux-dist/separan-linux-x86_64.tar.gz
+          if-no-files-found: error
+
+  native-windows-distribution:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-python
+
+      - name: Build Windows portable ZIP
+        shell: msys2 {0}
+        run: |
+          cd reference/c
+          gcc -O1 -std=c11 -Wall -Wextra -Werror -pedantic \
+            -I include \
+            src/main.c src/separan_core.c src/separan_lexer.c \
+            src/separan_files.c src/separan_runtime.c \
+            -lm -o separan.exe
+          python build_portable_zip.py
+
+      - name: Extract and execute packaged Windows binary
+        shell: pwsh
+        run: |
+          $archive = Join-Path $PWD "github/Separan/reference/c/dist/separan-portable.zip"
+          $destination = Join-Path $env:RUNNER_TEMP "separan-portable"
+          Expand-Archive -LiteralPath $archive -DestinationPath $destination
+          $binary = Join-Path $destination "separan.exe"
+          $check = Start-Process -FilePath $binary -ArgumentList "--check", "github/Separan/examples/hello.sep" -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP "check.out") -RedirectStandardError (Join-Path $env:RUNNER_TEMP "check.err")
+          if ($check.ExitCode -ne 0) { Get-Content (Join-Path $env:RUNNER_TEMP "check.err"); exit $check.ExitCode }
+          $run = Start-Process -FilePath $binary -ArgumentList "github/Separan/examples/hello.sep" -NoNewWindow -Wait -PassThru -RedirectStandardOutput (Join-Path $env:RUNNER_TEMP "run.out") -RedirectStandardError (Join-Path $env:RUNNER_TEMP "run.err")
+          if ($run.ExitCode -ne 0) { Get-Content (Join-Path $env:RUNNER_TEMP "run.err"); exit $run.ExitCode }
+          if ((Get-Content (Join-Path $env:RUNNER_TEMP "run.out") -Raw).Trim() -ne "hello") { throw "Portable Windows executable returned unexpected output." }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: separan-windows-portable
+          path: github/Separan/reference/c/dist/separan-portable.zip
+          if-no-files-found: error
+
+  distributions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Build and validate distributions
+        run: |
+          python -m build
+          python -m twine check --strict dist/*
+
+      - name: Smoke test installed wheel
+        run: |
+          python -m venv package-test
+          package-test/bin/python -m pip install dist/*.whl
+          package-test/bin/separan --timezone-version
+          package-test/bin/separan examples/hello.sep

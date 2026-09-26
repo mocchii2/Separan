@@ -12,4 +12,4 @@ endif:利用者は有効
 Indentation does not close this comment.
 ##日本語コメント
 
-end_SEP:main
+END_SEP:main

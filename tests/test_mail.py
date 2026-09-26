@@ -42,14 +42,14 @@ class MailTests(unittest.TestCase):
         )
 
     def assert_error(self, source, code, **options):
-        if "function:" not in source: source = "function:main\n" + source + "end_function:main\n"
+        if "SEP:" not in source: source = "SEP:main\n" + source + "END_SEP:main\n"
         with self.assertRaises(SeparanError) as caught: execute(source, capabilities=options.pop("capabilities", self.capability), **options)
         self.assertEqual(caught.exception.code, code)
         return caught.exception
 
     def test_smtp_message_mime_utf8_recipients_bcc_and_attachments(self):
         transport = FakeMailTransport()
-        source = '''function:main
+        source = '''SEP:main
 mailer = mail_create_sender(provider = "smtp", host = "smtp.test", port = 587, security = "starttls", username = "monitor", password = secret_from_environment("SMTP_PASSWORD"))
 message = mail_create_message()
 sender = mail_address("monitor@example.com", display_name = "監視システム")
@@ -68,7 +68,7 @@ print result.provider
 print result.accepted_recipients
 print result
 print mailer
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=self.capability, environment_variables={"SMTP_PASSWORD": "top-secret"}, mail_transport=transport)[1]
         self.assertEqual(output, "smtp\n3\nmail_send_result(provider=smtp, accepted=3)\nmail_sender(provider=smtp, credentials=[REDACTED])\n")
@@ -92,7 +92,7 @@ end_function:main
 
     def test_ses_uses_same_message_and_explicit_provider(self):
         transport = FakeMailTransport(MailTransportResponse("ses-id", 1))
-        source = '''function:main
+        source = '''SEP:main
 mailer = mail_create_sender(provider = "ses", region = "ap-northeast-1")
 message = mail_create_message()
 mail_set_sender(message, "monitor@example.com")
@@ -102,7 +102,7 @@ mail_set_text_body(message, "body")
 result = mail_send_message(mailer, message)
 print result.provider
 print result.message_id
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability, mail_transport=transport)[1], "ses\nses-id\n")
         self.assertEqual(transport.requests[0]["sender"].provider, "ses")
@@ -160,7 +160,7 @@ mail_send_message(mailer, message)
         self.assert_error(source, "E720", capabilities=bad_host, mail_transport=FakeMailTransport())
 
     def test_transport_failures_are_typed_and_partial_delivery_is_error(self):
-        base = '''function:main
+        base = '''SEP:main
 mailer = mail_create_sender(provider = "smtp", host = "smtp.test")
 message = mail_create_message()
 mail_set_sender(message, "monitor@example.com")
@@ -172,7 +172,7 @@ mail_send_message(mailer, message)
 catch mail_error :send
 print "mail failed"
 endtry:send
-end_function:main
+END_SEP:main
 '''
         failure = FakeMailTransport(failure=MailTransportError("mail_connection_error", "offline"))
         self.assertEqual(execute(base, capabilities=self.capability, mail_transport=failure)[1], "mail failed\n")

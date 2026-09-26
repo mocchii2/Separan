@@ -16,19 +16,19 @@ def parse(source): return Parser(Lexer(source, "test.sep").scan_tokens()).parse(
 
 class SeparanTests(unittest.TestCase):
     def test_main_auto_start_and_string_addition(self):
-        self.assertEqual(execute('function:main\nname = "Separan"\nprint "Hello, " + name\nend_function:main\n')[1], "Hello, Separan\n")
+        self.assertEqual(execute('SEP:main\nname = "Separan"\nprint "Hello, " + name\nEND_SEP:main\n')[1], "Hello, Separan\n")
 
     def test_top_level_runs_before_main(self):
-        self.assertEqual(execute('x = 2\nprint x\nfunction:main\nprint x + 3\nend_function:main\n')[1], "2\n5\n")
+        self.assertEqual(execute('x = 2\nprint x\nSEP:main\nprint x + 3\nEND_SEP:main\n')[1], "2\n5\n")
 
     def test_indent_does_not_change_ast(self):
-        a = parse('function:main\nif true :ok\nprint "yes"\nendif:ok\nend_function:main\n')
-        b = parse('  function:main\n    if true :ok\n      print "yes"\n    endif:ok\n  end_function:main\n')
+        a = parse('SEP:main\nif true :ok\nprint "yes"\nendif:ok\nEND_SEP:main\n')
+        b = parse('  SEP:main\n    if true :ok\n      print "yes"\n    endif:ok\n  END_SEP:main\n')
         self.assertNotEqual(a, b)
         self.assertTrue(ast_structural_equal(a, b))
 
     def test_branches_and_loops(self):
-        src = '''function:main
+        src = '''SEP:main
 items = [1, 2, 3]
 sum = 0
 for item in items :each
@@ -44,16 +44,16 @@ print "seven"
 else:choice
 print "other"
 endif:choice
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(src)[1], "seven\n")
 
     def test_block_errors(self):
         cases = [
-            ('function:main\nif true :a\nendif:b\nend_function:main\n', "E104"),
-            ('function:main\nif true :a\nif true :b\nendif:a\nendif:b\nend_function:main\n', "E105"),
-            ('function:main\nif true :a\nend_function:main\n', "E105"),
-            ('endif:nope\n', "E107"), ('function:main\nif true :a\n', "E106")]
+            ('SEP:main\nif true :a\nendif:b\nEND_SEP:main\n', "E104"),
+            ('SEP:main\nif true :a\nif true :b\nendif:a\nendif:b\nEND_SEP:main\n', "E105"),
+            ('SEP:main\nif true :a\nEND_SEP:main\n', "E105"),
+            ('endif:nope\n', "E107"), ('SEP:main\nif true :a\n', "E106")]
         for source, code in cases:
             with self.subTest(code=code), self.assertRaises(SeparanError) as caught: parse(source)
             self.assertEqual(caught.exception.code, code)
@@ -61,7 +61,7 @@ end_function:main
 
     def test_diagnostic_includes_numbered_source_location(self):
         with self.assertRaises(SeparanError) as caught:
-            parse('function:main\nif true :check\nendif:wrong\nend_function:main\n')
+            parse('SEP:main\nif true :check\nendif:wrong\nEND_SEP:main\n')
         diagnostic = str(caught.exception)
         self.assertIn("--> test.sep:3:7", diagnostic)
         self.assertIn("3 | endif:wrong", diagnostic)
@@ -77,50 +77,50 @@ end_function:main
     def test_type_safety(self):
         with self.assertRaisesRegex(SeparanError, "fixed type number"): execute('x = 1\nx = "one"\n')
         with self.assertRaisesRegex(SeparanError, "incompatible"): execute('print "1" + 2\n')
-        with self.assertRaisesRegex(SeparanError, "Conditions must evaluate to boolean"): execute('function:main\nif 1 :bad\nendif:bad\nend_function:main\n')
+        with self.assertRaisesRegex(SeparanError, "Conditions must evaluate to boolean"): execute('SEP:main\nif 1 :bad\nendif:bad\nEND_SEP:main\n')
 
     def test_top_level_restrictions(self):
         with self.assertRaisesRegex(SeparanError, "Only function definitions"):
             parse('unknown()\n')
         with self.assertRaisesRegex(SeparanError, "only be defined at top level"):
-            parse('function:main\nfunction:nested\nend_function:nested\nend_function:main\n')
+            parse('SEP:main\nSEP:nested\nEND_SEP:nested\nEND_SEP:main\n')
 
     def test_recursion_and_list_index(self):
-        src = '''function:fact(n)
+        src = '''SEP:fact(n)
 if n == 0 :base
 return 1
 else:base
 return n * fact(n - 1)
 endif:base
-end_function:fact
-function:main
+END_SEP:fact
+SEP:main
 values = [fact(3), fact(4)]
 print values[1]
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(src)[1], "24\n")
 
     def test_duplicate_parameter(self):
         with self.assertRaises(SeparanError) as caught:
-            parse('function:f(a, a)\nreturn a\nend_function:f\n')
+            parse('SEP:f(a, a)\nreturn a\nEND_SEP:f\n')
         self.assertEqual(caught.exception.code, "E112")
-        self.assertEqual(caught.exception.position.column, 15)
+        self.assertEqual(caught.exception.position.column, 10)
 
     def test_parameter_type_is_fixed_by_first_call(self):
-        source = 'function:echo(x)\nreturn x\nend_function:echo\nfunction:main\nprint echo(1)\nprint echo("x")\nend_function:main\n'
+        source = 'SEP:echo(x)\nreturn x\nEND_SEP:echo\nSEP:main\nprint echo(1)\nprint echo("x")\nEND_SEP:main\n'
         with self.assertRaises(SeparanError) as caught: execute(source)
         self.assertEqual(caught.exception.code, "E208")
 
     def test_block_kind_mismatch(self):
         with self.assertRaises(SeparanError) as caught:
-            parse('function:main\nwhile true :x\nendif:x\nend_function:main\n')
+            parse('SEP:main\nwhile true :x\nendif:x\nEND_SEP:main\n')
         self.assertEqual(caught.exception.category, "Block kind mismatch")
         self.assertEqual(caught.exception.expected, "endwhile:x")
 
     def test_all_comparison_chains_are_parser_errors(self):
         for expression in ("1 == 1 == 1", "1 != 2 != 3", "1 < 2 == true", "1 == 2 < 3", "1 < 2 < 3"):
             with self.subTest(expression=expression), self.assertRaises(SeparanError) as caught:
-                parse(f'function:main\nif {expression} :x\nendif:x\nend_function:main\n')
+                parse(f'SEP:main\nif {expression} :x\nendif:x\nEND_SEP:main\n')
             self.assertEqual(caught.exception.code, "E111")
 
     def test_comments(self):

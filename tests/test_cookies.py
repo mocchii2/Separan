@@ -37,21 +37,21 @@ print http_get("https://example.test/", cookies = cookies)
             HttpTransportResponse(200, "https://example.test/login", {}, b"logged in", ("session=abc123; Path=/; Secure; HttpOnly; SameSite=Lax",)),
             HttpTransportResponse(200, "https://example.test/data", {}, b"data"),
         ])
-        source = '''function:main
+        source = '''SEP:main
 jar = cookie_jar()
 login = http_request("https://example.test/login", cookie_jar = jar)
 print object_get(login.cookies, "session")
 print object_has(login.headers, "set-cookie")
 print cookie_get(jar, "session")
 print http_get("https://example.test/data", cookie_jar = jar)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability, http_transport=transport)[1], "[REDACTED]\nfalse\n[REDACTED]\ndata\n")
         self.assertNotIn("Cookie", transport.requests[0]["headers"])
         self.assertEqual(transport.requests[1]["headers"]["Cookie"], "session=abc123")
 
     def test_manual_mutation_and_clear(self):
-        source = '''function:main
+        source = '''SEP:main
 jar = cookie_jar()
 cookie_set(jar, "session", "abc")
 print cookie_get(jar, "session")
@@ -61,7 +61,7 @@ print cookie_get(jar, "session") is EMPTY
 cookie_set(jar, "a", "1")
 cookie_clear(jar)
 print length(object_keys(cookie_all(jar)))
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "[REDACTED]\ntrue\ntrue\n0\n")
 
@@ -71,19 +71,19 @@ end_function:main
             HttpTransportResponse(200, "http://example.test/app/data", {}, b"ok"),
             HttpTransportResponse(200, "https://example.test/other", {}, b"ok"),
         ])
-        source = '''function:main
+        source = '''SEP:main
 jar = cookie_jar()
 http_get("https://example.test/app/login", cookie_jar = jar)
 http_get("http://example.test/app/data", cookie_jar = jar)
 http_get("https://example.test/other", cookie_jar = jar)
-end_function:main
+END_SEP:main
 '''
         execute(source, capabilities=self.capability, http_transport=transport)
         self.assertNotIn("Cookie", transport.requests[1]["headers"])
         self.assertNotIn("Cookie", transport.requests[2]["headers"])
 
     def test_invalid_cookie_is_rejected(self):
-        with self.assertRaises(SeparanError) as caught: execute('function:main\njar = cookie_jar()\ncookie_set(jar, "bad name", "x")\nend_function:main\n')
+        with self.assertRaises(SeparanError) as caught: execute('SEP:main\njar = cookie_jar()\ncookie_set(jar, "bad name", "x")\nEND_SEP:main\n')
         self.assertEqual(caught.exception.code, "E880")
         transport = FakeTransport([HttpTransportResponse(200, "https://example.test/", {}, b"ok", ("x=1; Domain=other.test",))])
         with self.assertRaises(SeparanError) as caught: execute('jar = cookie_jar()\nprint http_get("https://example.test/", cookie_jar = jar)\n', capabilities=self.capability, http_transport=transport)

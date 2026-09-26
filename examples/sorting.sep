@@ -21,4 +21,4 @@ users = [first_user, second_user]
 ranked = sort_by_descending(users, "score")
 print ranked[0].name
 
-end_SEP:main
+END_SEP:main

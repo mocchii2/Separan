@@ -1,14 +1,14 @@
 SEP:double(value)
 return value * 2
-end_SEP:double
+END_SEP:double
 
 SEP:is_large(value)
 return value >= 10
-end_SEP:is_large
+END_SEP:is_large
 
 SEP:add(total, value)
 return total + value
-end_SEP:add
+END_SEP:add
 
 SEP:main
 
@@ -30,4 +30,4 @@ print sqrt(16)
 print sin(0)
 print log10(1000)
 
-end_SEP:main
+END_SEP:main

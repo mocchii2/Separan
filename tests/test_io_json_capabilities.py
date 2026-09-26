@@ -16,14 +16,14 @@ class IoJsonCapabilityTests(unittest.TestCase):
         directory = ROOT / "tests" / "fixtures" / "io_runtime"
         directory.mkdir(exist_ok=True)
         capability = RuntimeCapabilities.local(directory)
-        source = '''function:main
+        source = '''SEP:main
 write_text("note.txt", "日本語")
 append_text("note.txt", "!")
 print read_text("note.txt")
 data = secure_random_bytes(8)
 write_bytes("data.bin", data)
 print length(read_bytes("data.bin"))
-end_function:main
+END_SEP:main
 '''
         try: self.assertEqual(execute(source, capabilities=capability)[1], "日本語!\n8\n")
         finally:
@@ -33,13 +33,13 @@ end_function:main
 
     def test_capability_denial_is_catchable(self):
         capability = RuntimeCapabilities.none(ROOT)
-        source = '''function:main
+        source = '''SEP:main
 try :read
 print read_text("README.md")
 catch permission_error :read
 print "denied"
 endtry:read
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=capability)[1], "denied\n")
         with self.assertRaises(SeparanError) as caught:
@@ -104,7 +104,7 @@ print json_encode(unknown)
 
     def test_standard_streams_are_injectable(self):
         errors = StringIO()
-        source = 'function:main\nname = input("Name: ")\nprint name\nprint_error "warning"\nend_function:main\n'
+        source = 'SEP:main\nname = input("Name: ")\nprint name\nprint_error "warning"\nEND_SEP:main\n'
         output = execute(source, input_stream=StringIO("Alice\n"), error_output=errors)[1]
         self.assertEqual(output, "Name: Alice\n"); self.assertEqual(errors.getvalue(), "warning\n")
         with self.assertRaises(SeparanError) as caught: execute('print input()\n', input_stream=StringIO(""))
@@ -114,7 +114,7 @@ print json_encode(unknown)
         root = ROOT / "tests" / "fixtures" / "io_runtime"; work = root / "work"
         if work.exists(): shutil.rmtree(work)
         capability = RuntimeCapabilities.local(root)
-        source = '''function:main
+        source = '''SEP:main
 create_directory("work")
 write_text("work/source.txt", "a\\nb\\n")
 print file_exists("work/source.txt")
@@ -131,7 +131,7 @@ delete_file("work/source.txt")
 delete_file("work/moved.txt")
 delete_directory("work")
 print directory_exists("work")
-end_function:main
+END_SEP:main
 '''
         try:
             self.assertEqual(execute(source, capabilities=capability)[1], "true\ntrue\n4\n[a, b]\n[moved.txt, source.txt]\nsource.txt\ntxt\nwork\nfalse\n")
@@ -144,7 +144,7 @@ end_function:main
         work.mkdir(); (work / "a.txt").write_text("a", encoding="utf-8"); (work / "b.txt").write_text("b", encoding="utf-8")
         try:
             with self.assertRaises(SeparanError) as caught:
-                execute('function:main\ncopy_file("work/a.txt", "work/b.txt")\nend_function:main\n', capabilities=RuntimeCapabilities.local(root))
+                execute('SEP:main\ncopy_file("work/a.txt", "work/b.txt")\nEND_SEP:main\n', capabilities=RuntimeCapabilities.local(root))
             self.assertEqual(caught.exception.code, "E725")
             with self.assertRaises(SeparanError) as caught:
                 execute('print file_exists("work/a.txt")\n', capabilities=RuntimeCapabilities.none(root))

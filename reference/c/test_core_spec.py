@@ -23,7 +23,7 @@ def main() -> None:
         directory = Path(temporary)
         binary = directory / "separan_core.exe"
         subprocess.run([
-            "gcc", "-std=c11", "-Wall", "-Wextra", "-I", str(ROOT / "include"),
+            "gcc", "-O1", "-std=c11", "-Wall", "-Wextra", "-I", str(ROOT / "include"),
             str(ROOT / "src" / "main.c"), str(ROOT / "src" / "separan_core.c"),
             str(ROOT / "src" / "separan_lexer.c"), str(ROOT / "src" / "separan_files.c"),
             str(ROOT / "src" / "separan_runtime.c"),

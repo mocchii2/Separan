@@ -36,64 +36,64 @@ print exp(0)
             with self.subTest(call=call): self.error(f"print {call}\n", "E308")
 
     def test_function_references_map_and_builtin_callback(self):
-        source = '''function:double(x)
+        source = '''SEP:double(x)
 return x * 2
-end_function:double
-function:main
+END_SEP:double
+SEP:main
 callback = double
 print type_of(callback)
 print map([1, 2, 3], callback)
 print map([-2, 3], abs)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "function\n[2, 4, 6]\n[2, 3]\n")
 
     def test_map_requires_homogeneous_results(self):
-        source = '''function:mixed(value)
+        source = '''SEP:mixed(value)
 if value == 1 :first
 return 1
 else:first
 return "two"
 endif:first
-end_function:mixed
-function:main
+END_SEP:mixed
+SEP:main
 print map([1, 2], mixed)
-end_function:main
+END_SEP:main
 '''
         self.error(source, "E203")
         self.error("print map([1], 1)\n", "E201")
         self.error("print map([], 1)\n", "E201")
 
     def test_filter_requires_boolean_predicate(self):
-        source = '''function:is_large(value)
+        source = '''SEP:is_large(value)
 return value >= 10
-end_function:is_large
-function:main
+END_SEP:is_large
+SEP:main
 print filter([5, 10, 20], is_large)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "[10, 20]\n")
         self.error("print filter([], EMPTY)\n", "E131")
-        invalid = '''function:identity(value)
+        invalid = '''SEP:identity(value)
 return value
-end_function:identity
+END_SEP:identity
 print filter([1], identity)
 '''
         self.error(invalid, "E201")
 
     def test_reduce_requires_initial_and_preserves_accumulator_type(self):
-        source = '''function:add(total, value)
+        source = '''SEP:add(total, value)
 return total + value
-end_function:add
-function:main
+END_SEP:add
+SEP:main
 print reduce([1, 2, 3], add, 0)
 print reduce([], add, 10)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "6\n10\n")
-        changed = '''function:change(total, value)
+        changed = '''SEP:change(total, value)
 return "changed"
-end_function:change
+END_SEP:change
 print reduce([1], change, 0)
 '''
         self.error(changed, "E201")
@@ -157,7 +157,7 @@ print find_all("abc", "x")
                  "is_boolean", "is_list", "is_object", "is_bytes", "is_datetime", "is_duration", "is_secret")
         for name in names:
             with self.subTest(name=name):
-                self.error(f"function:{name}\nend_function:{name}\n", "E209")
+                self.error(f"SEP:{name}\nEND_SEP:{name}\n", "E209")
         for call in ("map([])", "filter([])", "flatten([], 1)", "sum()", "average([], 1)", "count([])", 'char_at("x")', 'find_all("x")'):
             with self.subTest(call=call): self.error(f"print {call}\n", "E207")
 

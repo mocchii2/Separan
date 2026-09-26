@@ -11,7 +11,7 @@ from separan.errors import SeparanError
 
 class SortingTests(unittest.TestCase):
     def output(self, body):
-        return execute(f"function:main\n{body}end_function:main\n")[1]
+        return execute(f"SEP:main\n{body}END_SEP:main\n")[1]
 
     def error(self, body, code):
         with self.assertRaises(SeparanError) as caught:
@@ -113,7 +113,7 @@ print sort_by([a], "key")
         for name in names:
             with self.subTest(name=name):
                 with self.assertRaises(SeparanError) as caught:
-                    execute(f"function:{name}\nend_function:{name}\n")
+                    execute(f"SEP:{name}\nEND_SEP:{name}\n")
                 self.assertEqual(caught.exception.code, "E209")
         self.error("print sort_by([])\n", "E207")
 

@@ -26,14 +26,14 @@ class BuiltinFunctionTests(unittest.TestCase):
         self.assertEqual(execute('print abs(-4)\nprint abs(-2.5)\n')[1], "4\n2.5\n")
 
     def test_range_forms_and_for_loop(self):
-        source = '''function:main
+        source = '''SEP:main
 print range(4)
 print range(2, 5)
 print range(5, 0, -2)
 for item in range(3) :numbers
 print item
 endfor:numbers
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "[0, 1, 2, 3]\n[2, 3, 4]\n[5, 3, 1]\n0\n1\n2\n")
 
@@ -54,7 +54,7 @@ end_function:main
     def test_builtin_names_cannot_be_redefined(self):
         for name in ("len", "type", "abs", "range", "number", "string", "boolean"):
             with self.subTest(name=name):
-                self.assert_error(f"function:{name}\nend_function:{name}\n", "E209")
+                self.assert_error(f"SEP:{name}\nEND_SEP:{name}\n", "E209")
 
     def test_number_conversion(self):
         source = 'print number("42")\nprint number("-10.5")\nprint number(7)\nprint number(1.25)\nprint number("10") + 5\n'

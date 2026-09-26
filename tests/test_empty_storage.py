@@ -38,7 +38,7 @@ print age
         cases = (
             "number value = EMPTY\nprint value\n",
             "number value = EMPTY\nprint value + 1\n",
-            "function:main\nboolean value = EMPTY\nif value :present\nendif:present\nend_function:main\n",
+            "SEP:main\nboolean value = EMPTY\nif value :present\nendif:present\nEND_SEP:main\n",
             "string value = EMPTY\nprint upper(value)\n",
         )
         for source in cases:
@@ -46,23 +46,23 @@ print age
                 self.assert_error(source, "E131")
 
     def test_typed_parameter_accepts_empty_without_losing_type(self):
-        source = '''function:show_age(age: number)
+        source = '''SEP:show_age(age: number)
 if age is EMPTY :missing
 return "missing"
 endif:missing
 return string(age)
-end_function:show_age
-function:main
+END_SEP:show_age
+SEP:main
 print show_age(EMPTY)
 print show_age(30)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "missing\n30\n")
 
     def test_untyped_parameter_requires_empty_with_retained_type(self):
-        direct = 'function:check(value)\nreturn value is EMPTY\nend_function:check\nprint check(EMPTY)\n'
+        direct = 'SEP:check(value)\nreturn value is EMPTY\nEND_SEP:check\nprint check(EMPTY)\n'
         self.assert_error(direct, "E129")
-        retained = 'function:check(value)\nreturn value is EMPTY\nend_function:check\nnumber source = EMPTY\nprint check(source)\n'
+        retained = 'SEP:check(value)\nreturn value is EMPTY\nEND_SEP:check\nnumber source = EMPTY\nprint check(source)\n'
         self.assertEqual(execute(retained)[1], "true\n")
 
     def test_typed_object_field_can_be_empty_and_updated_non_destructively(self):

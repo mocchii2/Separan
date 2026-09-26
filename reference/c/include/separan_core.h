@@ -9,8 +9,13 @@
 
 typedef struct {
     int line_number;
+    int column_number;
+    int related_line_number;
+    int related_column_number;
     char code[SEPARAN_CODE_LEN];
+    char category[SEPARAN_MESSAGE_LEN];
     char title[SEPARAN_MESSAGE_LEN];
+    char description[SEPARAN_MESSAGE_LEN];
     char expected[SEPARAN_MESSAGE_LEN];
     char actual[SEPARAN_MESSAGE_LEN];
 } separan_error;
@@ -21,8 +26,10 @@ typedef struct {
     separan_error errors[SEPARAN_MAX_ERRORS];
 } separan_result;
 
+/* Legacy structural-only scanner. Prefer separan_validate_* for full parsing. */
 int separan_analyze_source(const char *source);
 int separan_analyze_path(const char *path);
+/* Structured validation through the native runtime parser shared with --check. */
 separan_result separan_validate_source(const char *source);
 separan_result separan_validate_path(const char *path);
 void separan_reset_result(separan_result *result);

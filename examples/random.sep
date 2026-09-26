@@ -12,4 +12,4 @@ print random_sample(items, 2)
 
 print secure_random_string(32)
 print type(secure_random_bytes(16))
-end_SEP:main
+END_SEP:main

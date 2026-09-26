@@ -92,7 +92,7 @@ print sort(["b", "a", "c"])
             with self.subTest(call=call): self.assert_error("print " + call + "\n", "E207")
         for name in ("list_append", "list_remove", "size", "length", "is_empty", "first", "last", "index_of", "last_index_of", "slice", "reverse", "sort", "repeat", "pad_left", "pad_right"):
             with self.subTest(name=name):
-                self.assert_error(f"function:{name}\nend_function:{name}\n", "E209")
+                self.assert_error(f"SEP:{name}\nEND_SEP:{name}\n", "E209")
 
     def test_readable_non_mutating_list_names(self):
         source = '''items = [1, 2, 1]

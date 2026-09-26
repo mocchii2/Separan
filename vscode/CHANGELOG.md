@@ -1,5 +1,50 @@
 # Changelog
 
+## Unreleased
+
+- Adds **Check Current File** to run the parser check from the editor title,
+  command palette, or status bar.
+- Adds **Diagnose Runtime** for native executable setup and recovery.
+- Runs files and checks as VS Code process tasks in the
+  active workspace folder.
+- Adds configurable native executable arguments and process environment.
+- Shows Run and Check actions in the status bar while a Separan file is active.
+- Adds snippets for functions, main, labeled control flow, object/list blocks,
+  try/catch, and HTTP routes.
+- Removes the Python Language Server and Python runtime dependency. Structure
+  browsing, structural diff, and scope verification now run inside the extension.
+- Publishes immediate label-boundary diagnostics while editing and native
+  `separan --check` E-code diagnostics to the Problems view after saving.
+- Adds extension-local completion, hover, definition, reference, label/function rename,
+  and document symbol providers without starting a language server.
+- Adds local-function and common built-in signature help plus workspace-wide
+  Separan symbol search.
+- Adds lightweight inlay type hints for literals and common built-in calls.
+- Adds Call Hierarchy, function reference-count CodeLens, semantic-tag workspace
+  browsing and cross-file rename.
+- Adds native execution CodeLens for zero-argument functions and `test_`
+  functions using automatically removed temporary wrappers.
+- Adds **Run Tests in Current File** for all zero-argument `test_` functions.
+- Completes local completion and signature metadata for all 504 registered built-ins.
+- Resolves aliased imports for member completion, signature help, hover,
+  definitions, and inferred return types across `.sep` files.
+- Resolves imported references and rename edits by alias and target file, and
+  infers returns through forward function calls and local assignments.
+- Adds real VS Code Extension Host regression tests for local providers,
+  semantic-tag rename, the built-in catalog, imports, and type hints.
+- Diagnoses missing imports, duplicate aliases, unknown imported functions,
+  incompatible assignments, and invalid built-in argument counts.
+- Infers homogeneous list element types, typed parameters, comparisons, and
+  simple arithmetic, and tests Call Hierarchy, CodeLens, and workspace symbols.
+- Resolves imported calls in both directions in Call Hierarchy without mixing
+  same-named functions from unrelated modules.
+- Adds a local document formatter for structure-preserving indentation and an
+  Extension Host formatting regression test.
+- Adds Extension Host task tests for Run File, Check Current File, Run Current
+  Function, and Run Tests, including wrapper contents and temporary-file cleanup.
+- Restricts automatic closer insertion to a single interactive newline so
+  formatting and other whole-document edits cannot trigger competing edits.
+
 ## [0.9.8] - 2026-09-18
 
 ### Marketplace release alignment

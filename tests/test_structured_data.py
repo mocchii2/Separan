@@ -22,21 +22,21 @@ class StructuredDataTests(unittest.TestCase):
         if self.root.exists(): shutil.rmtree(self.root)
 
     def assert_error(self, source, code, capability=None):
-        source = "function:main\n" + source + "end_function:main\n"
+        source = "SEP:main\n" + source + "END_SEP:main\n"
         with self.assertRaises(SeparanError) as caught:
             execute(source, capabilities=capability or self.capability)
         self.assertEqual(caught.exception.code, code)
         return caught.exception
 
     def test_yaml_data_mapping_order_unicode_and_explicit_date_string(self):
-        source = '''function:main
+        source = '''SEP:main
 config = yaml_to_object("environment: production\\ntargets:\\n  - WEB01\\n  - WEB02\\nenabled: true\\nstarted: 2026-08-15\\n")
 print config.environment
 print config.targets[1]
 print config.enabled
 print type_of(config.started)
 print object_to_yaml(config, indent = 4, sort_keys = false)
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=self.capability)[1]
         self.assertIn("production\nWEB02\ntrue\nstring\n", output)
@@ -45,34 +45,34 @@ end_function:main
         self.assertIn("started: '2026-08-15'", yaml_text)
 
     def test_yaml_uses_unambiguous_core_scalar_rules(self):
-        source = '''function:main
+        source = '''SEP:main
 value = yaml_to_object("yes_value: yes\\nno_value: no\\nleading_zero: 012\\nscientific: 1e3\\n")
 print type_of(value.yes_value)
 print type_of(value.no_value)
 print value.leading_zero
 print value.scientific
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "string\nstring\n12\n1000.0\n")
 
     def test_yaml_null_maps_to_empty_and_encodes_back(self):
-        source = '''function:main
+        source = '''SEP:main
 data = yaml_to_object("name: null\\nvalues: [1, null, 2]\\n")
 print data.name is EMPTY
 print data.values[1] is EMPTY
 print contains(object_to_yaml(data), "name: null")
 print yaml_to_object("") is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\ntrue\ntrue\ntrue\n")
 
     def test_yaml_multiple_documents_and_stream_type_rule(self):
-        source = '''function:main
+        source = '''SEP:main
 documents = yaml_to_objects("---\\nname: one\\n---\\nname: two\\n")
 print length(documents)
 print documents[1].name
 print objects_to_yaml(documents, sort_keys = false)
-end_function:main
+END_SEP:main
 '''
         output = execute(source)[1]
         self.assertTrue(output.startswith("2\ntwo\n---\nname: one\n---\nname: two\n"))
@@ -94,13 +94,13 @@ end_function:main
         self.assertIn("line 3", diagnostic.actual)
 
     def test_yaml_file_round_trip_validation_and_capabilities(self):
-        source = '''function:main
+        source = '''SEP:main
 config = yaml_to_object("name: 監視\\nthreshold: 95\\n")
 object_to_yaml_file("config/monitor.yaml", config, indent = 2, sort_keys = false)
 print yaml_validate_file("config/monitor.yaml")
 loaded = yaml_file_to_object("config/monitor.yaml")
 print loaded.name
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.capability)[1], "true\n監視\n")
         self.assertTrue((self.root / "config" / "monitor.yaml").is_file())
@@ -108,7 +108,7 @@ end_function:main
         self.assert_error('print yaml_validate_file("config/monitor.yaml")\n', "E720", RuntimeCapabilities.none(self.root))
 
     def test_xml_document_edit_search_escape_and_serialization(self):
-        source = '''function:main
+        source = '''SEP:main
 document = xml_document_parse("<server enabled=\\"true\\"><name>WEB01 &amp; DB</name><port>443</port></server>")
 root = xml_root(document)
 print xml_element_name(root)
@@ -123,7 +123,7 @@ xml_add_child(root, child)
 print length(xml_children(root))
 print xml_element_text(xml_child(root, "status"))
 print xml_document_to_text(document, indent = 2, declaration = true)
-end_function:main
+END_SEP:main
 '''
         output = execute(source)[1]
         self.assertTrue(output.startswith("server\ntrue\nWEB01 & DB\n3\nOK\n"))
@@ -132,7 +132,7 @@ end_function:main
         self.assertIn("&lt;ERROR&gt;", output)
 
     def test_xml_namespace_and_simple_path_are_explicit(self):
-        source = '''function:main
+        source = '''SEP:main
 document = xml_document_parse("<soap:Envelope xmlns:soap=\\"urn:soap\\"><soap:Body><item>one</item><item>two</item></soap:Body></soap:Envelope>")
 root = xml_root(document)
 print xml_namespace_uri(root)
@@ -142,23 +142,23 @@ print xml_get_attribute(root, "id", namespace_uri = "urn:meta")
 items = xml_find_all(document, "/Envelope/Body/item")
 print length(items)
 print xml_element_text(items[1])
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "urn:soap\nsoap\n42\n2\ntwo\n")
         self.assert_error('document = xml_document_parse("<a><b/></a>")\nprint xml_find(xml_root(document), "/a/b")\n', "E954")
 
     def test_xml_object_round_trip_preserves_namespaced_attributes(self):
-        source = '''function:main
+        source = '''SEP:main
 value = xml_to_object("<root xmlns:x=\\"urn:meta\\" x:id=\\"42\\"/>")
 text = object_to_xml(value, declaration = false)
 print contains(text, "urn:meta")
 print contains(text, "42")
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\ntrue\n")
 
     def test_xml_object_conversion_and_file_round_trip(self):
-        source = '''function:main
+        source = '''SEP:main
 value = xml_to_object("<monitor active=\\"yes\\"><name>監視</name></monitor>")
 print value.name
 print value.attributes.active
@@ -167,7 +167,7 @@ print text
 object_to_xml_file("out/monitor.xml", value, indent = 2)
 loaded = xml_file_to_object("out/monitor.xml")
 print loaded.children[0].text
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=self.capability)[1]
         self.assertIn("monitor\nyes\n<monitor active=\"yes\">", output)
@@ -184,18 +184,18 @@ end_function:main
             with self.subTest(code=code): self.assert_error(source, code)
         diagnostic = self.assert_error('print xml_document_parse("<root>\\n<broken>\\n</root>")\n', "E950")
         self.assertIn("line 3", diagnostic.actual)
-        source = '''function:main
+        source = '''SEP:main
 try :parse
 xml_document_parse("<broken>")
 catch xml_error :parse
 print "xml failed"
 endtry:parse
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "xml failed\n")
 
     def test_xml_remove_child_and_attribute_report_missing_values(self):
-        source = '''function:main
+        source = '''SEP:main
 document = xml_document_parse("<root key=\\"value\\"><child/></root>")
 root = xml_root(document)
 child = xml_child(root, "child")
@@ -203,12 +203,12 @@ xml_remove_child(root, child)
 print length(xml_children(root))
 xml_remove_attribute(root, "key")
 print xml_get_attribute(root, "key") is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "0\ntrue\n")
 
     def test_xml_optional_queries_return_typed_empty(self):
-        source = '''function:main
+        source = '''SEP:main
 document = xml_document_parse("<root/>")
 root = xml_root(document)
 print xml_get_attribute(root, "missing") is EMPTY
@@ -216,7 +216,7 @@ print xml_child(root, "missing") is EMPTY
 print xml_find(document, "/root/missing") is EMPTY
 print xml_namespace_uri(root) is EMPTY
 print xml_namespace_prefix(root) is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\ntrue\ntrue\ntrue\ntrue\n")
         self.assert_error('document = xml_document_parse("<root/>")\nxml_remove_attribute(xml_root(document), "missing")\n', "E951")

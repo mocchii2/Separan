@@ -173,7 +173,7 @@ print network_dhcp_lease(lan) is EMPTY
         self.assertIn("inspect network interfaces", str(caught))
 
     def test_interface_kind_selection_and_preference(self):
-        source = '''function:main
+        source = '''SEP:main
 wifi = wifi_open()
 lan = ethernet_open("ethernet0")
 print wifi.name
@@ -181,12 +181,12 @@ print lan.name
 network_set_preferred_interfaces(["ethernet0", "wifi0"])
 print network_preferred_interface().name
 print ethernet_status(lan).connected
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.inspect, network_adapter=self.adapter)[1], "wifi0\nethernet0\nwifi0\nfalse\n")
         self.assert_error('print wifi_open("ethernet0")\n', "E972", self.inspect, self.adapter)
-        self.assert_error('function:main\nnetwork_set_preferred_interfaces(["missing"])\nend_function:main\n', "E972", self.inspect, self.adapter)
-        self.assert_error('function:main\nnetwork_set_preferred_interfaces(["wifi0", "wifi0"])\nend_function:main\n', "E972", self.inspect, self.adapter)
+        self.assert_error('SEP:main\nnetwork_set_preferred_interfaces(["missing"])\nEND_SEP:main\n', "E972", self.inspect, self.adapter)
+        self.assert_error('SEP:main\nnetwork_set_preferred_interfaces(["wifi0", "wifi0"])\nEND_SEP:main\n', "E972", self.inspect, self.adapter)
 
     def test_wifi_status_scan_and_wait(self):
         source = '''wifi = wifi_open()
@@ -227,7 +227,7 @@ print datetime_timezone(lease.expires_at)
                          "static\ndhcp\nbound\n198.51.100.20\n24\n198.51.100.2\n3600000\nUTC\n")
 
     def test_dhcp_configuration_refresh_release_and_wait(self):
-        source = '''function:main
+        source = '''SEP:main
 lan = ethernet_open()
 network_use_dhcp(lan)
 print network_address_mode(lan)
@@ -239,7 +239,7 @@ network_refresh_address(lan)
 network_release_address(lan)
 print network_dhcp_status(lan)
 print network_ip_address(lan) is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.configure, network_adapter=self.adapter)[1],
                          "dhcp\nbound\ntrue\n192.0.2.20\ndisabled\ntrue\n")
@@ -247,7 +247,7 @@ end_function:main
                          ["use_dhcp", "refresh_address", "release_address"])
 
     def test_static_and_link_local_modes_are_explicit(self):
-        source = '''function:main
+        source = '''SEP:main
 lan = ethernet_open()
 network_set_static_address(lan, ip_address("10.0.0.10"), 24, ip_address("10.0.0.1"), [ip_address("1.1.1.1")])
 print network_address_mode(lan)
@@ -258,34 +258,34 @@ network_disable_link_local_fallback(lan)
 network_use_link_local(lan)
 print network_address_mode(lan)
 print network_ip_address(lan)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=self.configure, network_adapter=self.adapter)[1],
                          "static\n10.0.0.10\ntrue\nlink_local\n169.254.10.20\n")
         configuration = self.adapter.operations[0][2]
         self.assertEqual(configuration, {"address": "10.0.0.10", "prefix": 24, "gateway": "10.0.0.1", "dns_servers": ["1.1.1.1"]})
 
-        no_gateway = '''function:main
+        no_gateway = '''SEP:main
 lan = ethernet_open()
 network_set_static_address(lan, "10.0.0.20", 24, EMPTY, [])
 print network_gateway(lan) is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(no_gateway, capabilities=self.configure, network_adapter=self.adapter)[1], "true\n")
         self.assertIsNone(self.adapter.operations[-1][2]["gateway"])
 
     def test_address_configuration_has_separate_capability_and_validation(self):
-        source = 'function:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nend_function:main\n'
+        source = 'SEP:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nEND_SEP:main\n'
         self.assert_error(source, "E720", self.inspect, self.adapter)
-        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 33, "10.0.0.1", [])\nend_function:main\n', "E980", self.configure, self.adapter)
-        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 24, "2001:db8::1", [])\nend_function:main\n', "E980", self.configure, self.adapter)
-        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "169.254.1.2", 16, EMPTY, [])\nend_function:main\n', "E980", self.configure, self.adapter)
+        self.assert_error('SEP:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 33, "10.0.0.1", [])\nEND_SEP:main\n', "E980", self.configure, self.adapter)
+        self.assert_error('SEP:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "10.0.0.10", 24, "2001:db8::1", [])\nEND_SEP:main\n', "E980", self.configure, self.adapter)
+        self.assert_error('SEP:main\nlan = ethernet_open()\nnetwork_set_static_address(lan, "169.254.1.2", 16, EMPTY, [])\nEND_SEP:main\n', "E980", self.configure, self.adapter)
 
     def test_adapter_unavailable_and_failed_wait_are_explicit(self):
         class UnavailableAdapter(FakeNetworkAdapter):
             def use_dhcp(self, interface_name):
                 raise NotImplementedError("no DHCP backend")
-        self.assert_error('function:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nend_function:main\n', "E978", self.configure, UnavailableAdapter())
+        self.assert_error('SEP:main\nlan = ethernet_open()\nnetwork_use_dhcp(lan)\nEND_SEP:main\n', "E978", self.configure, UnavailableAdapter())
 
         class FailedAdapter(FakeNetworkAdapter):
             def interfaces(self):
@@ -298,14 +298,14 @@ end_function:main
     def test_invalid_adapter_lease_is_network_address_error(self):
         self.adapter.ethernet.update({"address_mode": "dhcp", "dhcp_status": "bound", "dhcp_lease": {"address": "192.0.2.20", "prefix": 24, "renew_after_ms": 5000, "rebind_after_ms": 4000}})
         caught = self.assert_error('lan = ethernet_open()\nprint network_dhcp_lease(lan)\n', "E980", self.inspect, self.adapter)
-        source = '''function:main
+        source = '''SEP:main
 try :lease
 lan = ethernet_open()
 print network_dhcp_lease(lan)
 catch network_error :lease
 print "invalid lease"
 endtry:lease
-end_function:main
+END_SEP:main
 '''
         self.assertIn("DHCP", str(caught))
         self.assertEqual(execute(source, capabilities=self.inspect, network_adapter=self.adapter)[1], "invalid lease\n")
@@ -353,7 +353,7 @@ end_function:main
         capability = replace(RuntimeCapabilities.local(ROOT), network=True,
                              network_hosts=frozenset({"127.0.0.1"}), network_ports=frozenset({port}),
                              allow_private_network=True)
-        source = f'''function:main
+        source = f'''SEP:main
 connection = tcp_connect("127.0.0.1", {port}, timeout = duration("2s"))
 print type(connection)
 print tcp_send(connection, "hello")
@@ -362,7 +362,7 @@ print type(reply)
 print string_from_bytes(reply)
 tcp_close(connection)
 print connection
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=capability)[1]
         thread.join(2)
@@ -382,7 +382,7 @@ end_function:main
         capability = replace(RuntimeCapabilities.local(ROOT), network=True,
                              network_hosts=frozenset({"127.0.0.1"}), network_ports=frozenset({port}),
                              allow_private_network=True)
-        source = f'''function:main
+        source = f'''SEP:main
 udp = udp_open(timeout = duration("2s"))
 print type(udp)
 print udp_send(udp, "127.0.0.1", {port}, "ping")
@@ -391,7 +391,7 @@ print string_from_bytes(reply.data)
 print reply.address
 print reply.port
 udp_close(udp)
-end_function:main
+END_SEP:main
 '''
         output = execute(source, capabilities=capability)[1]
         thread.join(2)
@@ -420,13 +420,13 @@ end_function:main
     def test_network_errors_are_catchable_by_parent_category(self):
         capability = replace(RuntimeCapabilities.local(ROOT), network=True,
                              network_hosts=frozenset({"missing.invalid"}))
-        source = '''function:main
+        source = '''SEP:main
 try :lookup
 print dns_resolve("missing.invalid")
 catch network_error :lookup
 print "network failed"
 endtry:lookup
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source, capabilities=capability)[1], "network failed\n")
 

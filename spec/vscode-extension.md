@@ -10,7 +10,8 @@ inferred public types without changing source text.
 
 - syntax highlighting for `#`/`##` comments, raw/escaped strings, labels and tags,
   plus quote/bracket matching, comment toggle, and indentation;
-- live parser and simple fixed-binding type diagnostics;
+- live parser and simple fixed-binding type diagnostics, with LSP recovery across
+  independent top-level declarations while runtime parsing remains strict;
 - `E104`/`E105` label and block-kind mismatch quick fixes;
 - nested Outline, breadcrumbs, and label-based folding;
 - label and variable hover, including object members and redacted secrets;
@@ -52,13 +53,20 @@ while AST changes outside the selected subtree fail verification. Ambiguous
 short labels require the full path copied by Copy AI Edit Scope.
 
 Semantic tags are included in parser-backed structure metadata. The LSP supports
-same-document tag completion and rename plus `separan/verifyTagScope`. Workspace
-tag trees and cross-file rename require a stable workspace index and remain a
-future editor UI layer; the CLI already performs recursive tag-path inspection.
+same-document tag completion and `separan/verifyTagScope`. The Python LSP backend
+also supports cross-file semantic-tag rename with token-based edits and collision
+checks; the CLI performs recursive tag-path inspection.
 
 ## Planned advanced tooling
 
-Whole-program argument inference, references/test CodeLens, call hierarchy, and
-Run Current Function remain planned. These require stable project-wide indexing
-and are not presented as v0.5 guarantees. See the
-[Structure Explorer specification](structure-explorer.md).
+The Python LSP backend supports workspace function references for direct calls
+and imported aliases, signature parameter inference from workspace call sites,
+Call Hierarchy, and reference-count CodeLens. It also exposes
+`separan.runFunction` through `workspace/executeCommand`; Run Function and Run
+Test CodeLens are offered for zero-argument functions (`test_*` for tests).
+Execution is explicit, limited to declared user functions, and returns captured
+stdout. These protocol features are not yet wired into the packaged VS Code
+extension.
+
+A semantic-tag workspace tree and packaged-extension provider wiring remain
+planned. See the [Structure Explorer specification](structure-explorer.md).

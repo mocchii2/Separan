@@ -12,7 +12,7 @@ from separan.parser import Parser
 
 
 def program(body):
-    return f"function:main\n{body}end_function:main\n"
+    return f"SEP:main\n{body}END_SEP:main\n"
 
 
 class ListShapeOperationTests(unittest.TestCase):
@@ -94,9 +94,9 @@ print values
 
     def test_jagged_vertical_validation_is_atomic(self):
         source = '''list<list<number>> values = [[1, 2, 3], [4], [5, 6, 7]]
-function:main
+SEP:main
 list_remove_vertical(values, 2, front, 2)
-end_function:main
+END_SEP:main
 '''
         runtime = Interpreter()
         parsed = Parser(Lexer(source, "shape.sep").scan_tokens()).parse()

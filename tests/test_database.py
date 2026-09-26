@@ -28,7 +28,7 @@ class DatabaseTests(unittest.TestCase):
 
     def test_optional_driver_error_names_the_install_extra(self):
         capabilities = replace(RuntimeCapabilities.local(ROOT), database_drivers=frozenset({"sqlite", "postgresql"}))
-        source = 'function:main\ndb = db_connect(driver = "postgresql", host = "localhost", database = "app")\nend_function:main\n'
+        source = 'SEP:main\ndb = db_connect(driver = "postgresql", host = "localhost", database = "app")\nEND_SEP:main\n'
         with patch.dict(sys.modules, {"psycopg": None}):
             with self.assertRaises(SeparanError) as caught:
                 execute(source, capabilities=capabilities)
@@ -37,7 +37,7 @@ class DatabaseTests(unittest.TestCase):
 
     def test_sqlserver_is_registered_and_names_its_install_extra(self):
         capabilities = replace(RuntimeCapabilities.local(ROOT), database_drivers=frozenset({"sqlite", "sqlserver"}))
-        source = 'function:main\ndb = db_connect(driver = "sqlserver", database = "app")\nend_function:main\n'
+        source = 'SEP:main\ndb = db_connect(driver = "sqlserver", database = "app")\nEND_SEP:main\n'
         with patch.dict(sys.modules, {"pyodbc": None}):
             with self.assertRaises(SeparanError) as caught:
                 execute(source, capabilities=capabilities)
@@ -68,7 +68,7 @@ class DatabaseTests(unittest.TestCase):
         self.assertIn("both user and password", str(caught.exception))
 
     def test_sqlite_query_one_scalar_execute_and_blob(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 print type_of(db)
 print db
@@ -92,13 +92,13 @@ print length(db_query(db, "select id, name from users", []))
 print db_query_one(db, "select id from users where id = ?", [2]) is EMPTY
 db_close(db)
 db_close(db)
-end_function:main
+END_SEP:main
 '''
         output = execute(source)[1]
         self.assertEqual(output, "db_connection\ndb_connection(driver=sqlite, database=[REDACTED])\n0\n1\n1\n1\n1\nAlice\n00FF\n1\n1\ntrue\n")
 
     def test_query_one_cardinality_and_errors_are_catchable(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table t(id integer unique)", [])
 db_execute(db, "insert into t values (?)", [1])
@@ -113,28 +113,28 @@ db_execute(db, "insert into t values (?)", [1])
 catch db_constraint_error :constraint
 print "constraint"
 endtry:constraint
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "cardinality\nconstraint\n")
 
     def test_driver_capability_sql_and_parameter_validation(self):
         with self.assertRaises(SeparanError) as caught:
-            execute('function:main\ndb = db_connect(driver = "unknown", database = ":memory:")\nend_function:main\n')
+            execute('SEP:main\ndb = db_connect(driver = "unknown", database = ":memory:")\nEND_SEP:main\n')
         self.assertEqual(caught.exception.code, "E900")
         denied = RuntimeCapabilities.none(ROOT)
         with self.assertRaises(SeparanError) as caught:
-            execute('function:main\ndb = db_connect(driver = "sqlite", database = ":memory:")\nend_function:main\n', capabilities=denied)
+            execute('SEP:main\ndb = db_connect(driver = "sqlite", database = ":memory:")\nEND_SEP:main\n', capabilities=denied)
         self.assertEqual(caught.exception.code, "E720")
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 print db_query(db, "select ?", [duration("1s")])
-end_function:main
+END_SEP:main
 '''
         with self.assertRaises(SeparanError) as caught: execute(source)
         self.assertEqual(caught.exception.code, "E201")
 
     def test_labeled_transaction_commits_and_rolls_back_on_error(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table t(id integer unique)", [])
 transaction db :commit_one
@@ -149,12 +149,12 @@ catch db_constraint_error :rollback_one
 print "rolled back"
 endtry:rollback_one
 print db_scalar(db, "select count(*) from t", [])
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "rolled back\n1\n")
 
     def test_manual_transaction_state_is_explicit(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table t(id integer)", [])
 db_begin(db)
@@ -173,22 +173,22 @@ catch db_transaction_error :nested
 print "already active"
 endtry:nested
 db_rollback(db)
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "0\nno transaction\nalready active\n")
 
     def test_transaction_label_and_kind_are_parser_checked(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 transaction db :work
 end_transaction:other
-end_function:main
+END_SEP:main
 '''
         with self.assertRaises(SeparanError) as caught: execute(source)
         self.assertEqual(caught.exception.code, "E104")
 
     def test_sqlite_metadata_and_server_information(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table users(id integer primary key, name varchar(40) not null, email text unique)", [])
 db_execute(db, "create index users_name on users(name)", [])
@@ -207,34 +207,34 @@ info = db_server_info(db)
 print info.driver
 print info.database_name
 print db_version(db) == info.server_version
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "[users]\nname\nvarchar(40)\nfalse\n40\n2\nsqlite_autoindex_users_1\n[id]\nsqlite\n:memory:\ntrue\n")
 
     def test_metadata_absence_is_explicit(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table no_pk(value text)", [])
 print db_primary_key(db, "no_pk") is EMPTY
 print db_indexes(db, "no_pk")
 print db_columns(db, "no_pk")[0].default is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\n[]\ntrue\n")
 
     def test_sql_null_maps_to_empty_and_empty_binds_as_sql_null(self):
-        source = '''function:main
+        source = '''SEP:main
 db = db_connect(driver = "sqlite", database = ":memory:")
 db_execute(db, "create table values_table(id integer, value text)", [])
 list<string> params = [EMPTY]
 db_execute(db, "insert into values_table(value) values (?)", params)
 row = db_query_one(db, "select value from values_table", [])
 print row.value is EMPTY
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\n")
         with self.assertRaises(SeparanError) as caught:
-            execute('function:main\ndb = db_connect(driver = "sqlite", database = ":memory:")\nprint db_columns(db, "missing")\nend_function:main\n')
+            execute('SEP:main\ndb = db_connect(driver = "sqlite", database = ":memory:")\nprint db_columns(db, "missing")\nEND_SEP:main\n')
         self.assertEqual(caught.exception.code, "E903")
 
 

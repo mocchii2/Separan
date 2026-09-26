@@ -14,4 +14,4 @@ print script_path()
 
 mode = env_get("SEPARAN_MODE", default = "development")
 print mode
-end_SEP:main
+END_SEP:main

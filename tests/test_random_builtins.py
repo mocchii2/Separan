@@ -17,7 +17,7 @@ class RandomBuiltinTests(unittest.TestCase):
         return caught.exception
 
     def test_seeded_sequence_is_language_defined(self):
-        source = '''function:main
+        source = '''SEP:main
 random_seed(12345)
 print random_number()
 print random_int(1, 100)
@@ -26,57 +26,57 @@ print random_bool()
 print random_pick([10, 20, 30])
 print random_shuffle([1, 2, 3, 4])
 print random_sample([1, 2, 3, 4], 2)
-end_function:main
+END_SEP:main
 '''
         expected = "0.9609531075330077\n68\n0.9515492931643655\nfalse\n10\n[3, 4, 2, 1]\n[3, 4]\n"
         self.assertEqual(execute(source)[1], expected)
         self.assertEqual(execute(source)[1], expected)
 
     def test_seed_reset_repeats_sequence(self):
-        source = '''function:main
+        source = '''SEP:main
 random_seed(7)
 first = random_int(1, 100000)
 random_seed(7)
 second = random_int(1, 100000)
 print first == second
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\n")
 
     def test_integer_endpoints_are_inclusive(self):
-        self.assertEqual(execute('function:main\nrandom_seed(1)\nprint random_int(5, 5)\nprint secure_random_int(8, 8)\nend_function:main\n')[1], "5\n8\n")
+        self.assertEqual(execute('SEP:main\nrandom_seed(1)\nprint random_int(5, 5)\nprint secure_random_int(8, 8)\nEND_SEP:main\n')[1], "5\n8\n")
 
     def test_float_and_number_are_half_open(self):
-        source = '''function:main
+        source = '''SEP:main
 random_seed(42)
 print random_number() >= 0 && random_number() < 1
 print random_float(-2.5, -2.0) >= -2.5 && random_float(-2.5, -2.0) < -2.0
-end_function:main
+END_SEP:main
 '''
         self.assertEqual(execute(source)[1], "true\ntrue\n")
 
     def test_shuffle_is_non_destructive(self):
-        source = '''function:main
+        source = '''SEP:main
 random_seed(5)
 items = [1, 2, 3, 4]
 shuffled = random_shuffle(items)
 print items
 print shuffled
-end_function:main
+END_SEP:main
 '''
         output = execute(source)[1].splitlines()
         self.assertEqual(output[0], "[1, 2, 3, 4]")
         self.assertCountEqual(output[1].strip("[]").split(", "), ["1", "2", "3", "4"])
 
     def test_sample_is_unique_and_non_destructive(self):
-        source = '''function:main
+        source = '''SEP:main
 random_seed(8)
 items = [1, 2, 3, 4]
 sample = random_sample(items, 3)
 print items
 print len(sample)
 print sample
-end_function:main
+END_SEP:main
 '''
         lines = execute(source)[1].splitlines()
         self.assertEqual(lines[:2], ["[1, 2, 3, 4]", "3"])
@@ -87,7 +87,7 @@ end_function:main
         self.assert_error("random_pick([])", "E502")
         for call in ("random_sample([1], -1)", "random_sample([1], 2)"):
             with self.subTest(call=call): self.assert_error(call, "E503")
-        self.assertEqual(execute('function:main\nrandom_seed(1)\nprint random_sample([], 0)\nend_function:main\n')[1], "[]\n")
+        self.assertEqual(execute('SEP:main\nrandom_seed(1)\nprint random_sample([], 0)\nEND_SEP:main\n')[1], "[]\n")
 
     def test_ranges_and_types_are_strict(self):
         for call, code in (
@@ -123,7 +123,7 @@ end_function:main
         for name in names:
             with self.subTest(name=name):
                 with self.assertRaises(SeparanError) as caught:
-                    execute(f"function:{name}\nend_function:{name}\n")
+                    execute(f"SEP:{name}\nEND_SEP:{name}\n")
                 self.assertEqual(caught.exception.code, "E209")
 
 

@@ -1,0 +1,3026 @@
+{
+  "abs": {
+    "signature": "abs(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "absolute": {
+    "signature": "absolute(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "absolute_path": {
+    "signature": "absolute_path(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "analog_read": {
+    "signature": "analog_read(pin: pin) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "analog_write": {
+    "signature": "analog_write(pin: pin, value: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "api_key_auth": {
+    "signature": "api_key_auth(name: string, value: secret | string | bytes, location?: string) -> http_auth",
+    "returnType": "http_auth",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "append": {
+    "signature": "append(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "append_text": {
+    "signature": "append_text(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "arc_cos": {
+    "signature": "arc_cos(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "arc_cosh": {
+    "signature": "arc_cosh(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "arc_sin": {
+    "signature": "arc_sin(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "arc_sinh": {
+    "signature": "arc_sinh(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "arc_tan": {
+    "signature": "arc_tan(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "arc_tan2": {
+    "signature": "arc_tan2(y: number, x: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "arc_tanh": {
+    "signature": "arc_tanh(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "arg_exists": {
+    "signature": "arg_exists(arg1, arg2?, arg3?, arg4?, arg5?, arg6?, arg7?, arg8?, arg9?, arg10?, arg11?, arg12?, arg13?, arg14?, arg15?, arg16?, arg17?, arg18?, arg19?, arg20?, arg21?, arg22?, arg23?, arg24?, arg25?, arg26?, arg27?, arg28?, arg29?, arg30?, arg31?, arg32?) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 32
+  },
+  "arg_value": {
+    "signature": "arg_value(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "argument_error": {
+    "signature": "argument_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "auth_error": {
+    "signature": "auth_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "average": {
+    "signature": "average(items: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "base64_decode": {
+    "signature": "base64_decode(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "base64_encode": {
+    "signature": "base64_encode(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "base64_to_bytes": {
+    "signature": "base64_to_bytes(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "base_to_number": {
+    "signature": "base_to_number(text: string, base: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "basic_auth": {
+    "signature": "basic_auth(username: string, password: secret | string | bytes) -> http_auth",
+    "returnType": "http_auth",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "bearer_auth": {
+    "signature": "bearer_auth(token: secret | string | bytes) -> http_auth",
+    "returnType": "http_auth",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "binary_to_number": {
+    "signature": "binary_to_number(text: string) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "board_cpu": {
+    "signature": "board_cpu() -> string",
+    "returnType": "string",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "board_error": {
+    "signature": "board_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "board_family": {
+    "signature": "board_family() -> string",
+    "returnType": "string",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "board_features": {
+    "signature": "board_features() -> list<string>",
+    "returnType": "list<string>",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "board_has": {
+    "signature": "board_has(feature: string) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "board_name": {
+    "signature": "board_name() -> string",
+    "returnType": "string",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "board_pins": {
+    "signature": "board_pins() -> list<string>",
+    "returnType": "list<string>",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "board_select": {
+    "signature": "board_select(board_id: string) -> board",
+    "returnType": "board",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "board_voltage": {
+    "signature": "board_voltage() -> number",
+    "returnType": "number",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "boolean": {
+    "signature": "boolean(value: boolean | string) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "bytes_concat": {
+    "signature": "bytes_concat(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "bytes_from_hex": {
+    "signature": "bytes_from_hex(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "bytes_from_string": {
+    "signature": "bytes_from_string(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "bytes_get": {
+    "signature": "bytes_get(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "bytes_to_base64": {
+    "signature": "bytes_to_base64(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "bytes_to_hexadecimal": {
+    "signature": "bytes_to_hexadecimal(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "ceil": {
+    "signature": "ceil(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "char_at": {
+    "signature": "char_at(value: string, index: number) -> string",
+    "returnType": "string",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "clamp": {
+    "signature": "clamp(value: number, minimum: number, maximum: number) -> number",
+    "returnType": "number",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "clip_utf8": {
+    "signature": "clip_utf8(value: string, maximum_bytes: number) -> string",
+    "returnType": "string",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "command_args": {
+    "signature": "command_args() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "command_exists": {
+    "signature": "command_exists(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "compare": {
+    "signature": "compare(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "compare_ignore_case": {
+    "signature": "compare_ignore_case(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "constant_time_equal": {
+    "signature": "constant_time_equal(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "contains": {
+    "signature": "contains(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "cookie_all": {
+    "signature": "cookie_all(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "cookie_clear": {
+    "signature": "cookie_clear(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "cookie_error": {
+    "signature": "cookie_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "cookie_get": {
+    "signature": "cookie_get(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "cookie_jar": {
+    "signature": "cookie_jar() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "cookie_load_secure": {
+    "signature": "cookie_load_secure(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "cookie_remove": {
+    "signature": "cookie_remove(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "cookie_save_secure": {
+    "signature": "cookie_save_secure(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "cookie_set": {
+    "signature": "cookie_set(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "copy_file": {
+    "signature": "copy_file(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "cos": {
+    "signature": "cos(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "cosh": {
+    "signature": "cosh(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "count": {
+    "signature": "count(items: list, value: value) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "count_occurrences": {
+    "signature": "count_occurrences(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "create_directory": {
+    "signature": "create_directory(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "crypto_authentication_error": {
+    "signature": "crypto_authentication_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "crypto_error": {
+    "signature": "crypto_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "cube_root": {
+    "signature": "cube_root(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime": {
+    "signature": "datetime(value: string) -> datetime",
+    "returnType": "datetime",
+    "minimum": 1,
+    "maximum": 6
+  },
+  "datetime_day": {
+    "signature": "datetime_day(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_format": {
+    "signature": "datetime_format(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "datetime_from_local": {
+    "signature": "datetime_from_local(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "datetime_from_unix": {
+    "signature": "datetime_from_unix(arg1, arg2?) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 2
+  },
+  "datetime_from_unix_milliseconds": {
+    "signature": "datetime_from_unix_milliseconds(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "datetime_from_unix_seconds": {
+    "signature": "datetime_from_unix_seconds(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "datetime_hour": {
+    "signature": "datetime_hour(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_in_timezone": {
+    "signature": "datetime_in_timezone(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "datetime_millisecond": {
+    "signature": "datetime_millisecond(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_minute": {
+    "signature": "datetime_minute(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_month": {
+    "signature": "datetime_month(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_now": {
+    "signature": "datetime_now(arg1?) -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "datetime_offset": {
+    "signature": "datetime_offset(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_parse": {
+    "signature": "datetime_parse(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_second": {
+    "signature": "datetime_second(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_timezone": {
+    "signature": "datetime_timezone(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_valid": {
+    "signature": "datetime_valid(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "datetime_weekday": {
+    "signature": "datetime_weekday(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "datetime_year": {
+    "signature": "datetime_year(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_auth_error": {
+    "signature": "db_auth_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_begin": {
+    "signature": "db_begin(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_close": {
+    "signature": "db_close(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_columns": {
+    "signature": "db_columns(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "db_commit": {
+    "signature": "db_commit(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_connect": {
+    "signature": "db_connect() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "db_connection_error": {
+    "signature": "db_connection_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_constraint_error": {
+    "signature": "db_constraint_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_driver_error": {
+    "signature": "db_driver_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_execute": {
+    "signature": "db_execute(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "db_indexes": {
+    "signature": "db_indexes(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "db_primary_key": {
+    "signature": "db_primary_key(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "db_query": {
+    "signature": "db_query(connection: db_connection, sql: string, parameters: list) -> list<object>",
+    "returnType": "list<object>",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "db_query_error": {
+    "signature": "db_query_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_query_one": {
+    "signature": "db_query_one(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "db_rollback": {
+    "signature": "db_rollback(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_scalar": {
+    "signature": "db_scalar(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "db_server_info": {
+    "signature": "db_server_info(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_tables": {
+    "signature": "db_tables(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_timeout_error": {
+    "signature": "db_timeout_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_transaction_error": {
+    "signature": "db_transaction_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "db_version": {
+    "signature": "db_version(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "decrypt_authenticated": {
+    "signature": "decrypt_authenticated(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "decrypt_with_password": {
+    "signature": "decrypt_with_password(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "delay_milliseconds": {
+    "signature": "delay_milliseconds(milliseconds: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "delete_directory": {
+    "signature": "delete_directory(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "delete_file": {
+    "signature": "delete_file(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "derive_key_from_password": {
+    "signature": "derive_key_from_password(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "dhcp_server_error": {
+    "signature": "dhcp_server_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dhcp_server_leases": {
+    "signature": "dhcp_server_leases(server: dhcp_server) -> list<object>",
+    "returnType": "list<object>",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dhcp_server_start": {
+    "signature": "dhcp_server_start(interface: network_interface, server_address: ip_address | string, prefix: number, pool_start: ip_address | string, pool_end: ip_address | string, lease_time: duration, gateway?: ip_address | string, dns_servers?: list, reservations?: object) -> dhcp_server",
+    "returnType": "dhcp_server",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dhcp_server_status": {
+    "signature": "dhcp_server_status(server: dhcp_server) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dhcp_server_stop": {
+    "signature": "dhcp_server_stop(server: dhcp_server) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "directory_exists": {
+    "signature": "directory_exists(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dns_resolve": {
+    "signature": "dns_resolve(hostname: string) -> list<ip_address>",
+    "returnType": "list<ip_address>",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dns_reverse_lookup": {
+    "signature": "dns_reverse_lookup(address: ip_address) -> string | EMPTY",
+    "returnType": "string | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dns_server_error": {
+    "signature": "dns_server_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dns_server_start": {
+    "signature": "dns_server_start(interface: network_interface, server_address: ip_address | string, records: object, catch_all?: boolean) -> dns_server",
+    "returnType": "dns_server",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dns_server_status": {
+    "signature": "dns_server_status(server: dns_server) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "dns_server_stop": {
+    "signature": "dns_server_stop(server: dns_server) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "duration": {
+    "signature": "duration(value: string) -> duration",
+    "returnType": "duration",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "duration_milliseconds": {
+    "signature": "duration_milliseconds(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "embedded_backend_error": {
+    "signature": "embedded_backend_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "encrypt_authenticated": {
+    "signature": "encrypt_authenticated(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "encrypt_with_password": {
+    "signature": "encrypt_with_password(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "ends_with": {
+    "signature": "ends_with(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "env_exists": {
+    "signature": "env_exists(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "env_get": {
+    "signature": "env_get(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "env_remove": {
+    "signature": "env_remove(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "env_set": {
+    "signature": "env_set(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "ethernet_open": {
+    "signature": "ethernet_open(name?: string) -> network_interface",
+    "returnType": "network_interface",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "ethernet_status": {
+    "signature": "ethernet_status(interface: network_interface) -> object",
+    "returnType": "object",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "exec": {
+    "signature": "exec(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "exec_checked": {
+    "signature": "exec_checked(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "exp": {
+    "signature": "exp(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "exponential": {
+    "signature": "exponential(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "exponential_base2": {
+    "signature": "exponential_base2(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "factorial": {
+    "signature": "factorial(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "file_exists": {
+    "signature": "file_exists(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "file_extension": {
+    "signature": "file_extension(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "file_name": {
+    "signature": "file_name(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "file_size": {
+    "signature": "file_size(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "filter": {
+    "signature": "filter(items: list, predicate: function) -> list",
+    "returnType": "list",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "find_all": {
+    "signature": "find_all(value: string, search: string) -> list<number>",
+    "returnType": "list<number>",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "first": {
+    "signature": "first(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "flatten": {
+    "signature": "flatten(items: list<list>) -> list",
+    "returnType": "list",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "floor": {
+    "signature": "floor(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "format": {
+    "signature": "format(arg1, arg2?, arg3?, arg4?, arg5?, arg6?, arg7?, arg8?, arg9?, arg10?, arg11?, arg12?, arg13?, arg14?, arg15?, arg16?, arg17?, arg18?, arg19?, arg20?, arg21?, arg22?, arg23?, arg24?, arg25?, arg26?, arg27?, arg28?, arg29?, arg30?, arg31?, arg32?, arg33?, arg34?, arg35?, arg36?, arg37?, arg38?, arg39?, arg40?, arg41?, arg42?, arg43?, arg44?, arg45?, arg46?, arg47?, arg48?, arg49?, arg50?, arg51?, arg52?, arg53?, arg54?, arg55?, arg56?, arg57?, arg58?, arg59?, arg60?, arg61?, arg62?, arg63?, arg64?) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 64
+  },
+  "glob": {
+    "signature": "glob(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "glob_error": {
+    "signature": "glob_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "gpio_read": {
+    "signature": "gpio_read(pin: pin) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "gpio_set_mode": {
+    "signature": "gpio_set_mode(pin: pin, mode: string) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "gpio_write": {
+    "signature": "gpio_write(pin: pin, value: boolean) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "greatest_common_divisor": {
+    "signature": "greatest_common_divisor(a: number, b: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "hex_decode": {
+    "signature": "hex_decode(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "hex_encode": {
+    "signature": "hex_encode(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "hexadecimal_to_bytes": {
+    "signature": "hexadecimal_to_bytes(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "hexadecimal_to_number": {
+    "signature": "hexadecimal_to_number(text: string) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "hmac_sha256": {
+    "signature": "hmac_sha256(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "http_get": {
+    "signature": "http_get(url: string, options...) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "http_host": {
+    "signature": "http_host() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "http_profile": {
+    "signature": "http_profile(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "http_profile_headers": {
+    "signature": "http_profile_headers(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "http_request": {
+    "signature": "http_request(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "http_set_cookie": {
+    "signature": "http_set_cookie(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "http_static": {
+    "signature": "http_static() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "hypotenuse": {
+    "signature": "hypotenuse(a: number, b: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "i2c_open": {
+    "signature": "i2c_open(index?: number, sda?: pin, scl?: pin) -> embedded_bus",
+    "returnType": "embedded_bus",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "i2c_probe": {
+    "signature": "i2c_probe(bus: embedded_bus, address: number) -> boolean",
+    "returnType": "boolean",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "import_error": {
+    "signature": "import_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "index_error": {
+    "signature": "index_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "index_of": {
+    "signature": "index_of(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "input": {
+    "signature": "input(arg1?) -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "io_error": {
+    "signature": "io_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "ip_address": {
+    "signature": "ip_address(value: string) -> ip_address",
+    "returnType": "ip_address",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "ip_address_is_global": {
+    "signature": "ip_address_is_global(value: ip_address) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "ip_address_is_loopback": {
+    "signature": "ip_address_is_loopback(value: ip_address) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "ip_address_is_private": {
+    "signature": "ip_address_is_private(value: ip_address) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "ip_address_version": {
+    "signature": "ip_address_version(value: ip_address) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_boolean": {
+    "signature": "is_boolean(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_bytes": {
+    "signature": "is_bytes(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_close": {
+    "signature": "is_close(a: number, b: number) -> boolean",
+    "returnType": "boolean",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "is_datetime": {
+    "signature": "is_datetime(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_duration": {
+    "signature": "is_duration(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_empty": {
+    "signature": "is_empty(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_finite": {
+    "signature": "is_finite(value: number) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_infinite": {
+    "signature": "is_infinite(value: number) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_integer_value": {
+    "signature": "is_integer_value(value: number) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_list": {
+    "signature": "is_list(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_nan": {
+    "signature": "is_nan(value: number) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_number": {
+    "signature": "is_number(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_object": {
+    "signature": "is_object(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_secret": {
+    "signature": "is_secret(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "is_string": {
+    "signature": "is_string(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "join": {
+    "signature": "join(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "json_decode": {
+    "signature": "json_decode(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "json_encode": {
+    "signature": "json_encode(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "jwt_sign": {
+    "signature": "jwt_sign(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "jwt_verify": {
+    "signature": "jwt_verify(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "last": {
+    "signature": "last(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "last_index_of": {
+    "signature": "last_index_of(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "least_common_multiple": {
+    "signature": "least_common_multiple(a: number, b: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "len": {
+    "signature": "len(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "length": {
+    "signature": "length(value: string | list | bytes) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "list_append": {
+    "signature": "list_append(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "list_directory": {
+    "signature": "list_directory(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "list_insert": {
+    "signature": "list_insert(values: list, position: front | number | back, count: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "list_remove": {
+    "signature": "list_remove(values: list, position: front | number | back, count: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 3
+  },
+  "list_remove_horizontal": {
+    "signature": "list_remove_horizontal(values: list<list>, fixed_row: number, position: front | number | back, count: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 4,
+    "maximum": 4
+  },
+  "list_remove_vertical": {
+    "signature": "list_remove_vertical(values: list<list>, fixed_column: number, position: front | number | back, count: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 4,
+    "maximum": 4
+  },
+  "local_datetime": {
+    "signature": "local_datetime(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "log": {
+    "signature": "log(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "log10": {
+    "signature": "log10(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "log2": {
+    "signature": "log2(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "log_base10": {
+    "signature": "log_base10(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "log_base2": {
+    "signature": "log_base2(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "log_one_plus": {
+    "signature": "log_one_plus(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "lower": {
+    "signature": "lower(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_add_attachment": {
+    "signature": "mail_add_attachment(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_add_attachment_bytes": {
+    "signature": "mail_add_attachment_bytes(arg1, arg2, arg3, arg4) -> value",
+    "returnType": "value",
+    "minimum": 4,
+    "maximum": 4
+  },
+  "mail_add_bcc_recipient": {
+    "signature": "mail_add_bcc_recipient(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_add_cc_recipient": {
+    "signature": "mail_add_cc_recipient(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_add_inline_attachment": {
+    "signature": "mail_add_inline_attachment(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "mail_add_inline_attachment_bytes": {
+    "signature": "mail_add_inline_attachment_bytes(arg1, arg2, arg3, arg4, arg5) -> value",
+    "returnType": "value",
+    "minimum": 5,
+    "maximum": 5
+  },
+  "mail_add_recipient": {
+    "signature": "mail_add_recipient(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_address": {
+    "signature": "mail_address(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_address_error": {
+    "signature": "mail_address_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_attachment_error": {
+    "signature": "mail_attachment_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_authentication_error": {
+    "signature": "mail_authentication_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_connection_error": {
+    "signature": "mail_connection_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_create_message": {
+    "signature": "mail_create_message() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "mail_create_sender": {
+    "signature": "mail_create_sender() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "mail_error": {
+    "signature": "mail_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_provider_error": {
+    "signature": "mail_provider_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_send_error": {
+    "signature": "mail_send_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "mail_send_message": {
+    "signature": "mail_send_message(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_set_html_body": {
+    "signature": "mail_set_html_body(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_set_sender": {
+    "signature": "mail_set_sender(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_set_subject": {
+    "signature": "mail_set_subject(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "mail_set_text_body": {
+    "signature": "mail_set_text_body(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "map": {
+    "signature": "map(items: list, function: function) -> list",
+    "returnType": "list",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "max": {
+    "signature": "max(arg1, arg2?, arg3?, arg4?, arg5?, arg6?, arg7?, arg8?, arg9?, arg10?, arg11?, arg12?, arg13?, arg14?, arg15?, arg16?, arg17?, arg18?, arg19?, arg20?, arg21?, arg22?, arg23?, arg24?, arg25?, arg26?, arg27?, arg28?, arg29?, arg30?, arg31?, arg32?, arg33?, arg34?, arg35?, arg36?, arg37?, arg38?, arg39?, arg40?, arg41?, arg42?, arg43?, arg44?, arg45?, arg46?, arg47?, arg48?, arg49?, arg50?, arg51?, arg52?, arg53?, arg54?, arg55?, arg56?, arg57?, arg58?, arg59?, arg60?, arg61?, arg62?, arg63?, arg64?) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 64
+  },
+  "maximum": {
+    "signature": "maximum(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 64
+  },
+  "median": {
+    "signature": "median(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "min": {
+    "signature": "min(arg1, arg2?, arg3?, arg4?, arg5?, arg6?, arg7?, arg8?, arg9?, arg10?, arg11?, arg12?, arg13?, arg14?, arg15?, arg16?, arg17?, arg18?, arg19?, arg20?, arg21?, arg22?, arg23?, arg24?, arg25?, arg26?, arg27?, arg28?, arg29?, arg30?, arg31?, arg32?, arg33?, arg34?, arg35?, arg36?, arg37?, arg38?, arg39?, arg40?, arg41?, arg42?, arg43?, arg44?, arg45?, arg46?, arg47?, arg48?, arg49?, arg50?, arg51?, arg52?, arg53?, arg54?, arg55?, arg56?, arg57?, arg58?, arg59?, arg60?, arg61?, arg62?, arg63?, arg64?) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 64
+  },
+  "minimum": {
+    "signature": "minimum(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 64
+  },
+  "move_file": {
+    "signature": "move_file(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "moving_average": {
+    "signature": "moving_average(values: list<number>, window: number) -> list<number>",
+    "returnType": "list<number>",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "natural_log": {
+    "signature": "natural_log(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_address_error": {
+    "signature": "network_address_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_address_mode": {
+    "signature": "network_address_mode(interface: network_interface) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_closed_error": {
+    "signature": "network_closed_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_connection_error": {
+    "signature": "network_connection_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_dhcp_lease": {
+    "signature": "network_dhcp_lease(interface: network_interface) -> object | EMPTY",
+    "returnType": "object | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_dhcp_status": {
+    "signature": "network_dhcp_status(interface: network_interface) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_disable_link_local_fallback": {
+    "signature": "network_disable_link_local_fallback(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_dns_error": {
+    "signature": "network_dns_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_dns_servers": {
+    "signature": "network_dns_servers(interface: network_interface) -> list<ip_address>",
+    "returnType": "list<ip_address>",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_enable_link_local_fallback": {
+    "signature": "network_enable_link_local_fallback(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_error": {
+    "signature": "network_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_gateway": {
+    "signature": "network_gateway(interface: network_interface) -> ip_address | EMPTY",
+    "returnType": "ip_address | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_hostname": {
+    "signature": "network_hostname() -> string",
+    "returnType": "string",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "network_interface": {
+    "signature": "network_interface(name: string) -> network_interface",
+    "returnType": "network_interface",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_interface_error": {
+    "signature": "network_interface_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_interfaces": {
+    "signature": "network_interfaces() -> list<network_interface>",
+    "returnType": "list<network_interface>",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "network_ip_address": {
+    "signature": "network_ip_address(interface: network_interface) -> ip_address | EMPTY",
+    "returnType": "ip_address | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_ip_addresses": {
+    "signature": "network_ip_addresses(interface: network_interface) -> list<ip_address>",
+    "returnType": "list<ip_address>",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_is_connected": {
+    "signature": "network_is_connected(interface: network_interface) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_limit_error": {
+    "signature": "network_limit_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_mac_address": {
+    "signature": "network_mac_address(interface: network_interface) -> string | EMPTY",
+    "returnType": "string | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_operation_unavailable": {
+    "signature": "network_operation_unavailable(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_preferred_interface": {
+    "signature": "network_preferred_interface() -> network_interface | EMPTY",
+    "returnType": "network_interface | EMPTY",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "network_protocol_error": {
+    "signature": "network_protocol_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_refresh_address": {
+    "signature": "network_refresh_address(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_release_address": {
+    "signature": "network_release_address(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_service_error": {
+    "signature": "network_service_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_set_preferred_interfaces": {
+    "signature": "network_set_preferred_interfaces(names: list<string>) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_set_static_address": {
+    "signature": "network_set_static_address(interface: network_interface, address: ip_address | string, prefix: number, gateway: ip_address | string | EMPTY, dns: list) -> VOID",
+    "returnType": "VOID",
+    "minimum": 5,
+    "maximum": 5
+  },
+  "network_status": {
+    "signature": "network_status(interface: network_interface) -> object",
+    "returnType": "object",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_subnet_mask": {
+    "signature": "network_subnet_mask(interface: network_interface) -> ip_address | EMPTY",
+    "returnType": "ip_address | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_timeout_error": {
+    "signature": "network_timeout_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_use_dhcp": {
+    "signature": "network_use_dhcp(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_use_link_local": {
+    "signature": "network_use_link_local(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "network_wait_until_addressed": {
+    "signature": "network_wait_until_addressed(interface: network_interface, timeout: duration) -> boolean",
+    "returnType": "boolean",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "number": {
+    "signature": "number(value: number | string) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "number_range": {
+    "signature": "number_range(stop: number) | number_range(start: number, stop: number, step?: number) -> list<number>",
+    "returnType": "list<number>",
+    "minimum": 1,
+    "maximum": 3
+  },
+  "number_to_base": {
+    "signature": "number_to_base(value: number, base: number) -> string",
+    "returnType": "string",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "number_to_binary": {
+    "signature": "number_to_binary(value: number) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "number_to_hexadecimal": {
+    "signature": "number_to_hexadecimal(value: number) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "number_to_octal": {
+    "signature": "number_to_octal(value: number) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "oauth_client_credentials": {
+    "signature": "oauth_client_credentials(token_url: string, client_id: string, client_secret: secret | string | bytes, scope?: string) -> oauth_token",
+    "returnType": "oauth_token",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "oauth_error": {
+    "signature": "oauth_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "object_get": {
+    "signature": "object_get(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "object_has": {
+    "signature": "object_has(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "object_keys": {
+    "signature": "object_keys(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "object_remove": {
+    "signature": "object_remove(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "object_set": {
+    "signature": "object_set(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "object_to_xml": {
+    "signature": "object_to_xml(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "object_to_xml_file": {
+    "signature": "object_to_xml_file(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "object_to_yaml": {
+    "signature": "object_to_yaml(value: value, indent?: number, sort_keys?: boolean) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "object_to_yaml_file": {
+    "signature": "object_to_yaml_file(path: string, value: value, indent?: number, sort_keys?: boolean) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "object_values": {
+    "signature": "object_values(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "objects_to_yaml": {
+    "signature": "objects_to_yaml(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "objects_to_yaml_file": {
+    "signature": "objects_to_yaml_file(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "octal_to_number": {
+    "signature": "octal_to_number(text: string) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "pad_left": {
+    "signature": "pad_left(arg1, arg2, arg3?) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 3
+  },
+  "pad_right": {
+    "signature": "pad_right(arg1, arg2, arg3?) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 3
+  },
+  "parent_directory": {
+    "signature": "parent_directory(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "parse_error": {
+    "signature": "parse_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "password_hash": {
+    "signature": "password_hash(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "password_verify": {
+    "signature": "password_verify(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "percentile": {
+    "signature": "percentile(values: list<number>, percent: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "peripheral_mapping_error": {
+    "signature": "peripheral_mapping_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "permission_error": {
+    "signature": "permission_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "pin_capabilities": {
+    "signature": "pin_capabilities(pin: pin) -> list<string>",
+    "returnType": "list<string>",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "pin_error": {
+    "signature": "pin_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "pin_exists": {
+    "signature": "pin_exists(name: string) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "pin_has": {
+    "signature": "pin_has(pin: pin, capability: string) -> boolean",
+    "returnType": "boolean",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "pow": {
+    "signature": "pow(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "power": {
+    "signature": "power(base: number, exponent: number) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "prepend": {
+    "signature": "prepend(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "pwm_write": {
+    "signature": "pwm_write(pin: pin, duty_cycle: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "random_bool": {
+    "signature": "random_bool() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "random_float": {
+    "signature": "random_float(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "random_int": {
+    "signature": "random_int(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "random_number": {
+    "signature": "random_number() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "random_pick": {
+    "signature": "random_pick(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "random_sample": {
+    "signature": "random_sample(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "random_seed": {
+    "signature": "random_seed(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "random_shuffle": {
+    "signature": "random_shuffle(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "range": {
+    "signature": "range(arg1, arg2?, arg3?) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 3
+  },
+  "read_bytes": {
+    "signature": "read_bytes(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "read_lines": {
+    "signature": "read_lines(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "read_text": {
+    "signature": "read_text(path: string) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "redirect_http": {
+    "signature": "redirect_http(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "reduce": {
+    "signature": "reduce(items: list, function: function, initial: value) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "regex_end": {
+    "signature": "regex_end(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "regex_error": {
+    "signature": "regex_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "regex_find": {
+    "signature": "regex_find(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "regex_find_all": {
+    "signature": "regex_find_all(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "regex_group": {
+    "signature": "regex_group(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "regex_match": {
+    "signature": "regex_match(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "regex_replace": {
+    "signature": "regex_replace(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "regex_search": {
+    "signature": "regex_search(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "regex_split": {
+    "signature": "regex_split(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "regex_start": {
+    "signature": "regex_start(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "regex_text": {
+    "signature": "regex_text(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "remove": {
+    "signature": "remove(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "remove_at": {
+    "signature": "remove_at(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "repeat": {
+    "signature": "repeat(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "replace": {
+    "signature": "replace(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "request_body": {
+    "signature": "request_body() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "request_cookie": {
+    "signature": "request_cookie(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "request_header": {
+    "signature": "request_header(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "request_method": {
+    "signature": "request_method() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "request_param": {
+    "signature": "request_param(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "request_path": {
+    "signature": "request_path() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "request_query": {
+    "signature": "request_query(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "return_http": {
+    "signature": "return_http() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "reverse": {
+    "signature": "reverse(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "round": {
+    "signature": "round(value: number, digits?: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 2
+  },
+  "runtime_error": {
+    "signature": "runtime_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sample_standard_deviation": {
+    "signature": "sample_standard_deviation(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sample_variance": {
+    "signature": "sample_variance(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "script_path": {
+    "signature": "script_path() -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "secret_error": {
+    "signature": "secret_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "secret_from_environment": {
+    "signature": "secret_from_environment(name: string) -> secret",
+    "returnType": "secret",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "secret_get": {
+    "signature": "secret_get(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "secure_random_bytes": {
+    "signature": "secure_random_bytes(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "secure_random_int": {
+    "signature": "secure_random_int(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "secure_random_number": {
+    "signature": "secure_random_number(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "secure_random_string": {
+    "signature": "secure_random_string(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sha256_hash": {
+    "signature": "sha256_hash(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sha256_hmac": {
+    "signature": "sha256_hmac(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "sha3_256_hash": {
+    "signature": "sha3_256_hash(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sha3_512_hash": {
+    "signature": "sha3_512_hash(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sha512_hash": {
+    "signature": "sha512_hash(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sha512_hmac": {
+    "signature": "sha512_hmac(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "shell_exec": {
+    "signature": "shell_exec(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sign": {
+    "signature": "sign(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sin": {
+    "signature": "sin(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sinh": {
+    "signature": "sinh(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "size": {
+    "signature": "size(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "slice": {
+    "signature": "slice(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "slice_bytes": {
+    "signature": "slice_bytes(arg1, arg2, arg3) -> value",
+    "returnType": "value",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "sort": {
+    "signature": "sort(items: list) -> list",
+    "returnType": "list",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_by": {
+    "signature": "sort_by(items: list<object>, field: string) -> list<object>",
+    "returnType": "list<object>",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "sort_by_descending": {
+    "signature": "sort_by_descending(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "sort_descending": {
+    "signature": "sort_descending(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_ignore_case": {
+    "signature": "sort_ignore_case(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_ignore_case_descending": {
+    "signature": "sort_ignore_case_descending(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_natural": {
+    "signature": "sort_natural(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_natural_descending": {
+    "signature": "sort_natural_descending(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_natural_ignore_case": {
+    "signature": "sort_natural_ignore_case(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "sort_natural_ignore_case_descending": {
+    "signature": "sort_natural_ignore_case_descending(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "spi_open": {
+    "signature": "spi_open(index?: number, mosi?: pin, miso?: pin, clock?: pin, chip_select?: pin) -> embedded_bus",
+    "returnType": "embedded_bus",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "split": {
+    "signature": "split(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "sqrt": {
+    "signature": "sqrt(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "square_root": {
+    "signature": "square_root(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "standard_deviation": {
+    "signature": "standard_deviation(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "starts_with": {
+    "signature": "starts_with(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "string": {
+    "signature": "string(value: number | string | boolean) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "string_from_bytes": {
+    "signature": "string_from_bytes(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "substring": {
+    "signature": "substring(value: string, start: number, end?: number) -> string",
+    "returnType": "string",
+    "minimum": 2,
+    "maximum": 3
+  },
+  "substring_after": {
+    "signature": "substring_after(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "substring_before": {
+    "signature": "substring_before(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "sum": {
+    "signature": "sum(items: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "tan": {
+    "signature": "tan(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "tanh": {
+    "signature": "tanh(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "tcp_close": {
+    "signature": "tcp_close(connection: tcp_connection) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "tcp_connect": {
+    "signature": "tcp_connect(host: string | ip_address, port: number, timeout?: duration) -> tcp_connection",
+    "returnType": "tcp_connection",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "tcp_receive": {
+    "signature": "tcp_receive(connection: tcp_connection, max_bytes?: number, timeout?: duration) -> bytes",
+    "returnType": "bytes",
+    "minimum": 1,
+    "maximum": 2
+  },
+  "tcp_send": {
+    "signature": "tcp_send(connection: tcp_connection, data: string | bytes) -> number",
+    "returnType": "number",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "timezone": {
+    "signature": "timezone(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "to_degrees": {
+    "signature": "to_degrees(radians: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "to_radians": {
+    "signature": "to_radians(degrees: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "trim": {
+    "signature": "trim(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "truncate": {
+    "signature": "truncate(value: number) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "type": {
+    "signature": "type(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "type_error": {
+    "signature": "type_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "type_of": {
+    "signature": "type_of(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "uart_open": {
+    "signature": "uart_open(index?: number, tx?: pin, rx?: pin) -> embedded_bus",
+    "returnType": "embedded_bus",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "uart_read_line": {
+    "signature": "uart_read_line(bus: embedded_bus) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "uart_write": {
+    "signature": "uart_write(bus: embedded_bus, value: string) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "udp_close": {
+    "signature": "udp_close(socket: udp_socket) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "udp_open": {
+    "signature": "udp_open(local_address?: string, local_port?: number, timeout?: duration) -> udp_socket",
+    "returnType": "udp_socket",
+    "minimum": 0,
+    "maximum": 0
+  },
+  "udp_receive": {
+    "signature": "udp_receive(socket: udp_socket, max_bytes?: number, timeout?: duration) -> object",
+    "returnType": "object",
+    "minimum": 1,
+    "maximum": 2
+  },
+  "udp_send": {
+    "signature": "udp_send(socket: udp_socket, host: string | ip_address, port: number, data: string | bytes) -> number",
+    "returnType": "number",
+    "minimum": 4,
+    "maximum": 4
+  },
+  "unique": {
+    "signature": "unique(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "unix_milliseconds_from_datetime": {
+    "signature": "unix_milliseconds_from_datetime(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "unix_seconds_from_datetime": {
+    "signature": "unix_seconds_from_datetime(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "unix_time": {
+    "signature": "unix_time(arg1?) -> value",
+    "returnType": "value",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "upper": {
+    "signature": "upper(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "value_error": {
+    "signature": "value_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "variance": {
+    "signature": "variance(values: list<number>) -> number",
+    "returnType": "number",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_access_point_error": {
+    "signature": "wifi_access_point_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_access_point_status": {
+    "signature": "wifi_access_point_status(interface: network_interface) -> object",
+    "returnType": "object",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_bssid": {
+    "signature": "wifi_bssid(interface: network_interface) -> string | EMPTY",
+    "returnType": "string | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_channel": {
+    "signature": "wifi_channel(interface: network_interface) -> number | EMPTY",
+    "returnType": "number | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_is_connected": {
+    "signature": "wifi_is_connected(interface: network_interface) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_open": {
+    "signature": "wifi_open(name?: string) -> network_interface",
+    "returnType": "network_interface",
+    "minimum": 0,
+    "maximum": 1
+  },
+  "wifi_scan": {
+    "signature": "wifi_scan(interface: network_interface) -> list<object>",
+    "returnType": "list<object>",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_signal_strength": {
+    "signature": "wifi_signal_strength(interface: network_interface) -> number | EMPTY",
+    "returnType": "number | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_ssid": {
+    "signature": "wifi_ssid(interface: network_interface) -> string | EMPTY",
+    "returnType": "string | EMPTY",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_start_access_point": {
+    "signature": "wifi_start_access_point(interface: network_interface, ssid: string, password: secret, channel?: number) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_status": {
+    "signature": "wifi_status(interface: network_interface) -> object",
+    "returnType": "object",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_stop_access_point": {
+    "signature": "wifi_stop_access_point(interface: network_interface) -> VOID",
+    "returnType": "VOID",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "wifi_wait_until_connected": {
+    "signature": "wifi_wait_until_connected(interface: network_interface, timeout: duration) -> boolean",
+    "returnType": "boolean",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "write_bytes": {
+    "signature": "write_bytes(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "write_text": {
+    "signature": "write_text(path: string, text: string) -> VOID",
+    "returnType": "VOID",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_add_child": {
+    "signature": "xml_add_child(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_child": {
+    "signature": "xml_child(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_children": {
+    "signature": "xml_children(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_create_element": {
+    "signature": "xml_create_element(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_document_parse": {
+    "signature": "xml_document_parse(text: string) -> xml_document",
+    "returnType": "xml_document",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_document_read": {
+    "signature": "xml_document_read(path: string) -> xml_document",
+    "returnType": "xml_document",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_document_to_text": {
+    "signature": "xml_document_to_text(document: xml_document, indent?: number, declaration?: boolean) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_document_write": {
+    "signature": "xml_document_write(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_element_name": {
+    "signature": "xml_element_name(element: xml_element) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_element_text": {
+    "signature": "xml_element_text(element: xml_element) -> string",
+    "returnType": "string",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_error": {
+    "signature": "xml_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_escape_attribute": {
+    "signature": "xml_escape_attribute(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_escape_error": {
+    "signature": "xml_escape_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_escape_text": {
+    "signature": "xml_escape_text(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_file_to_object": {
+    "signature": "xml_file_to_object(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_find": {
+    "signature": "xml_find(document_or_element: value, path: string) -> xml_element | EMPTY",
+    "returnType": "xml_element | EMPTY",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_find_all": {
+    "signature": "xml_find_all(document_or_element: value, path: string) -> list<xml_element>",
+    "returnType": "list<xml_element>",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_get_attribute": {
+    "signature": "xml_get_attribute(element: xml_element, name: string, namespace_uri?: string) -> string | EMPTY",
+    "returnType": "string | EMPTY",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_limit_error": {
+    "signature": "xml_limit_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_model_error": {
+    "signature": "xml_model_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_namespace_prefix": {
+    "signature": "xml_namespace_prefix(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_namespace_uri": {
+    "signature": "xml_namespace_uri(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_parse_error": {
+    "signature": "xml_parse_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_path_error": {
+    "signature": "xml_path_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_remove_attribute": {
+    "signature": "xml_remove_attribute(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_remove_child": {
+    "signature": "xml_remove_child(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_root": {
+    "signature": "xml_root(document: xml_document) -> xml_element",
+    "returnType": "xml_element",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_security_error": {
+    "signature": "xml_security_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_set_attribute": {
+    "signature": "xml_set_attribute(element: xml_element, name: string, value: string, namespace_uri?: string) -> VOID",
+    "returnType": "VOID",
+    "minimum": 3,
+    "maximum": 3
+  },
+  "xml_set_element_text": {
+    "signature": "xml_set_element_text(arg1, arg2) -> value",
+    "returnType": "value",
+    "minimum": 2,
+    "maximum": 2
+  },
+  "xml_to_object": {
+    "signature": "xml_to_object(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "xml_unescape": {
+    "signature": "xml_unescape(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_encode_error": {
+    "signature": "yaml_encode_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_error": {
+    "signature": "yaml_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_file_to_object": {
+    "signature": "yaml_file_to_object(path: string) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_file_to_objects": {
+    "signature": "yaml_file_to_objects(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_limit_error": {
+    "signature": "yaml_limit_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_parse_error": {
+    "signature": "yaml_parse_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_to_object": {
+    "signature": "yaml_to_object(text: string) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_to_objects": {
+    "signature": "yaml_to_objects(text: string) -> list",
+    "returnType": "list",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_type_error": {
+    "signature": "yaml_type_error(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_validate": {
+    "signature": "yaml_validate(text: string) -> boolean",
+    "returnType": "boolean",
+    "minimum": 1,
+    "maximum": 1
+  },
+  "yaml_validate_file": {
+    "signature": "yaml_validate_file(arg1) -> value",
+    "returnType": "value",
+    "minimum": 1,
+    "maximum": 1
+  }
+}

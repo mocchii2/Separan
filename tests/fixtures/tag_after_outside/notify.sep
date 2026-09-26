@@ -1,4 +1,4 @@
-function:notify
+SEP:notify
 @notification
 print "new"
-end_function:notify
+END_SEP:notify

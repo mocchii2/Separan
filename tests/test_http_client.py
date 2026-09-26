@@ -46,23 +46,23 @@ print response.encoding is EMPTY
         self.assertEqual(execute('response = http_request("https://example.test/")\nprint response.text is EMPTY\n', capabilities=self.capability, http_transport=FakeTransport([invalid]))[1], "true\n")
 
     def test_http_get_rejects_error_status(self):
-        source = '''function:main
+        source = '''SEP:main
 try :request
 print http_get("https://example.test/")
 catch http_status_error :request
 print "status error"
 endtry:request
-end_function:main
+END_SEP:main
 '''
         transport = FakeTransport([HttpTransportResponse(500, "https://example.test/", {}, b"failure")])
         self.assertEqual(execute(source, capabilities=self.capability, http_transport=transport)[1], "status error\n")
-        parent_source = '''function:main
+        parent_source = '''SEP:main
 try :request
 print http_get("https://example.test/")
 catch http_error :request
 print "http parent"
 endtry:request
-end_function:main
+END_SEP:main
 '''
         transport = FakeTransport([HttpTransportResponse(503, "https://example.test/", {}, b"failure")])
         self.assertEqual(execute(parent_source, capabilities=self.capability, http_transport=transport)[1], "http parent\n")

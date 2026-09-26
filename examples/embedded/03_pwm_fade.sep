@@ -24,4 +24,4 @@ endfor:fade_down
 
 endwhile:fade_forever
 
-end_SEP:main
+END_SEP:main

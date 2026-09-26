@@ -27,42 +27,59 @@
   },
   "engines": { "vscode": "^1.75.0" },
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:separan", "onView:separan.structureExplorer", "onCommand:separan.runFile", "onCommand:separan.buildPicoFirmware", "onCommand:separan.generatePicoFirmware", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
+  "scripts": { "test:vscode": "node ./test/runTest.js" },
+  "activationEvents": ["onLanguage:separan", "onView:separan.structureExplorer", "onCommand:separan.runFile", "onCommand:separan.checkFile", "onCommand:separan.diagnoseRuntime", "onCommand:separan.showStructuralDiff", "onCommand:separan.verifyAiEditScope"],
   "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{ "id": "separan", "aliases": ["Separan"], "extensions": [".sep"], "configuration": "./language-configuration.json" }],
     "grammars": [{ "language": "separan", "scopeName": "source.separan", "path": "./syntaxes/separan.tmLanguage.json" }],
+    "snippets": [{ "language": "separan", "path": "./snippets/separan.json" }],
     "commands": [
       { "command": "separan.runFile", "title": "Separan: Run File", "icon": "$(play)" },
-      { "command": "separan.runTests", "title": "Separan: Run Tests" },
-      { "command": "separan.showAst", "title": "Separan: Show AST" },
-      { "command": "separan.buildPicoFirmware", "title": "Separan: Build Pico Firmware" },
-      { "command": "separan.generatePicoFirmware", "title": "Separan: Generate Pico Firmware Project" },
+      { "command": "separan.checkFile", "title": "Separan: Check Current File", "icon": "$(check)" },
+      { "command": "separan.diagnoseRuntime", "title": "Separan: Diagnose Runtime" },
       { "command": "separan.goToMatchingLabel", "title": "Separan: Go to Matching Label" },
       { "command": "separan.goToLabel", "title": "Separan: Go to Label" },
       { "command": "separan.copyAiEditScope", "title": "Separan: Copy AI Edit Scope" },
       { "command": "separan.showStructuralDiff", "title": "Separan: Show Structural Diff Against HEAD" },
       { "command": "separan.verifyAiEditScope", "title": "Separan: Verify AI Edit Scope Against HEAD" },
       { "command": "separan.refreshStructureExplorer", "title": "Separan: Refresh Structure Explorer", "icon": "$(refresh)" },
-      { "command": "separan.revealStructure", "title": "Separan: Reveal Structure" }
+      { "command": "separan.revealStructure", "title": "Separan: Reveal Structure" },
+      { "command": "separan.refreshSemanticTags", "title": "Separan: Refresh Semantic Tags", "icon": "$(refresh)" },
+      { "command": "separan.renameSemanticTag", "title": "Separan: Rename Semantic Tag" },
+      { "command": "separan.revealLocation", "title": "Separan: Reveal Location" },
+      { "command": "separan.runFunction", "title": "Separan: Run Current Function", "icon": "$(play)" },
+      { "command": "separan.runTests", "title": "Separan: Run Tests in Current File", "icon": "$(beaker)" }
     ],
     "viewsContainers": {
       "activitybar": [{ "id": "separan", "title": "Separan", "icon": "images/structure.svg" }]
     },
     "views": {
-      "separan": [{ "id": "separan.structureExplorer", "name": "Structure Explorer", "icon": "images/structure.svg" }]
+      "separan": [
+        { "id": "separan.structureExplorer", "name": "Structure Explorer", "icon": "images/structure.svg" },
+        { "id": "separan.semanticTags", "name": "Semantic Tags", "icon": "$(tag)" }
+      ]
     },
     "viewsWelcome": [{
       "view": "separan.structureExplorer",
       "contents": "Open a `.sep` file to inspect its named structure, data flow, calls, and Git changes.\n[Open File](command:workbench.action.files.openFile)"
+    }, {
+      "view": "separan.semanticTags",
+      "contents": "Semantic tags used across workspace `.sep` files appear here."
     }],
     "menus": {
-      "view/title": [{ "command": "separan.refreshStructureExplorer", "when": "view == separan.structureExplorer", "group": "navigation" }],
-      "editor/title": [{ "command": "separan.runFile", "when": "editorLangId == separan", "group": "navigation" }],
+      "view/title": [
+        { "command": "separan.refreshStructureExplorer", "when": "view == separan.structureExplorer", "group": "navigation" },
+        { "command": "separan.refreshSemanticTags", "when": "view == separan.semanticTags", "group": "navigation" }
+      ],
+      "view/item/context": [{ "command": "separan.renameSemanticTag", "when": "view == separan.semanticTags && viewItem == separanSemanticTag", "group": "inline" }],
+      "editor/title": [
+        { "command": "separan.runFile", "when": "editorLangId == separan", "group": "navigation@1" },
+        { "command": "separan.checkFile", "when": "editorLangId == separan", "group": "navigation@2" }
+      ],
       "editor/context": [
         { "command": "separan.goToMatchingLabel", "when": "editorLangId == separan", "group": "navigation" },
         { "command": "separan.copyAiEditScope", "when": "editorLangId == separan", "group": "navigation" },
-        { "command": "separan.buildPicoFirmware", "when": "editorLangId == separan", "group": "navigation@8" },
         { "command": "separan.showStructuralDiff", "when": "editorLangId == separan", "group": "navigation@10" },
         { "command": "separan.verifyAiEditScope", "when": "editorLangId == separan", "group": "navigation@11" }
       ]
@@ -71,12 +88,14 @@
     "configuration": {
       "title": "Separan",
       "properties": {
-        "separan.pythonPath": { "type": "string", "default": "python", "description": "Python executable used to launch Separan and separan.lsp." },
+        "separan.executablePath": { "type": "string", "default": "separan", "description": "Native Separan executable used to run and check source files." },
+        "separan.runtimeArguments": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Arguments passed to the native Separan executable before the source or --check option." },
+        "separan.environment": { "type": "object", "additionalProperties": { "type": "string" }, "default": {}, "description": "Environment variables added to native Separan run, check, and diagnostic processes." },
         "separan.autoCloseLabels": { "type": "boolean", "default": true, "description": "Insert the matching labeled closer after a block opener." },
-        "separan.inlayHints.types": { "type": "boolean", "default": true, "description": "Show inferred Separan public types after bindings." }
+        "separan.inlayHints.types": { "type": "boolean", "default": true, "description": "Show lightweight locally inferred types after untyped bindings." }
       }
     }
   },
-  "dependencies": { "vscode-languageclient": "^9.0.1" },
-  "devDependencies": { "@vscode/vsce": "^3.9.2" }
+  "dependencies": {},
+  "devDependencies": { "@vscode/test-electron": "^2.5.2", "@vscode/vsce": "^3.9.2", "mocha": "^11.7.2" }
 }

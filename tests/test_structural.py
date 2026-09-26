@@ -11,12 +11,12 @@ from separan.structural import (
 )
 
 
-BEFORE = """function:main
+BEFORE = """SEP:main
 print "outside"
 if true :active_user
 print "hello"
 endif:active_user
-end_function:main
+END_SEP:main
 """
 
 
@@ -38,12 +38,12 @@ class StructuralTests(unittest.TestCase):
         after = """##note
 ignored
 ##note
-  function:main
+  SEP:main
     print "outside"
     if true :active_user
       print "hello"
     endif:active_user
-  end_function:main
+  END_SEP:main
 """
         report = structural_diff(self.snapshot(BEFORE, "a"), self.snapshot(after, "b"))
         self.assertEqual(report["changes"], [])
@@ -85,14 +85,14 @@ endwhile:never
         self.assertTrue(any(item["status"] == "added" for item in report["allowed_changes"]))
 
     def test_ambiguous_label_requires_a_path(self):
-        source = """function:first
+        source = """SEP:first
 if true :same
 endif:same
-end_function:first
-function:second
+END_SEP:first
+SEP:second
 if true :same
 endif:same
-end_function:second
+END_SEP:second
 """
         snapshot = self.snapshot(source, "a")
         with self.assertRaisesRegex(ScopeResolutionError, "S402"):
@@ -114,17 +114,17 @@ end_function:second
         self.assertFalse(json.loads(output.getvalue())["passed"])
 
     def test_semantic_tag_scope_resolves_all_tagged_functions(self):
-        before = '''function:notify
+        before = '''SEP:notify
 @notification
 print "one"
-end_function:notify
-function:archive
+END_SEP:notify
+SEP:archive
 @notification
 print "two"
-end_function:archive
-function:config
+END_SEP:archive
+SEP:config
 print "fixed"
-end_function:config
+END_SEP:config
 '''
         after = before.replace('print "one"', 'print "changed"')
         report = verify_tag_scope(self.snapshot(before, "a"), self.snapshot(after, "b"), "notification")
@@ -134,18 +134,18 @@ end_function:config
         self.assertFalse(rejected["passed"])
 
     def test_parent_tag_path_resolves_descendant_scopes(self):
-        before = '''function:decide
+        before = '''SEP:decide
 @monitor:notification:decision
 print "one"
-end_function:decide
-function:history
+END_SEP:decide
+SEP:history
 @monitor:notification:history
 print "two"
-end_function:history
-function:status
+END_SEP:history
+SEP:status
 @monitor:status
 print "fixed"
-end_function:status
+END_SEP:status
 '''
         inside = before.replace('print "one"', 'print "changed"')
         report = verify_tag_scope(self.snapshot(before, "a"), self.snapshot(inside, "b"), "monitor:notification")
@@ -155,7 +155,7 @@ end_function:status
         self.assertFalse(verify_tag_scope(self.snapshot(before, "a"), self.snapshot(outside, "b"), "@monitor:notification")["passed"])
 
     def test_tag_metadata_is_exposed_in_snapshot(self):
-        snapshot = self.snapshot('function:notify\n@notification\n@通知\nend_function:notify\n', "tag.sep")
+        snapshot = self.snapshot('SEP:notify\n@notification\n@通知\nEND_SEP:notify\n', "tag.sep")
         self.assertEqual(snapshot.blocks[1].tags, ("notification", "通知"))
 
     def test_workspace_tag_inspection_and_verification(self):
