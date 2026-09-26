@@ -84,6 +84,10 @@ int separan_runtime_invoke_json(separan_runtime *runtime, const char *function_n
    method, path, and optional query, headers, and body fields. */
 int separan_runtime_dispatch_http_json(separan_runtime *runtime, const char *request_json,
                                        char **response_json);
+/* Dispatch one request and return a CGI/HTTP response block. The allocated
+   result contains Status/headers, CRLF separator, and the response body. */
+int separan_runtime_dispatch_http_cgi(separan_runtime *runtime, const char *request_json,
+                                      char **response_block, size_t *response_length);
 /* Copy the last runtime failure detail after invoke or dispatch. */
 void separan_runtime_get_diagnostic(const separan_runtime *runtime,
                                    separan_runtime_diagnostic *diagnostic);

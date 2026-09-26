@@ -5652,8 +5652,8 @@ static int route_match(const char *pattern,const char *path,Value *params) {
     }return 1;
 }
 
-int separan_runtime_dispatch_http_json(separan_runtime *handle,const char *request_json,char **response_json) {
-    if(!handle||!request_json||!response_json)return 1;*response_json=NULL;Runtime *r=&handle->runtime;if(r->error||r->http_active)return 1;
+static int dispatch_http_request(separan_runtime *handle,const char *request_json,Value *response) {
+    if(!handle||!request_json||!response)return 1;*response=empty_value();Runtime *r=&handle->runtime;if(r->error||r->http_active)return 1;
     r->steps=0;
     JsonCursor cursor={request_json,strlen(request_json),0,0};Value request=json_parse_value(&cursor,0);json_space(&cursor);
     Value *method=object_field(&request,"method"),*path=object_field(&request,"path");
@@ -5663,14 +5663,50 @@ int separan_runtime_dispatch_http_json(separan_runtime *handle,const char *reque
     for(size_t pass=0;pass<2&&!route;pass++)for(size_t i=0;i<r->program.count;i++){Stmt *candidate=r->program.items[i];if(candidate->kind!=20)continue;
         const char *wanted=pass==0?method->string:(!strcmp(method->string,"HEAD")?"GET":"");if(!*wanted||strcmp(candidate->method,wanted))continue;
         Value found=empty_value();if(route_match(candidate->path,path->string,&found)){route=candidate;params=found;break;}}
-    if(!route){Value response=http_default_response(404,"Not Found");int ok=database_json(response,response_json);free_value(response);free_value(request);return ok?0:1;}
+    if(!route){*response=http_default_response(404,"Not Found");free_value(request);return response->kind==V_EMPTY?1:0;}
     r->http_active=1;r->http_returned=0;r->http_request=request;r->http_params=params;r->http_cookies.kind=V_LIST;
     Frame request_frame={0};request_frame.parent=&r->global;execute_body(r,&request_frame,route->body);free_frame(&request_frame);
     if(!r->error&&!r->http_returned)r->http_response=http_default_response(204,"");
-    if(!r->error&&!database_json(r->http_response,response_json))fault(r,"result JSON encode error");
+    if(!r->error){*response=r->http_response;r->http_response=empty_value();}
     free_value(r->http_request);r->http_request=empty_value();free_value(r->http_params);r->http_params=empty_value();
     free_value(r->http_response);r->http_response=empty_value();free_value(r->http_cookies);r->http_cookies=empty_value();r->http_active=0;r->http_returned=0;
     return r->error?1:0;
+}
+
+int separan_runtime_dispatch_http_json(separan_runtime *handle,const char *request_json,char **response_json) {
+    if(!response_json)return 1;*response_json=NULL;Value response=empty_value();
+    if(dispatch_http_request(handle,request_json,&response)){free_value(response);return 1;}
+    int ok=database_json(response,response_json);free_value(response);return ok?0:1;
+}
+
+int separan_runtime_dispatch_http_cgi(separan_runtime *handle,const char *request_json,
+                                      char **response_block,size_t *response_length) {
+    if(!response_block||!response_length)return 1;*response_block=NULL;*response_length=0;
+    Value response=empty_value();if(dispatch_http_request(handle,request_json,&response)){free_value(response);return 1;}
+    Value *status=object_field(&response,"status"),*headers=object_field(&response,"headers"),*body=object_field(&response,"body"),*cookies=object_field(&response,"cookies");
+    if(!status||status->kind!=V_NUMBER||!headers||headers->kind!=V_OBJECT||!body||
+       (body->kind!=V_STRING&&body->kind!=V_BYTES)||(cookies&&cookies->kind!=V_LIST)){free_value(response);return 1;}
+    TextBuffer output={0};char status_line[64];int written=snprintf(status_line,sizeof(status_line),"Status: %d\r\n",(int)status->number);
+    int ok=written>0&&(size_t)written<sizeof(status_line)&&buffer_append(&output,status_line,(size_t)written);
+    int has_length=0;
+    for(size_t index=0;ok&&index<headers->count;index++){
+        Value *value=&headers->items[index];if(value->kind!=V_STRING){ok=0;break;}
+        if(!strcmp(headers->keys[index],"Content-Length"))has_length=1;
+        ok=buffer_append(&output,headers->keys[index],strlen(headers->keys[index]))&&buffer_append(&output,": ",2)&&
+           buffer_append(&output,value->string,value->string_length)&&buffer_append(&output,"\r\n",2);
+    }
+    if(ok&&!has_length){char length_line[64];written=snprintf(length_line,sizeof(length_line),"Content-Length: %zu\r\n",body->string_length);
+        ok=written>0&&(size_t)written<sizeof(length_line)&&buffer_append(&output,length_line,(size_t)written);}
+    for(size_t index=0;ok&&cookies&&index<cookies->count;index++){
+        Value *cookie=&cookies->items[index];if(cookie->kind!=V_STRING){ok=0;break;}
+        ok=buffer_append(&output,"Set-Cookie: ",12)&&buffer_append(&output,cookie->string,cookie->string_length)&&buffer_append(&output,"\r\n",2);
+    }
+    if(ok)ok=buffer_append(&output,"\r\n",2);
+    if(ok&&body->kind==V_STRING)ok=buffer_append(&output,body->string,body->string_length);
+    else if(ok&&body->kind==V_BYTES)ok=buffer_append(&output,body->string,body->string_length);
+    free_value(response);
+    if(!ok){free(output.data);return 1;}
+    *response_block=output.data;*response_length=output.length;return 0;
 }
 
 void separan_runtime_get_diagnostic(const separan_runtime *handle,
