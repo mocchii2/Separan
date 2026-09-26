@@ -33,6 +33,15 @@ The easiest way to try Separan is to download the native release bundle for your
 
 Available from the latest [GitHub release](https://github.com/mocchii2/Separan/releases).
 
+Gateway Worker downloads:
+
+- Windows x86_64: [ZIP](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip)
+- Linux x86_64: [tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz)
+
+The gateway assets are attached automatically when a GitHub release is
+published. To attach them to an existing release, run the `Publish Gateway
+Worker` workflow manually and provide its tag.
+
 Separan is a multi-implementation language runtime. The Python package and the
 native C build are both first-class, standalone implementations of the same
 language specification.
@@ -87,9 +96,14 @@ The native CLI reference is available as the [separan(1) manual](docs/separan.1)
 It documents every command-line option, exit status, diagnostic format, and
 common invocation example.
 
-The initial `separan-gw` Gateway Worker is documented in
-[docs/separan-gw.md](docs/separan-gw.md). Its released transport is stdio JSON;
-FastCGI and socket adapters are the next gateway work.
+The `separan-gw` Gateway Worker supports line-oriented JSON stdio, FastCGI v1
+stdio, Unix/TCP listeners, and Windows named pipes. POSIX socket listeners and
+Windows named pipes support supervised worker pools with request/memory
+recycling and restart controls.
+
+Gateway Worker manual: [English](docs/separan-gw.md) · [日本語](docs/separan-gw.ja.md) ·
+[download English Markdown](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.md) ·
+[日本語 Markdown をダウンロード](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.ja.md)
 
 ## Try it in five minutes
 

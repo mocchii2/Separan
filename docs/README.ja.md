@@ -15,6 +15,17 @@
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 [![PyPI](https://img.shields.io/pypi/v/separan?label=PyPI)](https://pypi.org/project/separan/)
 
+Gateway Worker の説明書: [日本語](separan-gw.ja.md) · [English](separan-gw.md) ·
+[日本語 Markdown をダウンロード](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.ja.md) ·
+[English Markdown download](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.md)
+
+## Gateway Worker のダウンロード
+
+- Windows x86_64: [ZIP をダウンロード](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip)
+- Linux x86_64: [tar.gz をダウンロード](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz)
+
+GitHub Release の公開時に gateway asset が自動添付されます。既存 release へ追加する場合は、`Publish Gateway Worker` workflow を手動実行して tag を指定してください。
+
 Separanは、AIが書いたコードを人間が読み、理解し、reviewしやすくします。
 匿名になりがちな制御構造へ`:支払い検証`、`:監査ログ記録`、`:接続再試行`のような
 意図を示す名前を付け、その名前自体を構文として検証します。人間はindentや括弧を

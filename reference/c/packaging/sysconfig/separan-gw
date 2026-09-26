@@ -1,9 +1,2 @@
-# Separan Gateway Worker supervisor environment
+# Separan Gateway Worker environment
 SEPARAN_GW_CONFIG=/etc/separan-gw/separan-gw.conf
-SEPARAN_GW_SOURCE=/srv/separan/app.sep
-SEPARAN_GW_LISTEN=unix:/run/separan-gw/separan-gw.sock
-SEPARAN_GW_WORKERS=4
-SEPARAN_GW_MAX_MEMORY=256M
-SEPARAN_GW_MAX_REQUESTS=1000
-SEPARAN_GW_RESTART_GRACE=5s
-SEPARAN_GW_RESTART_BACKOFF=1s

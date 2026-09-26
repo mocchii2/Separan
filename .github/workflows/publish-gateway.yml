@@ -1,0 +1,84 @@
+name: Publish Gateway Worker
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag to attach gateway binaries to
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Build Linux Gateway Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$PWD"
+          cd "$root/reference/c"
+          mkdir -p dist/separan-gw-linux-x86_64
+          gcc -O1 -std=c11 -Wall -Wextra -I include \
+            src/separan_gw.c src/separan_gw_fastcgi.c src/separan_gw_supervisor.c \
+            src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
+            -lm -o dist/separan-gw-linux-x86_64/separan-gw
+          chmod 755 dist/separan-gw-linux-x86_64/separan-gw
+          cp "$root/docs/separan-gw.md" dist/separan-gw-linux-x86_64/
+          cp "$root/docs/separan-gw.ja.md" dist/separan-gw-linux-x86_64/
+          cp "$root/docs/separan-gw.conf.example" dist/separan-gw-linux-x86_64/
+          tar -C dist -czf dist/separan-gw-linux-x86_64.tar.gz separan-gw-linux-x86_64
+
+      - name: Upload Linux release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$RELEASE_TAG" reference/c/dist/separan-gw-linux-x86_64.tar.gz --clobber
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+
+      - name: Build Windows Gateway Worker
+        shell: msys2 {0}
+        run: |
+          cd reference/c
+          mkdir -p dist/separan-gw-windows-x86_64
+          gcc -O1 -std=c11 -Wall -Wextra -I include \
+            src/separan_gw.c src/separan_gw_fastcgi.c src/separan_gw_supervisor.c \
+            src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
+            -lm -lws2_32 -lpsapi -ladvapi32 -o dist/separan-gw-windows-x86_64/separan-gw.exe
+          cp ../../docs/separan-gw.md dist/separan-gw-windows-x86_64/
+          cp ../../docs/separan-gw.ja.md dist/separan-gw-windows-x86_64/
+          cp ../../docs/separan-gw.conf.example dist/separan-gw-windows-x86_64/
+
+      - name: Package and upload Windows release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          $root = Join-Path $PWD "reference/c/dist"
+          $source = Join-Path $root "separan-gw-windows-x86_64"
+          $archive = Join-Path $root "separan-gw-windows-x86_64.zip"
+          Compress-Archive -Path (Join-Path $source "*") -DestinationPath $archive -Force
+          gh release upload $env:RELEASE_TAG $archive --clobber

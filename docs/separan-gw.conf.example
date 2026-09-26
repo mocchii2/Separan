@@ -1,4 +1,10 @@
-# Current separan-gw stdio worker configuration.
+# FastCGI Unix-socket deployment with a supervised worker pool.
 # Install as /etc/separan-gw/separan-gw.conf on Linux.
 source = /srv/separan/app.sep
-transport = stdio
+transport = fastcgi-unix
+listen = unix:/run/separan-gw/separan-gw.sock
+workers = 4
+max_memory = 256M
+max_requests = 1000
+restart_grace = 5s
+restart_backoff = 1s

@@ -19,8 +19,10 @@ LINUX_BIN = separan
 
 ifeq ($(OS),Windows_NT)
 	RM = cmd /C del /Q /F
+	GW_SOCKET_LIBS = -lws2_32 -lpsapi -ladvapi32
 else
 	RM = rm -f
+	GW_SOCKET_LIBS =
 endif
 
 all: $(BIN) $(GW_BIN) $(LIB)
@@ -31,8 +33,8 @@ $(LIB): src\separan_core.o src\separan_lexer.o src\separan_files.o src\separan_r
 $(BIN): $(OBJ) $(LIB)
 	$(CC) $(CFLAGS) -o $@ src\main.o $(LIB) -lm
 
-$(GW_BIN): $(LIB) src\separan_gw.c
-	$(CC) $(CFLAGS) -o $@ src\separan_gw.c $(LIB) -lm
+$(GW_BIN): $(LIB) src\separan_gw.c src\separan_gw_fastcgi.c src\separan_gw_supervisor.c include\separan_gw_transport.h
+	$(CC) $(CFLAGS) -o $@ src\separan_gw.c src\separan_gw_fastcgi.c src\separan_gw_supervisor.c $(LIB) -lm $(GW_SOCKET_LIBS)
 
 gateway: $(GW_BIN)
 
