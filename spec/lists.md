@@ -33,7 +33,7 @@ The following value-transform functions return results without modifying their
 input list. Indexed assignment and the explicit shape APIs are visibly mutating
 language operations.
 
-| Function | Result |
+| Operation | Result |
 |---|---|
 | `list_append(items, value)` | new list with `value` at the end |
 | `list_remove(items, value)` | new list with the first matching value removed |

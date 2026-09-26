@@ -33,7 +33,7 @@ reused.
   case-sensitive; emoji, spaces, punctuation, and non-normalized labels are invalid.
 - Core value types include `number`, `string`, `boolean`, `list`, and `object`;
   additional standard APIs expose explicit types such as `bytes` and `datetime`.
-- `EMPTY` is a retained typed state, not a type. `VOID` is a non-value function
+- `EMPTY` is a retained typed state, not a type. `VOID` is a non-value SEP
   result. Source-level `null`/`NULL` is rejected with `E135`.
 - Variables keep the type inferred by their first assignment. Explicit declarations use
   `type name = value`; an initializer is always required.
@@ -80,15 +80,15 @@ Bytes membership accepts either bytes subsequences or an integer byte from 0
 through 255. Missing membership is a normal `false`; an incompatible search
 type is a type error rather than silently returning false.
 
-## Built-in functions
+## Built-ins
 
 Built-in names are reserved and cannot be redefined by source programs.
 
-| Function | Accepted values | Result |
+| Operation | Accepted values | Result |
 |---|---|---|
 | `length(value)` | string, list, or bytes | Unicode code points, elements, or bytes |
 | `is_empty(value)` | string, list, or bytes | whether length is zero |
-| `len(value)` | string, list, or bytes | compatibility alias for `length` |
+| `len(value)` | string, list, or bytes | deprecated compatibility alias for `length` |
 | `type(value)` | any value | public type name as a string |
 | `type_of(value)` | any value | readable alias returning the public type name |
 | `is_number/string/boolean/list/object(value)` | any value | exact public-type test |
@@ -103,10 +103,10 @@ Built-in names are reserved and cannot be redefined by source programs.
 | `log10(value)` / `log2(value)` | positive number | base-10 or base-2 logarithm |
 | `exp(value)` | number | finite `e` raised to `value` |
 | `pow(base, exponent)` | numbers | finite real exponentiation result |
-| `range(stop)` | integer-valued number | list from zero up to, excluding, `stop` |
-| `range(start, stop)` | integer-valued numbers | list from `start` up to, excluding, `stop` |
-| `range(start, stop, step)` | integer-valued numbers; non-zero `step` | stepped number list |
-| `number_range(...)` | same strict arguments as `range` | readable compatibility name for a number list |
+| `number_range(stop)` | integer-valued number | list from zero up to, excluding, `stop` |
+| `number_range(start, stop)` | integer-valued numbers | list from `start` up to, excluding, `stop` |
+| `number_range(start, stop, step)` | integer-valued numbers; non-zero `step` | stepped number list |
+| `range(...)` | same strict arguments as `number_range` | deprecated compatibility alias |
 | `number(value)` | number or strict decimal string | number |
 | `string(value)` | number, string, or boolean | canonical string representation |
 | `boolean(value)` | boolean or exact string `"true"`/`"false"` | boolean |
@@ -191,7 +191,7 @@ endfor:items_loop
 SEP:add(a, b)
 @math
 return a + b
-end_SEP:add
+END_SEP:add
 ```
 
 ## Comments

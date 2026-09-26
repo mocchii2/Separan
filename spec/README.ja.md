@@ -31,7 +31,7 @@ endif:label
   空白、句読点、非正規化labelは使用できない。
 - 中心value型は`number`、`string`、`boolean`、`list`、`object`。標準APIはさらに
   `bytes`や`datetime`などの明示型を提供する。
-- `EMPTY`は型ではなく型を保持した状態、`VOID`は非valueの関数結果。source-levelの
+- `EMPTY`は型ではなく型を保持した状態、`VOID`は非valueのSEP結果。source-levelの
   `null`／`NULL`は`E135`で拒否する。
 - 変数は最初の代入で推論した型を維持する。明示的型宣言は`type name = value`で、
   初期値を必須とする。
@@ -73,11 +73,11 @@ string包含は両方string、list検索値は同型element、objectはstring fi
 bytesはbytes部分列または0..255の整数byteを検索できます。不在はfalseですが、検索型不一致を
 黙ってfalseにはせずtype errorとします。
 
-## 組み込み関数
+## 組み込み操作
 
 組み込み関数名は予約され、ソースプログラムから再定義できません。
 
-| 関数 | 受け付ける値 | 結果 |
+| 操作 | 受け付ける値 | 結果 |
 |---|---|---|
 | `length(value)` | string、list、bytes | Unicodeコードポイント数、要素数、バイト数 |
 | `is_empty(value)` | string、list、bytes | 長さが0か |
