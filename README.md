@@ -83,6 +83,10 @@ The Python build provides the developer-oriented reference runtime, and the C
 build provides the native packaged implementation. They share the same structural
 language model and are designed to converge on the same public semantics.
 
+The native CLI reference is available as the [separan(1) manual](docs/separan.1).
+It documents every command-line option, exit status, diagnostic format, and
+common invocation example.
+
 ## Try it in five minutes
 
 First, run a valid labeled block:

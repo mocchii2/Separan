@@ -1,0 +1,111 @@
+.TH SEPARAN 1 "2026-09-26" "Separan 1.0.0" "Separan User Commands"
+.SH NAME
+separan \- run, validate, inspect, and format Separan source files
+.SH SYNOPSIS
+.B separan
+.RI [ source.sep ]
+.RI [ arguments ... ]
+.br
+.B separan --check
+.I source.sep
+.br
+.B separan --tokens
+.I source.sep
+.br
+.B separan --structure
+.I source.sep
+.br
+.B separan --tag
+.I source.sep semantic-tag
+.br
+.B separan --verify-tag-scope
+.I before.sep after.sep semantic-tag
+.br
+.B separan --format
+.I source.sep
+.br
+.B separan -help
+.SH DESCRIPTION
+.B separan
+is the native Separan 1.0 command-line runtime. It executes labeled
+Separan logic, validates source structure, prints lexer tokens or structure
+metadata, verifies semantic-tag scope changes, and formats structural
+indentation.
+.PP
+Separan uses explicit block identities such as
+.BR SEP:name / END_SEP:name
+and reports diagnostics with stable E-codes and source positions.
+.SH OPTIONS
+.TP
+.BI source.sep
+Run the source file. Arguments following the source path are passed to the
+Separan program through the command-argument context.
+.TP
+.B --check source.sep
+Validate syntax, declarations, imports, labels, and supported structure
+without executing top-level statements or the main function.
+.TP
+.B --tokens source.sep
+Lex the source file and print a JSON array containing token type, lexeme, line,
+and column.
+.TP
+.B --structure source.sep
+Inspect named structures and print the native structural JSON result.
+.TP
+.BI "--tag " source.sep " " semantic-tag
+Inspect functions and structures carrying the semantic tag and print JSON.
+.TP
+.BI "--verify-tag-scope " before.sep " " after.sep " " semantic-tag
+Compare the tagged scope in two source files. The command returns success when
+the tagged scope and its boundary remain valid and unchanged.
+.TP
+.B --format source.sep
+Validate and print the source with structural indentation. The input file is
+not modified.
+.TP
+.B -help
+Print this help and exit successfully.
+.SH EXIT STATUS
+.TP
+.B 0
+The requested operation completed successfully.
+.TP
+.B 1
+The source, arguments, file operation, JSON operation, or requested
+verification was invalid. Diagnostics are written to standard error when
+applicable.
+.SH DIAGNOSTICS
+Diagnostics use the form
+.PP
+.EX
+SEPARAN E104: message at line 3, column 7
+.EE
+.PP
+Structured validation APIs additionally expose category, description, expected,
+actual, primary position, and related opening-block position where applicable.
+.SH EXAMPLES
+.TP
+Run a program:
+.EX
+separan examples/hello.sep
+.EE
+.TP
+Check source in CI:
+.EX
+separan --check app.sep
+.EE
+.TP
+Format without changing the file:
+.EX
+separan --format app.sep > app.formatted.sep
+.EE
+.SH FILES
+.TP
+.I /usr/share/man/man1/separan.1
+Installed manual page location on Unix-like systems.
+.SH SEE ALSO
+.BR separan (1)
+.br
+.I https://github.com/mocchii2/Separan
+.SH AUTHORS
+Separan contributors
