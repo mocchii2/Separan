@@ -105,6 +105,12 @@ separan --format app.sep > app.formatted.sep
 Installed manual page location on Unix-like systems.
 .SH SEE ALSO
 .BR separan (1)
+.PP
+The native tree also provides the development gateway worker
+.BR separan-gw,
+which reads one HTTP request JSON object per stdin line and writes one response
+JSON object per stdout line. It is the adapter boundary for future FastCGI and
+socket transports.
 .br
 .I https://github.com/mocchii2/Separan
 .SH AUTHORS

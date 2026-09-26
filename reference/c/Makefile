@@ -2,6 +2,7 @@ CC = gcc
 AR = ar
 CFLAGS = -O1 -std=c11 -Wall -Wextra -Iinclude
 BIN = separan.exe
+GW_BIN = separan-gw.exe
 LIB = libseparan.a
 OBJ = src\main.o src\separan_core.o src\separan_lexer.o src\separan_files.o src\separan_runtime.o
 EXTRA_BINS = separan_bigint.exe separan_check.exe separan_diff.exe separan_diff2.exe separan_diff3.exe separan_int.exe \
@@ -22,13 +23,18 @@ else
 	RM = rm -f
 endif
 
-all: $(BIN) $(LIB)
+all: $(BIN) $(GW_BIN) $(LIB)
 
 $(LIB): src\separan_core.o src\separan_lexer.o src\separan_files.o src\separan_runtime.o
 	$(AR) rcs $@ src\separan_core.o src\separan_lexer.o src\separan_files.o src\separan_runtime.o
 
 $(BIN): $(OBJ) $(LIB)
 	$(CC) $(CFLAGS) -o $@ src\main.o $(LIB) -lm
+
+$(GW_BIN): $(LIB) src\separan_gw.c
+	$(CC) $(CFLAGS) -o $@ src\separan_gw.c $(LIB) -lm
+
+gateway: $(GW_BIN)
 
 $(ZIP): $(BIN) separan.cmd README.md build_portable_zip.py
 	python build_portable_zip.py
@@ -64,5 +70,5 @@ linux-tarball:
 endif
 
 clean:
-	$(RM) $(BIN) $(LINUX_BIN) $(LIB) test_library_api.exe test_lexer_api.exe test_runtime_api.exe $(OBJ) $(EXTRA_BINS) $(EXTRA_OBJ)
+	$(RM) $(BIN) $(GW_BIN) $(LINUX_BIN) $(LIB) test_library_api.exe test_lexer_api.exe test_runtime_api.exe $(OBJ) $(EXTRA_BINS) $(EXTRA_OBJ)
 	python -c "import pathlib, shutil; root = pathlib.Path('dist'); portable = root / 'separan-portable'; linux = root / 'separan-linux-x86_64'; zip_archive = root / 'separan-portable.zip'; tgz = root / 'separan-linux-x86_64.tar.gz'; shutil.rmtree(portable, ignore_errors=True) if portable.exists() else None; shutil.rmtree(linux, ignore_errors=True) if linux.exists() else None; zip_archive.unlink() if zip_archive.exists() else None; tgz.unlink() if tgz.exists() else None"

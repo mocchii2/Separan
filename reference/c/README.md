@@ -40,6 +40,11 @@ use allocated UTF-8 JSON results released by `separan_runtime_release_string`.
 Native HTTP dispatch implements route validation and duplicate detection,
 path parameters, query/header/body/cookie access, HEAD fallback, responses,
 redirects, and response cookies without a Python process or web framework.
+The `separan-gw` gateway worker provides a stdio JSON transport over the same
+dispatch API: it loads an application with `--source`, reads one HTTP request
+JSON object per input line, and writes one response JSON object per output line.
+This transport is intentionally small and is the adapter boundary for future
+FastCGI and socket listeners.
 The CLI enables the three local filesystem capabilities within the source
 file's directory and forwards arguments after the source path.
 Its parser builds and executes a native AST without CPython. `--check` uses the
