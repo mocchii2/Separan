@@ -1526,7 +1526,7 @@ static void free_frame(Frame *frame) {
     for (size_t i = 0; i < frame->count; i++) { free(frame->bindings[i].name); free(frame->bindings[i].declared_type); free_value(frame->bindings[i].value); }
     free(frame->bindings);
 }
-static Stmt *find_function(Runtime *r, const char *name) {
+static Stmt *find_logic(Runtime *r, const char *name) {
     for (size_t i = 0; i < r->program.count; i++) {
         Stmt *s = r->program.items[i];
         if (s->kind == 5 && s->name && strcmp(s->name, name) == 0) return s;
@@ -1536,7 +1536,7 @@ static Stmt *find_function(Runtime *r, const char *name) {
 static Value evaluate(Runtime *r, Frame *frame, Expr *e);
 static void execute_body(Runtime *r, Frame *frame, Body body);
 static Value invoke_named(Runtime *r, const char *name, Value *arguments, size_t count) {
-    Stmt *function = find_function(r, name);
+    Stmt *function = find_logic(r, name);
     if (!function) { fault(r, "unknown function"); return empty_value(); }
     if (function->parameter_count != count) { fault(r, "wrong argument count"); return empty_value(); }
     Frame local = {0}; local.parent = &r->global;
@@ -3045,7 +3045,7 @@ static Value builtin_call(Runtime *r, Frame *frame, Expr *e) {
     else if(callback_mode&&e->args[callback_index]->kind==7){callback_owner=evaluate(r,frame,e->args[callback_index]->left);
         if(callback_owner.kind==V_NAMESPACE&&module_exported(callback_owner.external,e->args[callback_index]->text,1))callback_runtime=&((ModuleResource *)callback_owner.external)->runtime;
         else fault(r,"function reference required");
-    }else if (callback_mode && (e->args[callback_index]->kind != 1 || !find_function(r, callback_name))) {
+    }else if (callback_mode && (e->args[callback_index]->kind != 1 || !find_logic(r, callback_name))) {
         fault(r, "function reference required");
     }
     if(r->error){free_value(callback_owner);free(args);return result;}
@@ -4764,7 +4764,7 @@ static Value evaluate_inner(Runtime *r, Frame *frame, Expr *e) {
         Value *arguments=calloc(e->argc?e->argc:1,sizeof(*arguments));if(!arguments){fault(r,"out of memory");free_value(target);return result;}
         for(size_t i=0;i<e->argc&&!r->error;i++)arguments[i]=evaluate(r,frame,e->args[i]);
         Runtime *child=&module->runtime;child->output=r->output;child->errors=r->errors;child->handler_depth=r->handler_depth;
-        Stmt *function=find_function(child,e->text);
+        Stmt *function=find_logic(child,e->text);
         if(!r->error&&function)result=invoke_named(child,e->text,arguments,e->argc);
         else if(!r->error){if(e->argc!=1||arguments[0].kind!=V_STRING)fault(r,"wrong argument count");else result=error_value(e->text,arguments[0]);}
         if(child->error){r->error=1;r->message=child->message;snprintf(r->error_code,sizeof(r->error_code),"%s",child->error_code);child->error=0;}
@@ -5722,7 +5722,7 @@ static int separan_run_source_at(const char *source, const separan_runtime_optio
                                  FILE *output, FILE *errors) {
     separan_runtime *handle=NULL;if(separan_runtime_create(source,options,output,errors,&handle))return 1;
     Runtime *r=&handle->runtime;
-    if(find_function(r,"main")){
+    if(find_logic(r,"main")){
         char *result=NULL;if(separan_runtime_invoke_json(handle,"main","[]",&result)){separan_runtime_destroy(handle);return 1;}
         separan_runtime_release_string(result);
     }
