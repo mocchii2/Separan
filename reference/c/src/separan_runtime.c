@@ -1536,21 +1536,21 @@ static Stmt *find_logic(Runtime *r, const char *name) {
 static Value evaluate(Runtime *r, Frame *frame, Expr *e);
 static void execute_body(Runtime *r, Frame *frame, Body body);
 static Value invoke_named(Runtime *r, const char *name, Value *arguments, size_t count) {
-    Stmt *function = find_logic(r, name);
-    if (!function) { fault(r, "unknown function"); return empty_value(); }
-    if (function->parameter_count != count) { fault(r, "wrong argument count"); return empty_value(); }
+    Stmt *logic = find_logic(r, name);
+    if (!logic) { fault(r, "unknown function"); return empty_value(); }
+    if (logic->parameter_count != count) { fault(r, "wrong argument count"); return empty_value(); }
     Frame local = {0}; local.parent = &r->global;
     for (size_t i = 0; i < count && !r->error; i++) {
-        if(function->parameter_types&&function->parameter_types[i]){
-            if(!value_matches_type(arguments[i],function->parameter_types[i]))fault(r,"variable type cannot change");
-            else if(!bind_typed(&local,function->parameters[i],function->parameter_types[i],arguments[i],0))fault(r,"cannot bind parameter");
+        if(logic->parameter_types&&logic->parameter_types[i]){
+            if(!value_matches_type(arguments[i],logic->parameter_types[i]))fault(r,"variable type cannot change");
+            else if(!bind_typed(&local,logic->parameters[i],logic->parameter_types[i],arguments[i],0))fault(r,"cannot bind parameter");
         }else if(arguments[i].kind==V_EMPTY&&!arguments[i].retained_type)fault(r,"untyped EMPTY");
-        else {if(!function->inferred_parameter_types)function->inferred_parameter_types=calloc(function->parameter_count,sizeof(*function->inferred_parameter_types));
-            char *actual=value_type_text(arguments[i]);if(!function->inferred_parameter_types||!actual)fault(r,"cannot bind parameter");
-            else if(function->inferred_parameter_types[i]&&strcmp(function->inferred_parameter_types[i],actual))fault(r,"parameter type cannot change");
-            else {if(!function->inferred_parameter_types[i])function->inferred_parameter_types[i]=copy_text(actual);bind(&local,function->parameters[i],arguments[i],0);}free(actual);}
+        else {if(!logic->inferred_parameter_types)logic->inferred_parameter_types=calloc(logic->parameter_count,sizeof(*logic->inferred_parameter_types));
+            char *actual=value_type_text(arguments[i]);if(!logic->inferred_parameter_types||!actual)fault(r,"cannot bind parameter");
+            else if(logic->inferred_parameter_types[i]&&strcmp(logic->inferred_parameter_types[i],actual))fault(r,"parameter type cannot change");
+            else {if(!logic->inferred_parameter_types[i])logic->inferred_parameter_types[i]=copy_text(actual);bind(&local,logic->parameters[i],arguments[i],0);}free(actual);}
     }
-    execute_body(r, &local, function->body);
+    execute_body(r, &local, logic->body);
     Value result = r->returning ? r->returned : empty_value();
     r->returning = 0; r->returned = empty_value(); free_frame(&local); return result;
 }
