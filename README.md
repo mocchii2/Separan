@@ -27,16 +27,30 @@ reconstructing indentation or counting brackets.
 
 The easiest way to try Separan is to download the native C CLI release for your platform:
 
-- Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) installs the native CLI.
-- Windows portable ZIP: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) runs without an installer.
-- Linux portable tar.gz: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz) contains the x86_64 native CLI.
+- Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) installs the native CLI and adds it to your user PATH. Open a new terminal, then run `separan examples/hello.sep`.
+- Windows portable ZIP: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) needs no installation; extract it and run the bundled executable.
+- Linux x86_64 binary: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz).
+- Linux ARM64 binary: [separan-linux-aarch64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-aarch64.tar.gz).
+- Linux source: [separan-linux-source.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-source.tar.gz) contains CLI and Gateway source for either architecture.
+
+Extract a binary or source bundle and run `make install` (use `sudo` for the
+default `/usr/local` prefix). The source bundle builds both `separan` and
+`separan-gw` with the host compiler before installing.
 
 Available from the latest [GitHub release](https://github.com/mocchii2/Separan/releases).
 
 Gateway Worker downloads:
 
+The Gateway Worker is a FastCGI backend, not an HTTP web server. Connect it to
+Apache `mod_proxy_fcgi`, nginx `fastcgi_pass`, or another FastCGI-capable web
+server to execute Separan `http_route` handlers.
+
 - Windows x86_64: [Gateway Worker ZIP](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip) includes `separan-gw.exe`, both manuals, and a config template. Extract it and run `separan-gw.exe --config separan-gw.conf`.
-- Linux x86_64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz) includes the executable, both manuals, and a config template. Extract it and run `./separan-gw --config separan-gw.conf`.
+- Linux x86_64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz).
+- Linux ARM64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-aarch64.tar.gz).
+
+Each Linux Gateway bundle includes the executable, the shared `make install`
+Makefile, both manuals, and a config template.
 
 The gateway assets are attached automatically when a GitHub release is
 published. To attach them to an existing release, run the `Publish Gateway

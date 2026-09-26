@@ -2,6 +2,8 @@
 
 `separan-gw` は Separan Gateway Worker です。解析済みの Separan アプリケーションを常駐させ、`http_route` 宣言を通じて HTTP リクエストを処理します。
 
+これは HTTP web server 自体ではなく FastCGI backend です。Apache の `mod_proxy_fcgi`、nginx の `fastcgi_pass` など FastCGI 対応 front-end を設定 listener に接続すると、Separan の route を実行できます。
+
 ## トランスポート
 
 既定のトランスポートは、標準入出力を使う行指向 JSON です。
@@ -39,6 +41,8 @@ FastCGI listener は `transport` と `listen` で選びます。
 - `fastcgi-pipe` と `listen = pipe:<name>` は Windows named pipe を作成します。
 
 TCP listener と named-pipe listener は、既定では single-worker です。POSIX では Unix/TCP listener に prefork supervisor を利用できます。Windows では named pipe listener に process supervisor を利用でき、TCP listener は single-worker です。
+
+Linux の release bundle は x86_64 と ARM64（`aarch64`）を別々に配布します。Gateway と CLI は共通の `make install` で install できます。architecture 非依存の source bundle では、対象 Linux の C compiler で両方を build/install できます。
 
 バイナリは `--config <path>` を受け取ります。設定 parser は `source`、3種類の FastCGI listener transport、および下記 supervisor settings に対応します。不明な key や transport/listener の不正な組み合わせは拒否します。
 

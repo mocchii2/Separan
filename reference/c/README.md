@@ -250,6 +250,13 @@ make linux-tarball
 ```
 
 This creates `dist/separan-linux-x86_64.tar.gz` containing a portable Linux bundle that can be extracted and run directly.
+The GitHub release also publishes native x86_64 and ARM64 bundles. Each binary
+bundle contains the shared Linux `Makefile`; run `make install` from the
+extracted directory (use `sudo` for the default `/usr/local` prefix).
+
+The architecture-independent `separan-linux-source.tar.gz` contains the C
+sources and the same Makefile. Running `make install` builds both the CLI and
+Gateway Worker with the host compiler, then installs them.
 
 ## Run
 

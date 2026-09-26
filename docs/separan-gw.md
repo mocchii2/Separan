@@ -4,6 +4,10 @@
 application resident and dispatches HTTP request objects through its
 `http_route` declarations.
 
+It is a FastCGI backend, not an HTTP web server. Connect Apache
+`mod_proxy_fcgi`, nginx `fastcgi_pass`, or another FastCGI-capable front end to
+the configured listener to execute the Separan routes.
+
 ## Current transport
 
 The default transport is line-oriented JSON over stdio:
@@ -50,6 +54,11 @@ FastCGI listeners are selected with `transport` and `listen`:
 TCP and named-pipe listeners are single-worker by default. On POSIX, Unix and
 TCP listeners can use the prefork supervisor. On Windows, named-pipe listeners
 can use the process supervisor; TCP remains single-worker.
+
+Linux release bundles are published separately for x86_64 and ARM64
+(`aarch64`). The Gateway and CLI bundles use the same `make install` command;
+an architecture-independent source bundle can build and install both programs
+with the host C compiler.
 
 The binary accepts `--config <path>`. The parser supports `source`, all three
 FastCGI listener transports, and the supervisor settings below. Unknown keys

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing GitHub release tag to attach gateway binaries to
+        description: Existing GitHub release tag to attach binaries to
         required: true
         type: string
       build_ref:
@@ -20,34 +20,92 @@ permissions:
 
 jobs:
   linux:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            runner: ubuntu-latest
+          - architecture: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.release.tag_name || inputs.build_ref }}
 
-      - name: Build Linux Gateway Worker
+      - name: Build Linux bundles
         shell: bash
+        env:
+          ARCHITECTURE: ${{ matrix.architecture }}
         run: |
           set -euo pipefail
           root="$PWD"
           cd "$root/reference/c"
-          mkdir -p dist/separan-gw-linux-x86_64
+          mkdir -p dist/core-cli
+          gcc -O1 -std=c11 -Wall -Wextra -I include \
+            src/main.c src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
+            -lm -o dist/core-cli/separan
+          python build_linux_tarball.py --binary dist/core-cli/separan \
+            --architecture "$ARCHITECTURE" --output-dir dist
+
+          gateway_dir="dist/separan-gw-linux-${ARCHITECTURE}"
+          mkdir -p "$gateway_dir"
           gcc -O1 -std=c11 -Wall -Wextra -I include \
             src/separan_gw.c src/separan_gw_fastcgi.c src/separan_gw_supervisor.c \
             src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
-            -lm -o dist/separan-gw-linux-x86_64/separan-gw
-          chmod 755 dist/separan-gw-linux-x86_64/separan-gw
-          cp "$root/docs/separan-gw.md" dist/separan-gw-linux-x86_64/
-          cp "$root/docs/separan-gw.ja.md" dist/separan-gw-linux-x86_64/
-          cp "$root/docs/separan-gw.conf.example" dist/separan-gw-linux-x86_64/
-          tar -C dist -czf dist/separan-gw-linux-x86_64.tar.gz separan-gw-linux-x86_64
+            -lm -o "$gateway_dir/separan-gw"
+          chmod 755 "$gateway_dir/separan-gw"
+          cp packaging/linux/Makefile "$gateway_dir/Makefile"
+          cp "$root/docs/separan-gw.md" "$gateway_dir/"
+          cp "$root/docs/separan-gw.ja.md" "$gateway_dir/"
+          cp "$root/docs/separan-gw.conf.example" "$gateway_dir/"
+          tar -C dist -czf "dist/separan-gw-linux-${ARCHITECTURE}.tar.gz" "separan-gw-linux-${ARCHITECTURE}"
 
-      - name: Upload Linux release asset
+          core_package="$RUNNER_TEMP/core-package"
+          gateway_package="$RUNNER_TEMP/gateway-package"
+          install_stage="$RUNNER_TEMP/install-stage"
+          mkdir -p "$core_package" "$gateway_package" "$install_stage"
+          tar -xzf "dist/separan-linux-${ARCHITECTURE}.tar.gz" -C "$core_package"
+          tar -xzf "dist/separan-gw-linux-${ARCHITECTURE}.tar.gz" -C "$gateway_package"
+          make -C "$core_package/separan-linux-${ARCHITECTURE}" install DESTDIR="$install_stage" PREFIX=/usr
+          test -x "$install_stage/usr/bin/separan"
+          "$install_stage/usr/bin/separan" --check "$root/examples/hello.sep"
+          rm -rf "$install_stage" && mkdir -p "$install_stage"
+          make -C "$gateway_package/separan-gw-linux-${ARCHITECTURE}" install DESTDIR="$install_stage" PREFIX=/usr
+          test -x "$install_stage/usr/bin/separan-gw"
+          "$install_stage/usr/bin/separan-gw" --help
+
+          if [[ "$ARCHITECTURE" == "x86_64" ]]; then
+            source_dir="dist/separan-linux-source"
+            mkdir -p "$source_dir/include" "$source_dir/src" "$source_dir/docs"
+            cp -R include/. "$source_dir/include/"
+            cp -R src/. "$source_dir/src/"
+            cp packaging/linux/Makefile "$source_dir/Makefile"
+            cp README.md "$source_dir/README.md"
+            cp "$root/docs/separan-gw.md" "$source_dir/docs/"
+            cp "$root/docs/separan-gw.ja.md" "$source_dir/docs/"
+            cp "$root/docs/separan-gw.conf.example" "$source_dir/docs/"
+            tar -C dist -czf dist/separan-linux-source.tar.gz separan-linux-source
+            rm -rf "$install_stage" && mkdir -p "$install_stage"
+            make -C "$source_dir" install DESTDIR="$install_stage" PREFIX=/usr
+            "$install_stage/usr/bin/separan" --check "$root/examples/hello.sep"
+            "$install_stage/usr/bin/separan-gw" --help
+          fi
+
+      - name: Upload Linux release assets
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" reference/c/dist/separan-gw-linux-x86_64.tar.gz --clobber
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "reference/c/dist/separan-linux-${ARCHITECTURE}.tar.gz" \
+            "reference/c/dist/separan-gw-linux-${ARCHITECTURE}.tar.gz" --clobber
+          if [[ "$ARCHITECTURE" == "x86_64" ]]; then
+            gh release upload "$RELEASE_TAG" reference/c/dist/separan-linux-source.tar.gz --clobber
+          fi
 
   windows:
     runs-on: windows-latest

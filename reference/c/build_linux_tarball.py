@@ -14,14 +14,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Package a native Linux Separan executable.")
     parser.add_argument("--binary", type=Path, default=ROOT / EXECUTABLE_NAME,
                         help="Linux executable to package (default: reference/c/separan)")
+    parser.add_argument("--architecture", choices=("x86_64", "aarch64"), default="x86_64",
+                        help="target Linux architecture label for the archive")
     parser.add_argument("--output-dir", type=Path, default=DIST,
                         help="directory for the package directory and tarball")
     args = parser.parse_args()
 
     binary = args.binary.resolve()
     output_dir = args.output_dir.resolve()
-    package_dir = output_dir / "separan-linux-x86_64"
-    archive_path = output_dir / "separan-linux-x86_64.tar.gz"
+    package_name = f"separan-linux-{args.architecture}"
+    package_dir = output_dir / package_name
+    archive_path = output_dir / f"{package_name}.tar.gz"
     if not binary.is_file():
         raise SystemExit(f"Linux executable not found: {binary}")
     with binary.open("rb") as executable_stream:
@@ -37,6 +40,7 @@ def main() -> None:
     shutil.copy2(binary, executable)
     executable.chmod(executable.stat().st_mode | 0o111)
     shutil.copy2(ROOT / "README.md", package_dir / "README.md")
+    shutil.copy2(ROOT / "packaging" / "linux" / "Makefile", package_dir / "Makefile")
 
     if archive_path.exists():
         archive_path.unlink()

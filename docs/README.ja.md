@@ -17,9 +17,13 @@
 
 ## ネイティブ C CLI のダウンロード
 
-- Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) から native CLI をインストールできます。
-- Windows portable: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) は installer 不要の portable 版です。
-- Linux x86_64: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz) に native CLI が入っています。
+- Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) は native CLI を install し、user PATH に追加します。新しい terminal を開き、`separan examples/hello.sep` で実行できます。
+- Windows portable: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) は install 不要です。展開後、同梱の実行ファイルを起動してください。
+- Linux x86_64 binary: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz)
+- Linux ARM64 binary: [separan-linux-aarch64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-aarch64.tar.gz)
+- Linux source: [separan-linux-source.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-source.tar.gz) には両 architecture 共通の CLI/Gateway source が入っています。
+
+binary または source bundle を展開し、`make install` を実行してください。既定の `/usr/local` に install する場合は `sudo make install` を使います。source bundle は host の compiler で `separan` と `separan-gw` の両方を build してから install します。
 
 Gateway Worker の説明書: [日本語](separan-gw.ja.md) · [English](separan-gw.md) ·
 [日本語 Markdown をダウンロード](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.ja.md) ·
@@ -27,8 +31,13 @@ Gateway Worker の説明書: [日本語](separan-gw.ja.md) · [English](separan-
 
 ## Gateway Worker のダウンロード
 
+Gateway Worker 自体は HTTP web server ではなく FastCGI backend です。Apache の `mod_proxy_fcgi`、nginx の `fastcgi_pass` などから接続すると、Separan の `http_route` handler を実行できます。
+
 - Windows x86_64: [Gateway Worker ZIP](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip) には `separan-gw.exe`、日英の説明書、設定例が入っています。展開して `separan-gw.exe --config separan-gw.conf` で起動します。
-- Linux x86_64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz) には実行ファイル、日英の説明書、設定例が入っています。展開して `./separan-gw --config separan-gw.conf` で起動します。
+- Linux x86_64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz)
+- Linux ARM64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-aarch64.tar.gz)
+
+各 Linux Gateway bundle には実行ファイル、共通 `make install` Makefile、日英の説明書、設定例が入っています。
 
 GitHub Release の公開時に gateway asset が自動添付されます。既存 release へ追加する場合は、`Publish Gateway Worker` workflow を手動実行して tag を指定してください。
 
