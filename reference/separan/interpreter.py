@@ -38,7 +38,7 @@ class NamespaceValue:
 
 
 @dataclass(frozen=True)
-class FunctionValue:
+class LogicValue:
     runtime: object
     name: str
 
@@ -62,7 +62,7 @@ def type_name(value):
     if isinstance(value, RegexMatchValue): return "regex_match_result"
     if isinstance(value, ObjectValue): return "object"
     if isinstance(value, NamespaceValue): return "namespace"
-    if isinstance(value, FunctionValue): return "function"
+    if isinstance(value, LogicValue): return "logic"
     if isinstance(value, ErrorValue): return "error"
     if isinstance(value, ExecResultValue): return "exec_result"
     if isinstance(value, HttpProfileValue): return "http_profile"
@@ -416,14 +416,14 @@ class Interpreter:
 
     def run(self, program: Program, invoke_main=True):
         for stmt in program.statements:
-            if isinstance(stmt, FunctionDecl):
+            if isinstance(stmt, LogicDecl):
                 if stmt.name in BUILTINS or stmt.name in self.host_functions:
                     raise error("E209", "Reserved function name", f"Function '{stmt.name}' is a built-in and cannot be redefined.", stmt.position, actual=stmt.name)
                 if stmt.name in self.functions:
                     raise error("E204", "Duplicate function", f"Function '{stmt.name}' is already defined.", stmt.position, actual=stmt.name)
                 self.functions[stmt.name] = stmt
             elif isinstance(stmt, ErrorDecl):
-                if stmt.name in BUILTINS or stmt.name in self.host_functions or stmt.name in self.error_categories or any(item.name == stmt.name for item in program.statements if isinstance(item, FunctionDecl)):
+                if stmt.name in BUILTINS or stmt.name in self.host_functions or stmt.name in self.error_categories or any(item.name == stmt.name for item in program.statements if isinstance(item, LogicDecl)):
                     raise error("E122", "Duplicate error name", f"Custom error name '{stmt.name}' conflicts with an existing declaration or built-in.", stmt.position, actual=stmt.name)
                 self.error_categories.add(stmt.name)
             elif isinstance(stmt, HttpRouteDecl):
@@ -435,7 +435,7 @@ class Interpreter:
         if main and main.parameters:
             raise error("E205", "Invalid main function", "main must have zero parameters in v0.1.", main.position, expected="main()", actual=f"main({', '.join(main.parameters)})")
         for stmt in program.statements:
-            if not isinstance(stmt, (FunctionDecl, HttpRouteDecl, ErrorDecl)): self._execute(stmt)
+            if not isinstance(stmt, (LogicDecl, HttpRouteDecl, ErrorDecl)): self._execute(stmt)
         if invoke_main and main: self._call("main", [], main.position)
         return self.output.getvalue() if hasattr(self.output, "getvalue") else None
 
@@ -629,7 +629,7 @@ class Interpreter:
                                  self.embedded_context, network_adapter=self.network_adapter)
             try: module.run(program, invoke_main=False)
             finally: self.import_stack.pop()
-            exports = frozenset([item.name for item in program.statements if isinstance(item, (FunctionDecl, ConstDeclaration, TypedDeclaration, ErrorDecl))])
+            exports = frozenset([item.name for item in program.statements if isinstance(item, (LogicDecl, ConstDeclaration, TypedDeclaration, ErrorDecl))])
             namespace = NamespaceValue(module, exports); self.module_cache[key] = namespace
         self.environment.define_const(stmt.alias, namespace, stmt.position)
 
@@ -647,7 +647,7 @@ class Interpreter:
                         expected="list_insert/list_remove position", actual=expr.name)
         if isinstance(expr, VariableExpr):
             if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
-            if expr.name in self.functions or expr.name in BUILTINS or expr.name in self.host_functions: return FunctionValue(self, expr.name)
+            if expr.name in self.functions or expr.name in BUILTINS or expr.name in self.host_functions: return LogicValue(self, expr.name)
             return self.environment.get(expr.name, expr.position)
         if isinstance(expr, ListExpr):
             values = [self._eval(e) for e in expr.elements]; list_element_type(values, expr.position); return values
@@ -691,7 +691,7 @@ class Interpreter:
                 return getattr(target, expr.name)
             if isinstance(target, NamespaceValue):
                 if expr.name not in target.exports: raise error("E706", "Private or missing export", f"Module does not export '{expr.name}'.", expr.position, actual=expr.name)
-                if expr.name in target.runtime.functions: return FunctionValue(target.runtime, expr.name)
+                if expr.name in target.runtime.functions: return LogicValue(target.runtime, expr.name)
                 return target.runtime.globals.get(expr.name, expr.position)
             self._type_error(expr.position, "object or fixed-shape value", type_name(target), "Member access requires an object or fixed-shape value.")
         if isinstance(expr, MemberCallExpr):
@@ -974,7 +974,7 @@ class Interpreter:
 
     @staticmethod
     def validate_function_value(value, position):
-        if not isinstance(value, FunctionValue):
+        if not isinstance(value, LogicValue):
             Interpreter._type_error(position, "function", type_name(value), "A higher-order list operation requires a function reference.")
 
     @staticmethod
@@ -1105,7 +1105,7 @@ class Interpreter:
         if isinstance(value, RegexMatchValue): return value.text
         if isinstance(value, ObjectValue): return "object:" + ", ".join(f"{key}={Interpreter._display(field)}" for key, field in value.fields.items())
         if isinstance(value, NamespaceValue): return "namespace"
-        if isinstance(value, FunctionValue): return f"<function:{value.name}>"
+        if isinstance(value, LogicValue): return f"<logic:{value.name}>"
         if isinstance(value, ErrorValue): return f"{value.category}: {value.message}"
         if isinstance(value, ExecResultValue): return f"exec_result(exit_code={value.exit_code})"
         if isinstance(value, HttpProfileValue): return f"http_profile:{value.name}"

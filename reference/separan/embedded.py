@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, fields, is_dataclass
 
-from .ast_nodes import Assignment, CallExpr, ConstDeclaration, TypedDeclaration, FunctionDecl, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
+from .ast_nodes import Assignment, CallExpr, ConstDeclaration, TypedDeclaration, LogicDecl, LiteralExpr, MemberExpr, UnaryExpr, VariableExpr
 from .errors import error
 from .system_utilities import UtilityFunction
 from .runtime_values import VOID
@@ -487,7 +487,7 @@ def validate_embedded_program(program, board_id):
         return unknown
 
     def walk(value, bindings):
-        if isinstance(value, FunctionDecl):
+        if isinstance(value, LogicDecl):
             local = dict(bindings)
             for parameter in value.parameters: local.pop(parameter, None)
             for statement in value.body: walk(statement, local)

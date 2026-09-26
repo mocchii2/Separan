@@ -10,7 +10,7 @@ identities as structural diff and AI edit-scope verification.
 For each named block it shows:
 
 - nested functions and labeled structures;
-- function parameters;
+- SEP parameters;
 - function semantic tags;
 - names directly read by that block;
 - bindings directly written by that block;

@@ -46,7 +46,7 @@ print map([1, 2, 3], callback)
 print map([-2, 3], abs)
 END_SEP:main
 '''
-        self.assertEqual(execute(source)[1], "function\n[2, 4, 6]\n[2, 3]\n")
+        self.assertEqual(execute(source)[1], "logic\n[2, 4, 6]\n[2, 3]\n")
 
     def test_map_requires_homogeneous_results(self):
         source = '''SEP:mixed(value)

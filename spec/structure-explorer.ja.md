@@ -9,7 +9,7 @@ Structure Explorerは、AIが書いた`.sep` fileの構造を、人間が短時�
 各名前付きblockには次を表示します。
 
 - 内側のfunctionとlabel付き構造
-- function parameter
+- SEP parameter
 - function semantic tag
 - そのblockが直接読む名前
 - そのblockが直接書くbinding

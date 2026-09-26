@@ -6,7 +6,7 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 from .ast_nodes import (
-    Assignment, IndexAssignment, CallExpr, ConstDeclaration, TypedDeclaration, ForStmt, FunctionDecl, IndexExpr,
+    Assignment, IndexAssignment, CallExpr, ConstDeclaration, TypedDeclaration, ForStmt, LogicDecl, IndexExpr,
     ListBlock, MemberCallExpr, MemberExpr, ObjectBlock, Program, VariableExpr,
 )
 from .lexer import Lexer
@@ -93,7 +93,7 @@ def summarize_block(node: Any) -> BlockInsights:
     if isinstance(node, (ObjectBlock, ListBlock)):
         writes.add(node.name)
     visit(node, root=True)
-    parameters = tuple(node.parameters) if isinstance(node, FunctionDecl) else ()
+    parameters = tuple(node.parameters) if isinstance(node, LogicDecl) else ()
     return BlockInsights(tuple(reads.items), tuple(writes.items), tuple(calls.items), parameters)
 
 
@@ -129,7 +129,7 @@ def document_structure(source: str, source_name: str = "<source>") -> dict[str, 
             "end_line": end_line,
             "reads": list(insights.reads), "writes": list(insights.writes),
             "calls": list(insights.calls), "parameters": list(insights.parameters),
-            "tags": list(node.tags) if isinstance(node, FunctionDecl) else [],
+            "tags": list(node.tags) if isinstance(node, LogicDecl) else [],
             "children": [],
         }
         items.append(item)

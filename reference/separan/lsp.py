@@ -12,7 +12,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from .ast_nodes import (
-    BinaryExpr, CallExpr, EmptyTestExpr, EmptysTestExpr, FunctionDecl, GroupExpr,
+    BinaryExpr, CallExpr, EmptyTestExpr, EmptysTestExpr, LogicDecl, GroupExpr,
     ImportStmt, ListExpr, LiteralExpr, MemberCallExpr, MemberExpr, UnaryExpr, VariableExpr,
 )
 from .errors import SeparanError
@@ -132,7 +132,7 @@ def semantic_tag_workspace_edits(server, uri, old_name, new_name):
             program = None
         if program and new_name != old_name:
             if any(old_name in item.tags and new_name in item.tags
-                   for item in program.statements if isinstance(item, FunctionDecl)):
+                   for item in program.statements if isinstance(item, LogicDecl)):
                 return None
         edits = []
         for token in tokens:
@@ -560,7 +560,7 @@ def _workspace_programs(sources):
             program = Parser(Lexer(source_text, source_uri).scan_tokens()).parse()
         except SeparanError:
             continue
-        functions = {item.name: item for item in program.statements if isinstance(item, FunctionDecl)}
+        functions = {item.name: item for item in program.statements if isinstance(item, LogicDecl)}
         imports = {
             item.alias: (source_key.parent / item.path).resolve()
             for item in program.statements
@@ -649,7 +649,7 @@ def reference_code_lenses(server, uri):
         return []
     lenses = []
     for function in program.statements:
-        if not isinstance(function, FunctionDecl):
+        if not isinstance(function, LogicDecl):
             continue
         line = function.label_position.line - 1
         character = function.label_position.column - 1
@@ -711,7 +711,7 @@ def incoming_call_hierarchy(server, item):
     incoming = []
     for source_key, info in programs.items():
         for function in info["program"].statements:
-            if not isinstance(function, FunctionDecl):
+            if not isinstance(function, LogicDecl):
                 continue
             ranges = []
             for expression in _call_expressions(function.body):

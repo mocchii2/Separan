@@ -11,7 +11,7 @@ import sys
 from typing import Any, Iterable
 
 from .ast_nodes import (
-    ErrorDecl, ForStmt, FunctionDecl, HttpRouteDecl, IfStmt, ListBlock,
+    ErrorDecl, ForStmt, LogicDecl, HttpRouteDecl, IfStmt, ListBlock,
     ObjectBlock, Program, TransactionStmt, TryStmt, WhileStmt,
 )
 from .errors import SeparanError
@@ -21,7 +21,7 @@ from .token import SourcePosition
 
 
 NAMED_NODES = (
-    FunctionDecl, IfStmt, WhileStmt, ForStmt, ObjectBlock, ListBlock,
+    LogicDecl, IfStmt, WhileStmt, ForStmt, ObjectBlock, ListBlock,
     TryStmt, ErrorDecl, HttpRouteDecl, TransactionStmt,
 )
 
@@ -62,7 +62,7 @@ class ScopeResolutionError(ValueError):
 
 
 def _kind_and_label(node: Any) -> tuple[str, str]:
-    if isinstance(node, FunctionDecl): return "SEP", node.name
+    if isinstance(node, LogicDecl): return "SEP", node.name
     if isinstance(node, IfStmt): return "if", node.label
     if isinstance(node, WhileStmt): return "while", node.label
     if isinstance(node, ForStmt): return "for", node.label
@@ -149,7 +149,7 @@ def inspect_source(source: str, source_name: str = "<source>") -> StructureSnaps
             records.append(BlockRecord(
                 id=identity, path=path, kind=kind, label=label, parent_id=parent_id,
                 start_line=position.line, start_column=position.column,
-                tags=tuple(node.tags) if isinstance(node, FunctionDecl) else (),
+                tags=tuple(node.tags) if isinstance(node, LogicDecl) else (),
                 own_fingerprint=_fingerprint(own),
                 tree_fingerprint=_fingerprint(_canonical(node)),
             ))

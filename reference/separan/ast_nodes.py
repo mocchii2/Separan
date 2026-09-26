@@ -114,7 +114,7 @@ class ForStmt(Stmt):
     body: list[Stmt]
     label_position: SourcePosition
 @dataclass
-class FunctionDecl(Stmt):
+class LogicDecl(Stmt):
     name: str
     parameters: list[str]
     tags: list[str]

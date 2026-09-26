@@ -53,7 +53,7 @@ file横断semantic tag renameにも対応します。CLIのtag path検索はdire
 
 ## 計画中の高度な機能
 
-Python LSP backendはworkspace function references（直接呼び出しとimport alias）、workspaceの
+Python LSP backendはworkspace logic references（直接呼び出しとimport alias）、workspaceの
 call siteに基づくsignature引数型推論、Call Hierarchy、reference数CodeLensを実装済みです。
 `workspace/executeCommand`の`separan.runFunction`も提供し、引数なし関数にはRun Function、
 `test_*`関数にはRun Test CodeLensを表示します。実行は明示操作に限り、宣言済みuser function

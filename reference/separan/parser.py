@@ -269,7 +269,7 @@ class Parser:
             tags.append(tag.lexeme); self._line_end(); self._newlines()
         body = self._body_until({T.END_FUNCTION})
         self._close(T.END_FUNCTION, "function")
-        return FunctionDecl(start.position, name.lexeme, params, tags, body, name.position, parameter_types)
+        return LogicDecl(start.position, name.lexeme, params, tags, body, name.position, parameter_types)
 
     def _import(self):
         start = self._advance(); path = self._consume(T.STRING, "Expected quoted .sep path after import.")

@@ -59,7 +59,7 @@ checks; the CLI performs recursive tag-path inspection.
 
 ## Planned advanced tooling
 
-The Python LSP backend supports workspace function references for direct calls
+The Python LSP backend supports workspace logic references for direct calls
 and imported aliases, signature parameter inference from workspace call sites,
 Call Hierarchy, and reference-count CodeLens. It also exposes
 `separan.runFunction` through `workspace/executeCommand`; Run Function and Run

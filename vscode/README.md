@@ -128,7 +128,7 @@ The extension checks: ✅ Did AI only change inside this label?
 | Separan: Run File | - | Execute `.sep` file |
 | Separan: Check Current File | - | Save and parse-check the active `.sep` file |
 | Separan: Diagnose Runtime | - | Verify the selected native executable and show its help output |
-| Separan: Run Current Function | - | Run the zero-argument function under the cursor through a temporary native wrapper |
+| Separan: Run Current SEP | - | Run the zero-argument SEP under the cursor through a temporary native wrapper |
 | Separan: Run Tests in Current File | - | Run every zero-argument function whose name begins with `test_` |
 | Separan: Go to Matching Label | Ctrl+Shift+] | Jump to closing label |
 | Separan: Go to Label | - | Browse all labeled blocks |

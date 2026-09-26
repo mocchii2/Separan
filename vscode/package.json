@@ -2,7 +2,7 @@
   "name": "separan-language",
   "publisher": "separan",
   "displayName": "Separan Language",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Separan language support for explicit SEP / END_SEP block identity, structural diffs, and AI edit-scope verification.",
   "icon": "images/icon.png",
   "license": "Apache-2.0",
@@ -48,7 +48,7 @@
       { "command": "separan.refreshSemanticTags", "title": "Separan: Refresh Semantic Tags", "icon": "$(refresh)" },
       { "command": "separan.renameSemanticTag", "title": "Separan: Rename Semantic Tag" },
       { "command": "separan.revealLocation", "title": "Separan: Reveal Location" },
-      { "command": "separan.runFunction", "title": "Separan: Run Current Function", "icon": "$(play)" },
+      { "command": "separan.runFunction", "title": "Separan: Run Current SEP", "icon": "$(play)" },
       { "command": "separan.runTests", "title": "Separan: Run Tests in Current File", "icon": "$(beaker)" }
     ],
     "viewsContainers": {

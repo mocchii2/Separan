@@ -19,7 +19,7 @@ from .ast_nodes import (
     TypedDeclaration,
     ExpressionStmt,
     ForStmt,
-    FunctionDecl,
+    LogicDecl,
     GroupExpr,
     IfStmt,
     IndexExpr,
@@ -71,7 +71,7 @@ def generate_pico_project(program: Program, source: str, source_path: Path, boar
     profile = validate_embedded_program(program, board_id)
     position = next(
         (statement.position for statement in program.statements
-         if isinstance(statement, FunctionDecl) and statement.name == "main"),
+         if isinstance(statement, LogicDecl) and statement.name == "main"),
         program.statements[0].position if program.statements else program.position,
     )
     sdk_board = PICO_SDK_BOARDS.get(board_id)
@@ -346,7 +346,7 @@ class _PicoCppEmitter:
         self.lines = []
         self.indent = 0
         self.scopes = []
-        self.functions = {statement.name: statement for statement in program.statements if isinstance(statement, FunctionDecl)}
+        self.functions = {statement.name: statement for statement in program.statements if isinstance(statement, LogicDecl)}
 
     def generate(self):
         main = self.functions.get("main")
@@ -356,7 +356,7 @@ class _PicoCppEmitter:
             self._unsupported(main, "Embedded function:main cannot accept parameters.")
         self.lines.extend(_PICO_RUNTIME.rstrip().splitlines())
         self.lines.append("")
-        global_statements = [statement for statement in self.program.statements if not isinstance(statement, FunctionDecl)]
+        global_statements = [statement for statement in self.program.statements if not isinstance(statement, LogicDecl)]
         self.scopes = [{}]
         for statement in global_statements:
             if self._is_board_selection(statement):

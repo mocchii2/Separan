@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [1.1.0] - 2026-09-26
+
+- Renames user-facing function terminology to SEP and logic terminology while
+  preserving the existing command identifiers for compatibility.
+
 ## [1.0.1] - 2026-09-26
 
 - Refreshes the Marketplace introduction for the complete Separan 1.0 editor,
