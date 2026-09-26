@@ -1,4 +1,4 @@
-# Separan Language Specification — v0.2.0-alpha.13
+# Separan Language Specification — v1.0.0
 
 This document is the concise normative description of the current language.
 The executable behavior is covered by the conformance tests in `tests/`.
@@ -24,7 +24,7 @@ and independently scoped behavior boundary. All currently open structure
 identifiers share one namespace and must be unique. Closed labels may be
 reused.
 
-## v0.2 alpha syntax
+## Core syntax
 
 - UTF-8 source files use the `.sep` extension.
 - One line contains one statement; semicolons have no meaning.

@@ -58,14 +58,14 @@ The roadmap describes direction, not a compatibility promise.
   inference, Call Hierarchy, reference/test CodeLens, and Run Current Function
 - implemented: semantic-tag workspace UI and packaged extension integration
 
-## v1.0 — stable language
+## v1.0 — stable language (released)
 
 - freeze the core specification
 - implemented: publish a compatibility and versioning policy in `spec/versioning.md`
 - implemented: designate the Python implementation as the normative reference
 - implemented: provide the cross-implementation conformance suite and native C
   diagnostic regression coverage
-- next: freeze the 1.0 core specification and promote stable APIs explicitly
+- released: freeze the 1.0 core specification and promote stable APIs explicitly
 
 ---
 
@@ -86,5 +86,5 @@ The roadmap describes direction, not a compatibility promise.
   identity、独立browser adapter境界を実装済み
 - **v0.5:** 専用Structure Explorer、block別reads／writes／calls、Git変更状態、
   click移動、cursor scope追従を実装済み
-- **v1.0:** 互換性方針、Python Reference Implementation、cross-implementation適合suiteは実装済み。
-  残りは仕様固定とstable APIの明示
+- **v1.0:** 互換性方針、Python Reference Implementation、cross-implementation適合suite、
+  仕様固定、stable APIの明示を完了

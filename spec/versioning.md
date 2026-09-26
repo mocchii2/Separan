@@ -26,10 +26,10 @@ Preview features are tested for regressions but are not part of the 1.0 compatib
 
 ## Current repository status
 
-The Python package version is `0.2.0a14`. The native C runtime is an
+The Python package version is `1.0.0`. The native C runtime is an
 independent implementation and is checked by the cross-implementation suite;
 the current repository run is 2,141 passed tests with 3 external database
 integration tests skipped. The VS Code extension is published as
-`separan-language` 1.0.1. These release numbers do not promote preview
-language features to the 1.0 compatibility promise; that requires an explicit
-core specification freeze.
+`separan-language` 1.0.1. The v1.0 core specification is frozen by
+`spec/README.md`; features explicitly marked preview or experimental remain
+outside the stable compatibility promise until promoted in a later release.
