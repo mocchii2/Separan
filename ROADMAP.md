@@ -75,7 +75,7 @@ The roadmap describes direction, not a compatibility promise.
 - **v0.2:** 仕様整理、主要preview API、`#`／`##` comment、Raw String、Semantic Tag、
   semantic scope検証、review済みPico／Nano profile、論理pin、portable Embedded sample、
   native interface／IP／DNS／TCP／UDP、
-  2,144件収集（2,141 passed、3 skipped）の適合testとtop-level宣言単位のLSP parser recoveryを実装済み。次はPico W／Arduino
+  2,145件収集（自動2,142 passed、外部database 3件はcredentialsなしでskip。3件とも手動integration確認済み）の適合testとtop-level宣言単位のLSP parser recoveryを実装済み。次はPico W／Arduino
   firmware backendとnested structureのrecoveryを含むbeta向け安定化
 - **v0.3:** LSP editor core（診断、Quick Fix、Semantic Token、Hover、definition、
   label jump／rename、completion、signature、hint、symbol、fold、formatter）に加え、

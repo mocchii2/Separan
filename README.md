@@ -288,8 +288,9 @@ the cross-implementation conformance suite. Its public validation API exposes
 structured diagnostics for syntax, block, declaration, import, tag, and HTTP
 route errors, while retained runtime instances expose the last structured
 failure through the native diagnostic API. The current repository suite has
-2,144 collected tests, with 2,141 passing and 3 integration tests skipped when
-their external database is unavailable.
+2,145 collected tests: 2,142 pass automatically and 3 opt-in external database
+tests skip without credentials; PostgreSQL, MySQL, and Oracle integration cases
+have also been verified manually.
 
 The published VS Code extension is `separan-language` 1.0.1. It provides local
 language intelligence, native diagnostics, structural review workflows,

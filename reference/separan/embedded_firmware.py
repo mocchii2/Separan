@@ -371,7 +371,7 @@ class _PicoCppEmitter:
         if global_statements:
             self.lines.append("")
         for function in self._ordered_functions():
-            self._function(function)
+            self._logic(function)
             self.lines.append("")
         return "\n".join(self.lines).rstrip() + "\n"
 
@@ -416,7 +416,7 @@ class _PicoCppEmitter:
         walk(function.body)
         return result
 
-    def _function(self, function):
+    def _logic(self, function):
         self.scopes.append({})
         parameters = []
         if function.parameters:

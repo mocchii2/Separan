@@ -13,7 +13,7 @@ class OpenBlock:
 
 
 class Parser:
-    CLOSERS = {T.ENDIF: "if", T.ENDWHILE: "while", T.ENDFOR: "for", T.END_FUNCTION: "function", T.END_OBJECT: "object", T.END_LIST: "list", T.ENDTRY: "try", T.END_ERROR: "error", T.END_HTTP_ROUTE: "http_route", T.END_TRANSACTION: "transaction"}
+    CLOSERS = {T.ENDIF: "if", T.ENDWHILE: "while", T.ENDFOR: "for", T.END_FUNCTION: "SEP", T.END_OBJECT: "object", T.END_LIST: "list", T.ENDTRY: "try", T.END_ERROR: "error", T.END_HTTP_ROUTE: "http_route", T.END_TRANSACTION: "transaction"}
     ASSIGNMENTS = {
         T.EQUAL: None, T.PLUS_EQUAL: "+", T.MINUS_EQUAL: "-", T.STAR_EQUAL: "*",
         T.SLASH_EQUAL: "/", T.FLOOR_DIV_EQUAL: "//", T.PERCENT_EQUAL: "%",
@@ -65,7 +65,7 @@ class Parser:
     def _recover_top_level(self, start):
         start_token = self.tokens[start]
         outermost = self.stack[0] if self.stack else None
-        expected_kind = outermost.kind if outermost else ("function" if start_token.type == T.FUNCTION else None)
+        expected_kind = outermost.kind if outermost else ("SEP" if start_token.type == T.FUNCTION else None)
         if expected_kind:
             closers = {token for token, kind in self.CLOSERS.items() if kind == expected_kind}
             while not self._at(T.EOF):
@@ -90,10 +90,10 @@ class Parser:
     def _statement(self, top_level=False):
         token = self._peek()
         if token.type == T.TAG:
-            inside_function = any(opened.kind == "function" for opened in self.stack)
-            category = "Function tag must appear before executable statements" if inside_function else "Function tag outside function"
-            description = "Function tags belong to the metadata area before the first executable statement." if inside_function else "Function tags are valid only inside a function metadata area."
-            raise error("E217" if inside_function else "E216", category, description, token.position, actual="@" + token.lexeme)
+            inside_logic = any(opened.kind == "SEP" for opened in self.stack)
+            category = "SEP tag must appear before executable statements" if inside_logic else "SEP tag outside SEP"
+            description = "SEP tags belong to the metadata area before the first executable statement." if inside_logic else "SEP tags are valid only inside a SEP metadata area."
+            raise error("E217" if inside_logic else "E216", category, description, token.position, actual="@" + token.lexeme)
         if token.type == T.COLON and self._peek(1).type == T.IDENTIFIER and self._peek(1).lexeme == "end":
             expected = "\n".join(self._closer_text(item.kind, item.label) for item in reversed(self.stack)) or "a complete block closer"
             raise error("E122", "Incomplete structural completion token", ":end is an editor completion trigger, not executable Separan syntax.", token.position, expected=expected, actual=":end")
@@ -110,8 +110,8 @@ class Parser:
             raise error("E100", "Legacy function syntax is not supported", "Use SEP:name / END_SEP:name instead of function:name / end_function:name.", token.position, actual="function")
         if token.type == T.FUNCTION:
             if not top_level:
-                raise error("E110", "Invalid nested function", "Functions may only be defined at top level in v0.1.", token.position, actual=token.lexeme)
-            return self._function()
+                raise error("E110", "Invalid nested SEP", "SEP declarations may only be defined at top level.", token.position, actual=token.lexeme)
+            return self._sep()
         if self._starts_typed_declaration():
             return self._typed_declaration(token)
         if self._looks_like_uninitialized_typed_declaration():
@@ -241,9 +241,9 @@ class Parser:
         nested = Parser._format_type(element_type[0], element_type[1]) if isinstance(element_type, tuple) else element_type
         return f"list<{nested}>"
 
-    def _function(self):
-        start = self._advance(); self._consume(T.COLON, "Expected ':' after function.")
-        name = self._binding(self._consume(T.IDENTIFIER, "Expected function name."))
+    def _sep(self):
+        start = self._advance(); self._consume(T.COLON, "Expected ':' after SEP.")
+        name = self._binding(self._consume(T.IDENTIFIER, "Expected SEP name."))
         params, parameter_types = [], {}
         if self._match(T.LPAREN):
             if not self._at(T.RPAREN):
@@ -260,15 +260,15 @@ class Parser:
                         parameter_types[parameter.lexeme] = self._declared_type()
                     if not self._match(T.COMMA): break
             self._consume(T.RPAREN, "Expected ')' after parameters.")
-        self._line_end(); self._push("function", name); self._newlines()
+        self._line_end(); self._push("SEP", name); self._newlines()
         tags = []
         while self._match(T.TAG):
             tag = self._previous()
             if tag.lexeme in tags:
-                raise error("E218", "Duplicate function tag", f"Tag '@{tag.lexeme}' is already attached to function '{name.lexeme}'.", tag.position, actual="@" + tag.lexeme)
+                raise error("E218", "Duplicate SEP tag", f"Tag '@{tag.lexeme}' is already attached to SEP '{name.lexeme}'.", tag.position, actual="@" + tag.lexeme)
             tags.append(tag.lexeme); self._line_end(); self._newlines()
         body = self._body_until({T.END_FUNCTION})
-        self._close(T.END_FUNCTION, "function")
+        self._close(T.END_FUNCTION, "SEP")
         return LogicDecl(start.position, name.lexeme, params, tags, body, name.position, parameter_types)
 
     def _import(self):
@@ -445,10 +445,10 @@ class Parser:
 
     @staticmethod
     def _closer_text(kind, label):
-        return f"{'END_SEP' if kind == 'function' else 'endif' if kind == 'if' else 'end_' + kind if kind in ('object', 'list', 'error', 'http_route', 'transaction') else 'end' + kind}:{label}"
+        return f"{'END_SEP' if kind == 'SEP' else 'endif' if kind == 'if' else 'end_' + kind if kind in ('object', 'list', 'error', 'http_route', 'transaction') else 'end' + kind}:{label}"
 
     def _top_error(self, token):
-        raise error("E110", "Invalid top-level statement", "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.", token.position, actual=token.lexeme)
+        raise error("E110", "Invalid top-level statement", "Only SEP declarations, data blocks, const declarations, assignments, and print are allowed at top level.", token.position, actual=token.lexeme)
 
     def _expression(self): return self._coalesce()
     def _coalesce(self):

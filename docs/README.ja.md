@@ -190,8 +190,9 @@ v0.4 tooling層では、v0.1言語意味論を変えずに
 
 独立実装のnative C runtimeはPythonリファレンスとのcross-implementation適合suiteで検証されています。
 構造化diagnostic APIはsyntax、block、declaration、import、tag、HTTP routeの診断情報を提供し、
-保持したruntime instanceからも最後の失敗詳細を取得できます。現在のsuiteは2,144件を収集し、
-2,141件が成功、外部databaseが必要な3件はskipされます。VS Code拡張は`separan-language` 1.0.1として公開済みです。
+保持したruntime instanceからも最後の失敗詳細を取得できます。現在のsuiteは2,145件を収集し、
+自動実行では2,142件が成功、credentialsが必要な外部database 3件はskipされます。
+PostgreSQL、MySQL、Oracleのintegration caseは手動実行で確認済みです。VS Code拡張は`separan-language` 1.1.0として公開予定です。
 
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、

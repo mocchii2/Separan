@@ -80,7 +80,7 @@ END_SEP:main
         with self.assertRaisesRegex(SeparanError, "Conditions must evaluate to boolean"): execute('SEP:main\nif 1 :bad\nendif:bad\nEND_SEP:main\n')
 
     def test_top_level_restrictions(self):
-        with self.assertRaisesRegex(SeparanError, "Only function definitions"):
+        with self.assertRaisesRegex(SeparanError, "Only SEP declarations"):
             parse('unknown()\n')
         with self.assertRaisesRegex(SeparanError, "only be defined at top level"):
             parse('SEP:main\nSEP:nested\nEND_SEP:nested\nEND_SEP:main\n')

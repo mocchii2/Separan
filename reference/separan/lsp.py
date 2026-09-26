@@ -573,7 +573,7 @@ def _workspace_programs(sources):
     return programs
 
 
-def _called_function(expression, source_key, imports):
+def _called_logic(expression, source_key, imports):
     if isinstance(expression, CallExpr):
         return source_key, expression.callee
     if isinstance(expression, MemberCallExpr) and isinstance(expression.target, VariableExpr):
@@ -676,7 +676,7 @@ def reference_code_lenses(server, uri):
     return lenses
 
 
-def run_function(server, uri, function_name, arguments):
+def run_logic(server, uri, function_name, arguments):
     if not uri.startswith("file:") or not isinstance(arguments, list):
         return {"error": "Run Function requires a file-backed document and a JSON argument array."}
     path = _uri_to_path(uri).resolve()
@@ -715,7 +715,7 @@ def incoming_call_hierarchy(server, item):
                 continue
             ranges = []
             for expression in _call_expressions(function.body):
-                callee = _called_function(expression, source_key, info["imports"])
+                callee = _called_logic(expression, source_key, info["imports"])
                 if callee == (target_key, target_function.name):
                     ranges.append(_call_range(expression))
             if ranges:
@@ -731,7 +731,7 @@ def outgoing_call_hierarchy(server, item):
     source_key, info, function = target
     grouped = {}
     for expression in _call_expressions(function.body):
-        callee = _called_function(expression, source_key, info["imports"])
+        callee = _called_logic(expression, source_key, info["imports"])
         if callee is None:
             continue
         callee_key, callee_name = callee
@@ -946,7 +946,7 @@ class Server:
             if len(arguments) < 2:
                 return {"error": "Run Function requires a document URI and function name."}
             call_arguments = arguments[2] if len(arguments) > 2 else []
-            return run_function(self, arguments[0], arguments[1], call_arguments)
+            return run_logic(self, arguments[0], arguments[1], call_arguments)
         elif method == "callHierarchy/incomingCalls":
             return incoming_call_hierarchy(self, params.get("item", {}))
         elif method == "callHierarchy/outgoingCalls":
