@@ -31,6 +31,12 @@ The stdio transport is deliberately transport-neutral. It is suitable for
 supervisors, tests, and an adapter process, but it is not itself a FastCGI
 listener.
 
+The current binary also accepts `--config <path>`. The config parser supports
+`source = <path>` and `transport = stdio`; unknown keys are rejected rather
+than silently ignored. `workers`, `max_memory`, listener sockets, and restart
+limits belong to the planned supervisor and are not accepted by the current
+worker.
+
 ## Gateway contract
 
 The worker owns application loading, route dispatch, route parameters, query
@@ -88,9 +94,10 @@ The worker should load the application once, serve multiple requests, and exit
 nonzero after an unrecoverable application or transport error. A supervisor
 should restart it after failure and perform graceful replacement for upgrades.
 
-The planned supervisor configuration is documented in
-[`docs/separan-gw.conf.example`](separan-gw.conf.example). The important
-limits are:
+The supervisor configuration contract is documented in
+[`docs/separan-gw.conf.example`](separan-gw.conf.example), while the current
+worker example contains only supported settings. Planned supervisor limits
+are:
 
 - `workers`: desired number of runtime workers;
 - `max_memory`: per-worker RSS drain threshold;

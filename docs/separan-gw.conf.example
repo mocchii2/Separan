@@ -1,18 +1,4 @@
-# Separan Gateway Worker supervisor configuration
+# Current separan-gw stdio worker configuration.
 # Install as /etc/separan-gw/separan-gw.conf on Linux.
-#
-# The current released separan-gw binary is a single stdio worker. These
-# settings define the supervisor contract for the upcoming socket/FastCGI
-# deployment and are not silently accepted by the current worker yet.
-
-workers = 4
-max_memory = 256M
-max_requests = 1000
-restart_grace = 5s
-restart_backoff = 1s
-
-# Application loaded by each worker.
 source = /srv/separan/app.sep
-
-# Planned listener. The current worker uses --stdio instead.
-listen = unix:/run/separan-gw/separan-gw.sock
+transport = stdio
