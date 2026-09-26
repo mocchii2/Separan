@@ -15,14 +15,20 @@
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/separan.separan-language?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=separan.separan-language)
 [![PyPI](https://img.shields.io/pypi/v/separan?label=PyPI)](https://pypi.org/project/separan/)
 
+## ネイティブ C CLI のダウンロード
+
+- Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) から native CLI をインストールできます。
+- Windows portable: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) は installer 不要の portable 版です。
+- Linux x86_64: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz) に native CLI が入っています。
+
 Gateway Worker の説明書: [日本語](separan-gw.ja.md) · [English](separan-gw.md) ·
 [日本語 Markdown をダウンロード](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.ja.md) ·
 [English Markdown download](https://raw.githubusercontent.com/mocchii2/Separan/main/docs/separan-gw.md)
 
 ## Gateway Worker のダウンロード
 
-- Windows x86_64: [ZIP をダウンロード](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip)
-- Linux x86_64: [tar.gz をダウンロード](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz)
+- Windows x86_64: [Gateway Worker ZIP](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip) には `separan-gw.exe`、日英の説明書、設定例が入っています。展開して `separan-gw.exe --config separan-gw.conf` で起動します。
+- Linux x86_64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz) には実行ファイル、日英の説明書、設定例が入っています。展開して `./separan-gw --config separan-gw.conf` で起動します。
 
 GitHub Release の公開時に gateway asset が自動添付されます。既存 release へ追加する場合は、`Publish Gateway Worker` workflow を手動実行して tag を指定してください。
 

@@ -25,18 +25,18 @@ reconstructing indentation or counting brackets.
 
 ## Download native builds
 
-The easiest way to try Separan is to download the native release bundle for your platform:
+The easiest way to try Separan is to download the native C CLI release for your platform:
 
-- Windows installer: `separan-installer.exe`
-- Windows portable ZIP: `separan-portable.zip`
-- Linux portable tar.gz: `separan-linux-x86_64.tar.gz`
+- Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) installs the native CLI.
+- Windows portable ZIP: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) runs without an installer.
+- Linux portable tar.gz: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz) contains the x86_64 native CLI.
 
 Available from the latest [GitHub release](https://github.com/mocchii2/Separan/releases).
 
 Gateway Worker downloads:
 
-- Windows x86_64: [ZIP](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip)
-- Linux x86_64: [tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz)
+- Windows x86_64: [Gateway Worker ZIP](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-windows-x86_64.zip) includes `separan-gw.exe`, both manuals, and a config template. Extract it and run `separan-gw.exe --config separan-gw.conf`.
+- Linux x86_64: [Gateway Worker tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-gw-linux-x86_64.tar.gz) includes the executable, both manuals, and a config template. Extract it and run `./separan-gw --config separan-gw.conf`.
 
 The gateway assets are attached automatically when a GitHub release is
 published. To attach them to an existing release, run the `Publish Gateway
@@ -81,7 +81,7 @@ Download the release bundle for your OS, extract it, and run the binary directly
 
 ```console
 # Windows
-separan.exe examples/hello.sep
+separan examples/hello.sep
 
 # Linux
 ./separan examples/hello.sep
