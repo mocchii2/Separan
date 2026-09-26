@@ -1,0 +1,19 @@
+[Unit]
+Description=Separan Gateway Worker supervisor
+After=network.target
+
+[Service]
+Type=notify
+EnvironmentFile=-/etc/sysconfig/separan-gw
+ExecStart=/usr/bin/separan-gw-supervisor --config /etc/separan-gw/separan-gw.conf
+RuntimeDirectory=separan-gw
+StateDirectory=separan-gw
+LogsDirectory=separan-gw
+User=separan
+Group=separan
+Restart=on-failure
+RestartSec=1s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

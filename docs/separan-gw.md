@@ -78,6 +78,12 @@ Planned Linux layout:
 /var/log/separan-gw/                 # supervisor-managed logs
 ```
 
+Packaging templates are kept under
+`reference/c/packaging/systemd/separan-gw.service` and
+`reference/c/packaging/sysconfig/separan-gw`. They target the future
+`separan-gw-supervisor`; the current released stdio binary does not claim to
+implement this service unit yet.
+
 The worker should load the application once, serve multiple requests, and exit
 nonzero after an unrecoverable application or transport error. A supervisor
 should restart it after failure and perform graceful replacement for upgrades.
