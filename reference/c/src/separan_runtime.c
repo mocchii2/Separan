@@ -436,9 +436,9 @@ static const char *fault_code(const char *message) {
     if (!strcmp(message,"HTTP request decode error")) return "E894";
     if (!strcmp(message,"invalid HTTP response")) return "E895";
     if (!strcmp(message,"duplicate HTTP route")) return "E896";
-    if (!strcmp(message,"duplicate function")) return "E204";
-    if (!strcmp(message,"invalid main function")) return "E205";
-    if (!strcmp(message,"reserved function name")) return "E209";
+    if (!strcmp(message,"duplicate SEP")) return "E204";
+    if (!strcmp(message,"invalid main SEP")) return "E205";
+    if (!strcmp(message,"reserved SEP name")) return "E209";
     if (!strcmp(message,"duplicate error name")) return "E122";
     if (!strcmp(message,"error name conflicts with function")) return "E122";
     if (!strcmp(message,"invalid error name")) return "E121";
@@ -452,7 +452,7 @@ static const char *fault_code(const char *message) {
         !strcmp(message,"function label mismatch")||!strcmp(message,"object label mismatch")||
         !strcmp(message,"list label mismatch")||!strcmp(message,"error label mismatch")) return "E104";
     if (!strcmp(message, "undefined variable")) return "E202";
-    if (!strcmp(message, "unknown function")) return "E206";
+    if (!strcmp(message, "unknown SEP")) return "E206";
     if (!strcmp(message, "wrong argument count")) return "E207";
     if (!strcmp(message, "unknown named argument")) return "E207";
     if (!strcmp(message, "constant cannot be reassigned")) return "E211";
@@ -498,7 +498,7 @@ static const char *fault_code(const char *message) {
         !strcmp(message,"integer calendar fields required")||!strcmp(message,"duration required")||
         !strcmp(message,"integer seed required")||!strcmp(message,"number range required")||
         !strcmp(message,"non-empty list required")||!strcmp(message,"object list and field required")||
-        !strcmp(message,"function reference required")||!strcmp(message,"object and string key required")||
+        !strcmp(message,"logic reference required")||!strcmp(message,"object and string key required")||
         !strcmp(message,"string and integer required")||!strcmp(message,"encoding must be a string")||
         !strcmp(message,"object required")||!strcmp(message,"integer and base 2..36 required")||
         !strcmp(message,"string and base 2..36 required")||!strcmp(message,"database connection required")||
@@ -1082,10 +1082,10 @@ static Stmt *parse_stmt_inner(Runtime *r) {
     }
     if(at(r,"COLON")){fault(r,"incomplete structural token");return new_stmt(6);}
     if(at(r,"TAG")){
-        const char *category=r->parse_depth?"Function tag must appear before executable statements":"Function tag outside function";
+        const char *category=r->parse_depth?"SEP tag must appear before executable statements":"SEP tag outside SEP";
         const char *description=r->parse_depth?
-            "Function tags belong to the metadata area before the first executable statement.":
-            "Function tags are valid only inside a function metadata area.";
+            "SEP tags belong to the metadata area before the first executable statement.":
+            "SEP tags are valid only inside a SEP metadata area.";
         char actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];snprintf(actual,sizeof(actual),"@%s",head->lexeme);
         fault_detail_at(r,r->parse_depth?"tag after statement":"tag outside function",category,description,actual,head->line,head->column);
         return new_stmt(6);
@@ -1142,9 +1142,9 @@ static Stmt *parse_stmt_inner(Runtime *r) {
         while(at(r,"TAG")){separan_token *tag_token=take(r);const char *tag=tag_token->lexeme;if(strlen(tag)<2)fault_at(r,"tag outside function",tag_token->line,tag_token->column);
             for(size_t i=0;i<s->tag_count;i++)if(!strcmp(s->tags[i],tag)){
                 char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN],actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
-                snprintf(description,sizeof(description),"Tag '@%s' is already attached to function '%s'.",tag,s->name?s->name:"");
+                snprintf(description,sizeof(description),"Tag '@%s' is already attached to SEP '%s'.",tag,s->name?s->name:"");
                 snprintf(actual,sizeof(actual),"@%s",tag);
-                fault_detail_at(r,"invalid or duplicate function tag","Duplicate function tag",description,actual,
+                fault_detail_at(r,"invalid or duplicate function tag","Duplicate SEP tag",description,actual,
                                 tag_token->line,tag_token->column);
             }
             char **next=realloc(s->tags,(s->tag_count+1)*sizeof(*next));if(!next)fault(r,"out of memory");else{s->tags=next;s->tags[s->tag_count++]=copy_text(tag);}expect_line_end(r);}
@@ -1537,7 +1537,7 @@ static Value evaluate(Runtime *r, Frame *frame, Expr *e);
 static void execute_body(Runtime *r, Frame *frame, Body body);
 static Value invoke_named(Runtime *r, const char *name, Value *arguments, size_t count) {
     Stmt *logic = find_logic(r, name);
-    if (!logic) { fault(r, "unknown function"); return empty_value(); }
+    if (!logic) { fault(r, "unknown SEP"); return empty_value(); }
     if (logic->parameter_count != count) { fault(r, "wrong argument count"); return empty_value(); }
     Frame local = {0}; local.parent = &r->global;
     for (size_t i = 0; i < count && !r->error; i++) {
@@ -3044,9 +3044,9 @@ static Value builtin_call(Runtime *r, Frame *frame, Expr *e) {
     if(callback_mode&&e->args[callback_index]->kind==0&&e->args[callback_index]->literal.kind==V_EMPTY){fault(r,"EMPTY value cannot be used");}
     else if(callback_mode&&e->args[callback_index]->kind==7){callback_owner=evaluate(r,frame,e->args[callback_index]->left);
         if(callback_owner.kind==V_NAMESPACE&&module_exported(callback_owner.external,e->args[callback_index]->text,1))callback_runtime=&((ModuleResource *)callback_owner.external)->runtime;
-        else fault(r,"function reference required");
+        else fault(r,"logic reference required");
     }else if (callback_mode && (e->args[callback_index]->kind != 1 || !find_logic(r, callback_name))) {
-        fault(r, "function reference required");
+        fault(r, "logic reference required");
     }
     if(r->error){free_value(callback_owner);free(args);return result;}
     for (size_t i = 0; i < e->argc && !r->error; i++)
@@ -5313,23 +5313,23 @@ static void validate_program(Runtime *r) {
         if(current->kind==5){
             if(builtin_name(current->name)){
                 char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
-                snprintf(description,sizeof(description),"Function '%s' is a built-in and cannot be redefined.",current->name);
-                fault_detail_at(r,"reserved function name","Reserved function name",description,current->name,current->line,current->column);
+                snprintf(description,sizeof(description),"SEP '%s' is a built-in and cannot be redefined.",current->name);
+                fault_detail_at(r,"reserved SEP name","Reserved SEP name",description,current->name,current->line,current->column);
             }else if(!strcmp(current->name,"main")&&current->parameter_count){
                 char actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];actual[0]='\0';
                 strcat(actual,"main(");
                 for(size_t p=0;p<current->parameter_count;p++){if(p)strcat(actual,", ");strcat(actual,current->parameters[p]);}
                 strcat(actual,")");
-                snprintf(r->error_category,sizeof(r->error_category),"Invalid main function");
+                snprintf(r->error_category,sizeof(r->error_category),"Invalid main SEP");
                 snprintf(r->error_description,sizeof(r->error_description),"main must have zero parameters in v0.1.");
                 snprintf(r->error_expected,sizeof(r->error_expected),"main()");
                 snprintf(r->error_actual,sizeof(r->error_actual),"%s",actual);
-                fault_at(r,"invalid main function",current->line,current->column);
+                fault_at(r,"invalid main SEP",current->line,current->column);
             }
             for(size_t j=0;j<i&&!r->error;j++)if(r->program.items[j]->kind==5&&!strcmp(current->name,r->program.items[j]->name)){
                 char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
-                snprintf(description,sizeof(description),"Function '%s' is already defined.",current->name);
-                fault_detail_at(r,"duplicate function","Duplicate function",description,current->name,current->line,current->column);
+                snprintf(description,sizeof(description),"SEP '%s' is already defined.",current->name);
+                fault_detail_at(r,"duplicate SEP","Duplicate SEP",description,current->name,current->line,current->column);
             }
         }else if(current->kind==14){
             size_t name_length=strlen(current->name);if(name_length<7||strcmp(current->name+name_length-6,"_error")){

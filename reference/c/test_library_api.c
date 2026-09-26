@@ -442,9 +442,9 @@ int main(void) {
     separan_result_free(typed_diagnostic);
     *typed_diagnostic = separan_validate_source("@notification\n");
     if (typed_diagnostic->ok || strcmp(typed_diagnostic->errors[0].code, "E216") != 0 ||
-        strcmp(typed_diagnostic->errors[0].category, "Function tag outside function") != 0 ||
-        strcmp(typed_diagnostic->errors[0].description,
-               "Function tags are valid only inside a function metadata area.") != 0 ||
+        strcmp(typed_diagnostic->errors[0].category, "SEP tag outside SEP") != 0 ||
+         strcmp(typed_diagnostic->errors[0].description,
+             "SEP tags are valid only inside a SEP metadata area.") != 0 ||
         strcmp(typed_diagnostic->errors[0].actual, "@notification") != 0 ||
         typed_diagnostic->errors[0].line_number != 1 || typed_diagnostic->errors[0].column_number != 1) {
         fprintf(stderr, "tag outside function diagnostic details missing\n");
@@ -454,9 +454,9 @@ int main(void) {
     *typed_diagnostic = separan_validate_source(
         "SEP:main\nprint 1\n@notification\nEND_SEP:main\n");
     if (typed_diagnostic->ok || strcmp(typed_diagnostic->errors[0].code, "E217") != 0 ||
-        strcmp(typed_diagnostic->errors[0].category, "Function tag must appear before executable statements") != 0 ||
-        strcmp(typed_diagnostic->errors[0].description,
-               "Function tags belong to the metadata area before the first executable statement.") != 0 ||
+        strcmp(typed_diagnostic->errors[0].category, "SEP tag must appear before executable statements") != 0 ||
+         strcmp(typed_diagnostic->errors[0].description,
+             "SEP tags belong to the metadata area before the first executable statement.") != 0 ||
         strcmp(typed_diagnostic->errors[0].actual, "@notification") != 0 ||
         typed_diagnostic->errors[0].line_number != 3 || typed_diagnostic->errors[0].column_number != 1) {
         fprintf(stderr, "tag after statement diagnostic details missing\n");
@@ -466,9 +466,9 @@ int main(void) {
     *typed_diagnostic = separan_validate_source(
         "SEP:main\n@notification\n@notification\nEND_SEP:main\n");
     if (typed_diagnostic->ok || strcmp(typed_diagnostic->errors[0].code, "E218") != 0 ||
-        strcmp(typed_diagnostic->errors[0].category, "Duplicate function tag") != 0 ||
-        strcmp(typed_diagnostic->errors[0].description,
-               "Tag '@notification' is already attached to function 'main'.") != 0 ||
+        strcmp(typed_diagnostic->errors[0].category, "Duplicate SEP tag") != 0 ||
+         strcmp(typed_diagnostic->errors[0].description,
+             "Tag '@notification' is already attached to SEP 'main'.") != 0 ||
         strcmp(typed_diagnostic->errors[0].actual, "@notification") != 0 ||
         typed_diagnostic->errors[0].line_number != 3 || typed_diagnostic->errors[0].column_number != 1) {
         fprintf(stderr, "duplicate function tag diagnostic details missing\n");
@@ -536,8 +536,8 @@ int main(void) {
     *typed_diagnostic = separan_validate_source(
         "SEP:work\nEND_SEP:work\nSEP:work\nEND_SEP:work\n");
     if (typed_diagnostic->ok || strcmp(typed_diagnostic->errors[0].code, "E204") != 0 ||
-        strcmp(typed_diagnostic->errors[0].category, "Duplicate function") != 0 ||
-        strcmp(typed_diagnostic->errors[0].description, "Function 'work' is already defined.") != 0 ||
+        strcmp(typed_diagnostic->errors[0].category, "Duplicate SEP") != 0 ||
+        strcmp(typed_diagnostic->errors[0].description, "SEP 'work' is already defined.") != 0 ||
         strcmp(typed_diagnostic->errors[0].actual, "work") != 0 ||
         typed_diagnostic->errors[0].line_number != 3 || typed_diagnostic->errors[0].column_number != 1) {
         fprintf(stderr, "duplicate function diagnostic details missing\n");
@@ -547,7 +547,7 @@ int main(void) {
     *typed_diagnostic = separan_validate_source(
         "SEP:main(value)\nEND_SEP:main\n");
     if (typed_diagnostic->ok || strcmp(typed_diagnostic->errors[0].code, "E205") != 0 ||
-        strcmp(typed_diagnostic->errors[0].category, "Invalid main function") != 0 ||
+        strcmp(typed_diagnostic->errors[0].category, "Invalid main SEP") != 0 ||
         strcmp(typed_diagnostic->errors[0].description, "main must have zero parameters in v0.1.") != 0 ||
         strcmp(typed_diagnostic->errors[0].expected, "main()") != 0 ||
         strcmp(typed_diagnostic->errors[0].actual, "main(value)") != 0 ||
@@ -559,9 +559,9 @@ int main(void) {
     *typed_diagnostic = separan_validate_source(
         "SEP:length\nEND_SEP:length\n");
     if (typed_diagnostic->ok || strcmp(typed_diagnostic->errors[0].code, "E209") != 0 ||
-        strcmp(typed_diagnostic->errors[0].category, "Reserved function name") != 0 ||
-        strcmp(typed_diagnostic->errors[0].description,
-               "Function 'length' is a built-in and cannot be redefined.") != 0 ||
+         strcmp(typed_diagnostic->errors[0].category, "Reserved SEP name") != 0 ||
+         strcmp(typed_diagnostic->errors[0].description,
+             "SEP 'length' is a built-in and cannot be redefined.") != 0 ||
         strcmp(typed_diagnostic->errors[0].actual, "length") != 0 ||
         typed_diagnostic->errors[0].line_number != 1 || typed_diagnostic->errors[0].column_number != 1) {
         fprintf(stderr, "reserved function name diagnostic details missing\n");
