@@ -72,6 +72,15 @@ END_SEP:main
     def test_legacy_function_syntax_is_rejected(self):
         with self.assertRaises(SeparanError): parse('function:main\nend_function:main\n')
 
+    def test_lowercase_sep_aliases_are_rejected(self):
+        cases = (
+            ('sep:main\nend_sep:main\n', "E110"),
+            ('SEP:main\nend_sep:main\n', "E100"),
+            ('sep:main\nEND_SEP:main\n', "E110"),
+        )
+        for source, code in cases:
+            with self.subTest(source=source): self.assert_code(source, code)
+
     def test_main_parameter_and_duplicate_function(self):
         with self.assertRaisesRegex(SeparanError, "zero parameters"): execute('SEP:main(x)\nEND_SEP:main\n')
         with self.assertRaisesRegex(SeparanError, "already defined"): execute('SEP:f\nEND_SEP:f\nSEP:f\nEND_SEP:f\n')

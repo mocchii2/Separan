@@ -274,7 +274,7 @@ def folding_ranges(source):
 TOKEN_TYPES = ["namespace", "type", "function", "parameter", "variable", "property", "label", "decorator", "number", "string", "keyword", "comment", "operator"]
 TOKEN_MODIFIERS = ["declaration", "readonly", "number", "string", "boolean", "list", "object", "bytes", "datetime", "duration", "secret", "constant", "parameter"]
 TYPE_MODIFIER = {name: TOKEN_MODIFIERS.index(name) for name in ("number", "string", "boolean", "list", "object", "bytes", "datetime", "duration", "secret")}
-KEYWORDS = {"SEP", "sep", "END_SEP", "end_sep", "if", "elseif", "else", "endif", "while", "endwhile", "for", "endfor", "return", "const", "object", "end_object", "list", "end_list", "try", "catch", "finally", "endtry", "throw", "transaction", "end_transaction", "http_route", "end_http_route", "import", "as", "in", "not", "is"}
+KEYWORDS = {"SEP", "END_SEP", "if", "elseif", "else", "endif", "while", "endwhile", "for", "endfor", "return", "const", "object", "end_object", "list", "end_list", "try", "catch", "finally", "endtry", "throw", "transaction", "end_transaction", "http_route", "end_http_route", "import", "as", "in", "not", "is"}
 RENAMABLE_LABEL_KINDS = {"if", "while", "for", "try", "transaction", "http_route"}
 
 
@@ -305,10 +305,10 @@ def semantic_tokens(source):
     for item in known: variables_by_name.setdefault(item.name, []).append(item)
     scopes, scope = [], "global"
     for text in lines:
-        opened = re.match(r"^\s*(?:SEP|sep):([A-Za-z_][A-Za-z0-9_]*)", text)
+        opened = re.match(r"^\s*SEP:([A-Za-z_][A-Za-z0-9_]*)", text)
         if opened: scope = "logic " + opened.group(1)
         scopes.append(scope)
-        if re.match(r"^\s*(?:END_SEP|end_sep):", text): scope = "global"
+        if re.match(r"^\s*END_SEP:", text): scope = "global"
     def add(line, start, length, token_type, modifiers=0):
         cells = {(line, index) for index in range(start, start + length)}
         if length <= 0 or cells & occupied: return
@@ -385,7 +385,7 @@ def hover(source, line, character):
     word = word_at(source, line, character)
     if word and word[0] in BUILTIN_SIGNATURES: return {"contents": {"kind": "markdown", "value": "```separan\n" + BUILTIN_SIGNATURES[word[0]] + "\n```"}}
     if word:
-        function = re.search(r"^\s*(?:SEP|sep|function):" + re.escape(word[0]) + r"(?:\(([^)]*)\))?", source, re.MULTILINE)
+        function = re.search(r"^\s*SEP:" + re.escape(word[0]) + r"(?:\(([^)]*)\))?", source, re.MULTILINE)
         if function:
             params = function.group(1) or ""
             return {"contents": {"kind": "markdown", "value": f"```separan\n{word[0]}({params}) -> inferred\n```"}}
@@ -422,7 +422,7 @@ def definition(source, line, character, uri):
     if variable: return {"uri": uri, "range": lsp_range(variable.line, variable.start, variable.start + len(variable.name))}
     word = word_at(source, line, character)
     if word:
-        pattern = re.compile(r"^\s*(?:SEP|sep):" + re.escape(word[0]) + r"\b")
+        pattern = re.compile(r"^\s*SEP:" + re.escape(word[0]) + r"\b")
         for number, text in enumerate(source.splitlines()):
             found = pattern.match(text)
             if found:
@@ -479,7 +479,7 @@ def completions(source, line, character):
         ]}
     for name, signature in BUILTIN_SIGNATURES.items():
         items.append({"label": name, "kind": 3, "sortText": "1" + name, "insertText": name + "($0)", "insertTextFormat": 2, "detail": signature})
-    for function in re.finditer(r"^\s*(?:SEP|sep):([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?", source, re.MULTILINE):
+    for function in re.finditer(r"^\s*SEP:([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?", source, re.MULTILINE):
         name, params = function.group(1), function.group(2) or ""
         items.append({"label": name, "kind": 3, "sortText": "1" + name, "insertText": name + "($0)", "insertTextFormat": 2, "detail": f"{name}({params}) -> inferred"})
     if re.search(r"\bif\b.*\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$", prefix):
@@ -496,7 +496,7 @@ def signature_help(source, line, character):
     if not match: return None
     label = BUILTIN_SIGNATURES.get(match.group(1))
     if label is None:
-        function = re.search(r"^\s*(?:SEP|sep):" + re.escape(match.group(1)) + r"(?:\(([^)]*)\))?", source, re.MULTILINE)
+        function = re.search(r"^\s*SEP:" + re.escape(match.group(1)) + r"(?:\(([^)]*)\))?", source, re.MULTILINE)
         if not function: return None
         label = f"{match.group(1)}({function.group(1) or ''}) -> inferred"
     active = match.group(2).count(",")
@@ -796,7 +796,7 @@ def workspace_signature_help(server, uri, source, line, character):
 
     target_source = target["source"]
     declaration_line = target_source.splitlines()[function.position.line - 1]
-    header = re.search(r"^\s*(?:SEP|sep):" + re.escape(name) + r"\(([^)]*)\)", declaration_line)
+    header = re.search(r"^\s*SEP:" + re.escape(name) + r"\(([^)]*)\)", declaration_line)
     original_parameters = {}
     if header:
         for parameter in header.group(1).split(","):

@@ -431,7 +431,7 @@ static int parse_line(BlockStack *stack, char *trimmed, int line_number, int *in
                     "SEP:name / END_SEP:name", trimmed);
         return 1;
     }
-    if (starts_with_keyword(trimmed, "END_SEP:") || starts_with_keyword(trimmed, "end_SEP:") || starts_with_keyword(trimmed, "end_sep:")) {
+    if (starts_with_keyword(trimmed, "END_SEP:")) {
         return handle_close_block(stack, BLOCK_SEP, trimmed, line_number);
     }
     if (starts_with_keyword(trimmed, "if") && strchr(trimmed, ':') != NULL) {

@@ -9,7 +9,7 @@
 typedef struct { const char *spelling; const char *type; } Entry;
 
 static const Entry keywords[] = {
-    {"sep", "FUNCTION"}, {"end_sep", "END_FUNCTION"}, {"if", "IF"}, {"elseif", "ELSEIF"},
+    {"SEP", "FUNCTION"}, {"END_SEP", "END_FUNCTION"}, {"if", "IF"}, {"elseif", "ELSEIF"},
     {"else", "ELSE"}, {"endif", "ENDIF"}, {"while", "WHILE"},
     {"endwhile", "ENDWHILE"}, {"for", "FOR"}, {"in", "IN"},
     {"endfor", "ENDFOR"}, {"print", "PRINT"}, {"print_error", "PRINT_ERROR"},
@@ -179,7 +179,8 @@ static const char *keyword_type(const char *start, size_t length) {
     for (size_t i = 0; i < sizeof(keywords) / sizeof(*keywords); i++) {
         const char *word = keywords[i].spelling;
         if (strlen(word) != length) continue;
-        if ((strcmp(word, "EMPTY") == 0 || strcmp(word, "EMPTYS") == 0) &&
+           if ((strcmp(word, "EMPTY") == 0 || strcmp(word, "EMPTYS") == 0 ||
+               strcmp(word, "SEP") == 0 || strcmp(word, "END_SEP") == 0) &&
             memcmp(start, word, length) != 0) continue;
         size_t j = 0;
         for (; j < length; j++) {
