@@ -68,7 +68,7 @@ jobs:
           mkdir -p "$core_package" "$gateway_package" "$install_stage"
           tar -xzf "dist/separan-linux-${ARCHITECTURE}.tar.gz" -C "$core_package"
           tar -xzf "dist/separan-gw-linux-${ARCHITECTURE}.tar.gz" -C "$gateway_package"
-          make -C "$core_package/separan-linux-${ARCHITECTURE}" install DESTDIR="$install_stage" PREFIX=/usr
+          make -C "$core_package" install DESTDIR="$install_stage" PREFIX=/usr
           test -x "$install_stage/usr/bin/separan"
           "$install_stage/usr/bin/separan" --check "$root/examples/hello.sep"
           rm -rf "$install_stage" && mkdir -p "$install_stage"
