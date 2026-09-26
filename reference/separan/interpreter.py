@@ -380,7 +380,7 @@ class Interpreter:
         self.error_output = error_output or StringIO()
         self.globals = Environment()
         self.environment = self.globals
-        self.functions = {}
+        self.logics = {}
         self.host_functions = dict(host_functions or {})
         conflicts = sorted(set(self.host_functions) & set(BUILTINS))
         if conflicts:
@@ -388,7 +388,7 @@ class Interpreter:
         self.error_categories = set()
         self.http_routes = []
         self.http_static_mounts = []
-        self.function_parameter_types = {}
+        self.logic_parameter_types = {}
         self.clock = clock or (lambda: PyDateTime.now(py_timezone.utc))
         self.random = SeparanRandom()
         self.command_arguments = list(command_arguments or [])
@@ -419,9 +419,9 @@ class Interpreter:
             if isinstance(stmt, LogicDecl):
                 if stmt.name in BUILTINS or stmt.name in self.host_functions:
                     raise error("E209", "Reserved function name", f"Function '{stmt.name}' is a built-in and cannot be redefined.", stmt.position, actual=stmt.name)
-                if stmt.name in self.functions:
+                if stmt.name in self.logics:
                     raise error("E204", "Duplicate function", f"Function '{stmt.name}' is already defined.", stmt.position, actual=stmt.name)
-                self.functions[stmt.name] = stmt
+                self.logics[stmt.name] = stmt
             elif isinstance(stmt, ErrorDecl):
                 if stmt.name in BUILTINS or stmt.name in self.host_functions or stmt.name in self.error_categories or any(item.name == stmt.name for item in program.statements if isinstance(item, LogicDecl)):
                     raise error("E122", "Duplicate error name", f"Custom error name '{stmt.name}' conflicts with an existing declaration or built-in.", stmt.position, actual=stmt.name)
@@ -431,7 +431,7 @@ class Interpreter:
                 except ValueError as exc: raise error("E892", "Invalid route path", str(exc), stmt.position, actual=stmt.path)
                 if any(route.method == stmt.method and route.path == stmt.path for route, _ in self.http_routes): raise error("E896", "Duplicate HTTP route", "HTTP method and path must be unique.", stmt.position, actual=f"{stmt.method} {stmt.path}")
                 self.http_routes.append((stmt, compiled))
-        main = self.functions.get("main")
+        main = self.logics.get("main")
         if main and main.parameters:
             raise error("E205", "Invalid main function", "main must have zero parameters in v0.1.", main.position, expected="main()", actual=f"main({', '.join(main.parameters)})")
         for stmt in program.statements:
@@ -647,7 +647,7 @@ class Interpreter:
                         expected="list_insert/list_remove position", actual=expr.name)
         if isinstance(expr, VariableExpr):
             if self.environment.contains(expr.name): return self.environment.get(expr.name, expr.position)
-            if expr.name in self.functions or expr.name in BUILTINS or expr.name in self.host_functions: return LogicValue(self, expr.name)
+            if expr.name in self.logics or expr.name in BUILTINS or expr.name in self.host_functions: return LogicValue(self, expr.name)
             return self.environment.get(expr.name, expr.position)
         if isinstance(expr, ListExpr):
             values = [self._eval(e) for e in expr.elements]; list_element_type(values, expr.position); return values
@@ -691,7 +691,7 @@ class Interpreter:
                 return getattr(target, expr.name)
             if isinstance(target, NamespaceValue):
                 if expr.name not in target.exports: raise error("E706", "Private or missing export", f"Module does not export '{expr.name}'.", expr.position, actual=expr.name)
-                if expr.name in target.runtime.functions: return LogicValue(target.runtime, expr.name)
+                if expr.name in target.runtime.logics: return LogicValue(target.runtime, expr.name)
                 return target.runtime.globals.get(expr.name, expr.position)
             self._type_error(expr.position, "object or fixed-shape value", type_name(target), "Member access requires an object or fixed-shape value.")
         if isinstance(expr, MemberCallExpr):
@@ -706,7 +706,7 @@ class Interpreter:
                 if index > len(target.groups): raise error("E834", "Regex group out of range", "The requested capture group does not exist.", expr.position, expected=f"0..{len(target.groups)}", actual=str(index))
                 return target.groups[index - 1]
             if not isinstance(target, NamespaceValue): self._type_error(expr.position, "namespace or fixed-shape value", type_name(target), "Member calls require an imported namespace or supported fixed-shape value.")
-            if expr.name not in target.exports or (expr.name not in target.runtime.functions and expr.name not in target.runtime.error_categories): raise error("E706", "Private or missing export", f"Module does not export function or error '{expr.name}'.", expr.position, actual=expr.name)
+            if expr.name not in target.exports or (expr.name not in target.runtime.logics and expr.name not in target.runtime.error_categories): raise error("E706", "Private or missing export", f"Module does not export SEP or error '{expr.name}'.", expr.position, actual=expr.name)
             return target.runtime._call(expr.name, args, expr.position, named)
         if isinstance(expr, UnaryExpr):
             value = self._eval(expr.operand)
@@ -929,13 +929,13 @@ class Interpreter:
                 raise error("E131", "EMPTY value use", "EMPTY cannot cross a host-function boundary as a concrete value.", position,
                             expected="a present value", actual="EMPTY")
             return host_function.call(args, position, self, named)
-        function = self.functions.get(name)
-        if function is None: raise error("E206", "Undefined function", f"Function '{name}' is not defined.", position, actual=name)
-        if named: raise error("E207", "Unsupported named argument", f"Function '{name}' does not declare named arguments.", position, actual=next(iter(named)))
-        if len(args) != len(function.parameters): raise error("E207", "Argument count mismatch", f"Function '{name}' requires {len(function.parameters)} argument(s).", position, expected=str(len(function.parameters)), actual=str(len(args)))
+        logic = self.logics.get(name)
+        if logic is None: raise error("E206", "Undefined SEP", f"SEP '{name}' is not defined.", position, actual=name)
+        if named: raise error("E207", "Unsupported named argument", f"SEP '{name}' does not declare named arguments.", position, actual=next(iter(named)))
+        if len(args) != len(logic.parameters): raise error("E207", "Argument count mismatch", f"SEP '{name}' requires {len(logic.parameters)} argument(s).", position, expected=str(len(logic.parameters)), actual=str(len(args)))
         normalized_args = []
-        for parameter, value in zip(function.parameters, args):
-            declared = function.parameter_types.get(parameter)
+        for parameter, value in zip(logic.parameters, args):
+            declared = logic.parameter_types.get(parameter)
             if declared is not None:
                 value = prepare_typed_value(parameter, declared[0], declared[1], value, position)
             elif isinstance(value, EmptyValue) and value.declared_type is None:
@@ -944,36 +944,36 @@ class Interpreter:
             normalized_args.append(value)
         args = normalized_args
         signature = tuple((type_name(value), list_element_type(value, position) if type(value) is list else None) for value in args)
-        inferred = self.function_parameter_types.get(name)
+        inferred = self.logic_parameter_types.get(name)
         if inferred is None:
-            self.function_parameter_types[name] = signature
+            self.logic_parameter_types[name] = signature
         else:
             updated = list(inferred)
-            for index, (parameter, expected_type, actual_type) in enumerate(zip(function.parameters, inferred, signature)):
+            for index, (parameter, expected_type, actual_type) in enumerate(zip(logic.parameters, inferred, signature)):
                 if expected_type[0] != actual_type[0] or not type_specs_compatible(expected_type[1], actual_type[1]):
                     expected = expected_type[0] + (f"[{type_spec_text(expected_type[1])}]" if expected_type[1] else "")
                     actual = actual_type[0] + (f"[{type_spec_text(actual_type[1])}]" if actual_type[1] else "")
-                    raise error("E208", "Function parameter type mismatch", f"Parameter '{parameter}' of function '{name}' was inferred as {expected} by its first call.", position, expected=expected, actual=actual)
+                    raise error("E208", "SEP parameter type mismatch", f"Parameter '{parameter}' of SEP '{name}' was inferred as {expected} by its first call.", position, expected=expected, actual=actual)
                 if expected_type[0] == "list" and expected_type[1] is None and actual_type[1] is not None:
                     updated[index] = actual_type
-            self.function_parameter_types[name] = tuple(updated)
+            self.logic_parameter_types[name] = tuple(updated)
         previous = self.environment; self.environment = Environment(self.globals)
         try:
-            for param, value in zip(function.parameters, args):
-                declared = function.parameter_types.get(param)
+            for param, value in zip(logic.parameters, args):
+                declared = logic.parameter_types.get(param)
                 if declared is None: self.environment.assign(param, value, position)
                 else: self.environment.define_typed(param, declared[0], declared[1], value, False, position)
-            try: self._execute_all(function.body)
+            try: self._execute_all(logic.body)
             except Returned as result: return result.value
             return VOID
         finally: self.environment = previous
 
-    def call_function_value(self, value, arguments, position):
-        self.validate_function_value(value, position)
+    def call_logic_value(self, value, arguments, position):
+        self.validate_logic_value(value, position)
         return value.runtime._call(value.name, arguments, position)
 
     @staticmethod
-    def validate_function_value(value, position):
+    def validate_logic_value(value, position):
         if not isinstance(value, LogicValue):
             Interpreter._type_error(position, "function", type_name(value), "A higher-order list operation requires a function reference.")
 

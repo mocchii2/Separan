@@ -54,7 +54,7 @@ class MonitorExampleTests(unittest.TestCase):
             source_path.read_text(encoding="utf-8"), str(source_path),
             "notify_handler", adapter.functions(),
         )
-        self.assertTrue({"notify_handler", "log2_handler", "status_handler", "config_handler"} <= set(application.runtime.functions))
+        self.assertTrue({"notify_handler", "log2_handler", "status_handler", "config_handler"} <= set(application.runtime.logics))
 
     def test_history_payload_is_utf8_bounded_and_marks_truncation(self):
         class DynamoDB:

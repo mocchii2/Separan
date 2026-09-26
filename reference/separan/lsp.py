@@ -687,7 +687,7 @@ def run_logic(server, uri, function_name, arguments):
         program = Parser(Lexer(source, str(path)).scan_tokens()).parse()
         runtime = Interpreter(output=output, script_path=str(path), project_root=str(path.parent))
         runtime.run(program, invoke_main=False)
-        if function_name not in runtime.functions:
+        if function_name not in runtime.logics:
             return {"error": f"Unknown Separan SEP '{function_name}'.", "output": output.getvalue()}
         result = runtime.invoke(function_name, arguments)
         if type(result) in (bool, int, float, str):

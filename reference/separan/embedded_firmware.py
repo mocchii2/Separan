@@ -346,14 +346,14 @@ class _PicoCppEmitter:
         self.lines = []
         self.indent = 0
         self.scopes = []
-        self.functions = {statement.name: statement for statement in program.statements if isinstance(statement, LogicDecl)}
+        self.logics = {statement.name: statement for statement in program.statements if isinstance(statement, LogicDecl)}
 
     def generate(self):
-        main = self.functions.get("main")
+        main = self.logics.get("main")
         if main is None:
-            self._unsupported(self.program, "Embedded firmware requires function:main.")
+            self._unsupported(self.program, "Embedded firmware requires SEP:main.")
         if main.parameters:
-            self._unsupported(main, "Embedded function:main cannot accept parameters.")
+            self._unsupported(main, "Embedded SEP:main cannot accept parameters.")
         self.lines.extend(_PICO_RUNTIME.rstrip().splitlines())
         self.lines.append("")
         global_statements = [statement for statement in self.program.statements if not isinstance(statement, LogicDecl)]
@@ -384,15 +384,15 @@ class _PicoCppEmitter:
             if name in visited:
                 return
             if name in visiting:
-                self._unsupported(self.functions[name], "Recursive functions are not supported by the Pico firmware preview.")
+                self._unsupported(self.logics[name], "Recursive SEP logic is not supported by the Pico firmware preview.")
             visiting.add(name)
-            for dependency in sorted(self._called_functions(self.functions[name])):
+            for dependency in sorted(self._called_functions(self.logics[name])):
                 visit(dependency)
             visiting.remove(name)
             visited.add(name)
-            ordered.append(self.functions[name])
+            ordered.append(self.logics[name])
 
-        for name in sorted(self.functions, key=lambda item: item == "main"):
+        for name in sorted(self.logics, key=lambda item: item == "main"):
             visit(name)
         return ordered
 
@@ -400,7 +400,7 @@ class _PicoCppEmitter:
         result = set()
 
         def walk(value):
-            if isinstance(value, CallExpr) and value.callee in self.functions:
+            if isinstance(value, CallExpr) and value.callee in self.logics:
                 result.add(value.callee)
             if is_dataclass(value):
                 for item in fields(value):
@@ -595,7 +595,7 @@ class _PicoCppEmitter:
         if call.named_arguments and call.callee not in {"i2c_open", "uart_open"}:
             self._unsupported(call, f"Named arguments are not supported for firmware call '{call.callee}'.")
         arguments = [self._expression(value) for value in call.arguments]
-        if call.callee in self.functions:
+        if call.callee in self.logics:
             return f"sep_fn_{_identifier(call.callee)}({', '.join(arguments)})"
         if call.callee == "gpio_set_mode":
             self._arity(call, 2)

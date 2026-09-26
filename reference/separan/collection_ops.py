@@ -17,8 +17,8 @@ def _same_type(expected, value, name, position, runtime):
 def map_list(arguments, position, runtime):
     values, callback = arguments
     _list(values, "map", position, runtime)
-    runtime.validate_function_value(callback, position)
-    result = [runtime.call_function_value(callback, [value], position) for value in values]
+    runtime.validate_logic_value(callback, position)
+    result = [runtime.call_logic_value(callback, [value], position) for value in values]
     runtime.validate_list(result, position)
     return result
 
@@ -26,10 +26,10 @@ def map_list(arguments, position, runtime):
 def filter_list(arguments, position, runtime):
     values, predicate = arguments
     _list(values, "filter", position, runtime)
-    runtime.validate_function_value(predicate, position)
+    runtime.validate_logic_value(predicate, position)
     result = []
     for value in values:
-        selected = runtime.call_function_value(predicate, [value], position)
+        selected = runtime.call_logic_value(predicate, [value], position)
         if type(selected) is not bool:
             runtime.type_error(position, "boolean", runtime.type_name(selected), "filter() predicate must return boolean.")
         if selected: result.append(value)
@@ -39,10 +39,10 @@ def filter_list(arguments, position, runtime):
 def reduce_list(arguments, position, runtime):
     values, callback, accumulator = arguments
     _list(values, "reduce", position, runtime)
-    runtime.validate_function_value(callback, position)
+    runtime.validate_logic_value(callback, position)
     accumulator_type = runtime.type_name(accumulator)
     for value in values:
-        next_value = runtime.call_function_value(callback, [accumulator, value], position)
+        next_value = runtime.call_logic_value(callback, [accumulator, value], position)
         _same_type(accumulator_type, next_value, "reduce", position, runtime)
         accumulator = next_value
     return accumulator
