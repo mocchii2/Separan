@@ -62,6 +62,21 @@ The worker should load the application once, serve multiple requests, and exit
 nonzero after an unrecoverable application or transport error. A supervisor
 should restart it after failure and perform graceful replacement for upgrades.
 
+The planned supervisor configuration is documented in
+[`docs/separan-gw.conf.example`](separan-gw.conf.example). The important
+limits are:
+
+- `workers`: desired number of runtime workers;
+- `max_memory`: per-worker RSS drain threshold;
+- `max_requests`: per-worker request recycle threshold;
+- `restart_grace`: time allowed for an in-flight request to finish;
+- `restart_backoff`: delay after repeated worker failure.
+
+The released stdio worker does not parse these supervisor settings yet. It
+accepts one application and one transport stream; adding a setting without the
+corresponding process supervision would create a misleading deployment
+contract.
+
 ## nginx and Apache direction
 
 The final nginx configuration will use a FastCGI adapter socket:
