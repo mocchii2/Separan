@@ -387,6 +387,19 @@ int main(void) {
         !json_result || strcmp(json_result, "42")) return 38;
     separan_runtime_release_string(json_result); separan_runtime_destroy(retained);
 
+    const char *diagnostic_source =
+        "SEP:divide(value: number)\nreturn value / 0\nEND_SEP:divide\n";
+    retained = NULL;
+    if (separan_runtime_create(diagnostic_source, &restricted, output, errors, &retained)) return 120;
+    if (!separan_runtime_invoke_json(retained, "divide", "[1]", &json_result)) return 121;
+    separan_runtime_diagnostic runtime_diagnostic;
+    separan_runtime_get_diagnostic(retained, &runtime_diagnostic);
+    if (strcmp(runtime_diagnostic.category, "Division by zero") != 0 ||
+        strcmp(runtime_diagnostic.description, "Operator '/' cannot use zero as its right operand.") != 0 ||
+        strcmp(runtime_diagnostic.actual, "0") != 0 || runtime_diagnostic.line_number != 2 ||
+        runtime_diagnostic.column_number != 14) return 122;
+    separan_runtime_destroy(retained);
+
     retained=NULL;
     if(separan_runtime_create(retained_source,&restricted,output,errors,&retained))return 96;
     for(int index=0;index<1000;index++){

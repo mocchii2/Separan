@@ -160,12 +160,50 @@ opener position. E100 expected-expression errors expose the Python-compatible
 category and description, plus the offending token as `actual` and its
 one-based source position. E100 trailing-token errors expose the matching
 `Unexpected token` category, statement-boundary description, actual token, and
-position. Missing closing delimiters for grouped expressions and direct/member
-calls, list/index brackets, typed-list angle brackets, function/constant/import
-separators, missing declaration names, block opener/closer labels, and
-catch/branch labels expose Python-compatible `Syntax error` categories and
-descriptions. E128 invalid `is` operands and EMPTY/EMPTYS equality comparisons
-expose state-test guidance, expected form, actual token, and source position.
+position. Missing closing delimiters for grouped expressions, function
+parameters, and direct/member calls; list/index brackets; typed-list angle
+brackets; function, constant, import, and loop separators; block opener and
+closer punctuation; missing declaration names; and catch/branch labels expose
+Python-compatible `Syntax error` categories and descriptions. Unexpected
+same-line tokens after function headers and statements expose the matching
+`Unexpected token` category, statement-boundary description, actual token, and
+source position. E128 invalid `is` operands and EMPTY/EMPTYS equality
+comparisons expose state-test guidance, expected form, actual token, and source
+position. E112 duplicate parameters, E113 duplicate named arguments, E114
+positional arguments after named arguments, E116 duplicate object fields, and
+E117-E119 invalid try-handler cases expose Python-compatible categories and
+descriptions; argument, parameter, catch, and field errors also expose the
+offending name and primary position where applicable. E120 nested error
+declarations, E121 invalid error names, E122 duplicate error names, E123
+unknown declared types, and E124 missing typed initializers expose matching
+categories, descriptions, expected forms, actual values, and source positions.
+The E122 `:end` editor-completion diagnostic also reports the expected complete
+block closer and actual `:end` token.
+E216 tags outside functions, E217 tags after executable statements, and E218
+duplicate function tags expose matching categories, descriptions, actual tag
+values, and primary positions.
+E214 immutable system members and E215 reserved context bindings likewise
+expose the read-only context category, description, actual binding or member,
+and primary position.
+E108 invalid if branches and E110 invalid top-level statements expose their
+Python-compatible category, description, offending token, and primary position.
+E204 duplicate functions, E205 invalid `main` signatures, and E209 reserved
+function names expose matching categories, descriptions, expected signatures
+where applicable, actual names, and declaration positions.
+E702 late imports and E703 nested imports expose the matching import-order
+category, description, and primary position.
+E890 nested HTTP routes, E891 invalid route methods, and E892 invalid route
+paths expose matching categories, descriptions, actual values where relevant,
+and primary positions.
+E896 duplicate HTTP routes expose the unique method/path requirement and actual
+route identity at the duplicate declaration position.
+Runtime invocations and HTTP dispatches can retrieve their last structured
+failure detail through `separan_runtime_get_diagnostic()` without changing the
+existing return-code or error-stream behavior.
+Runtime E301 division failures expose the operator-specific description and
+zero actual value; execute-body E127 VOID-use, E129 EMPTY-type, and E130
+constant failures likewise populate runtime category, description, actual, and
+source position fields.
 `separan_analyze_source` and `separan_analyze_path` remain legacy structural-only
 scanner entry points for ABI compatibility; new callers should use `separan_validate_*`.
 

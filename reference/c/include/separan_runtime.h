@@ -84,6 +84,9 @@ int separan_runtime_invoke_json(separan_runtime *runtime, const char *function_n
    method, path, and optional query, headers, and body fields. */
 int separan_runtime_dispatch_http_json(separan_runtime *runtime, const char *request_json,
                                        char **response_json);
+/* Copy the last runtime failure detail after invoke or dispatch. */
+void separan_runtime_get_diagnostic(const separan_runtime *runtime,
+                                   separan_runtime_diagnostic *diagnostic);
 void separan_runtime_release_string(char *value);
 void separan_runtime_destroy(separan_runtime *runtime);
 

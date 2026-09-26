@@ -429,6 +429,7 @@ static const char *fault_code(const char *message) {
     if (!strcmp(message, "database constraint error")) return "E904";
     if (!strcmp(message, "database timeout error")) return "E905";
     if (!strcmp(message, "database transaction error")) return "E907";
+    if (!strcmp(message,"nested HTTP route")) return "E890";
     if (!strcmp(message,"invalid route method")) return "E891";
     if (!strcmp(message,"invalid route path")) return "E892";
     if (!strcmp(message,"no HTTP request context")) return "E893";
@@ -439,7 +440,7 @@ static const char *fault_code(const char *message) {
     if (!strcmp(message,"invalid main function")) return "E205";
     if (!strcmp(message,"reserved function name")) return "E209";
     if (!strcmp(message,"duplicate error name")) return "E122";
-    if (!strcmp(message,"error name conflicts with function")) return "E121";
+    if (!strcmp(message,"error name conflicts with function")) return "E122";
     if (!strcmp(message,"invalid error name")) return "E121";
     if (!strcmp(message,"nested error declaration")) return "E120";
     if (!strcmp(message,"duplicate parameter")) return "E112";
@@ -457,6 +458,7 @@ static const char *fault_code(const char *message) {
     if (!strcmp(message, "constant cannot be reassigned")) return "E211";
     if (!strcmp(message, "duplicate typed declaration")) return "E210";
     if (!strcmp(message, "initializer required")) return "E124";
+    if (!strcmp(message, "invalid declared type")) return "E123";
     if (!strcmp(message, "untyped EMPTY")) return "E129";
     if (!strcmp(message, "EMPTY constant")) return "E130";
     if (!strcmp(message, "EMPTY value cannot be used")) return "E131";
@@ -582,13 +584,36 @@ static void fault(Runtime *r, const char *message) {
             snprintf(r->error_category,sizeof(r->error_category),"Unexpected token");
             snprintf(r->error_description,sizeof(r->error_description),"Statements must end at the end of the line.");
         }
-        if(!r->handler_depth)fprintf(r->errors, "SEPARAN %s: %s at line %zu, column %zu\n", r->error_code, message,line,column);
+        if(!r->error_category[0]){
+            const char *category=NULL,*description=NULL;
+            if(!strcmp(message,"EMPTY value cannot be used")){category="EMPTY value use";description="EMPTY cannot be used as a concrete value.";}
+            else if(!strcmp(message,"EMPTYS requires container")){category="EMPTYS container required";description="EMPTYS can only clear a container-valued value.";}
+            else if(!strcmp(message,"list element type required")){category="List element type required";description="A concrete list element type is required here.";}
+            else if(!strcmp(message,"position selector outside list operation")){category="Position selector context";description="Position selectors are valid only as a list shape position.";}
+            else if(!strcmp(message,"VOID value cannot be used")){category="VOID value use";description="VOID does not represent a value.";}
+            else if(!strcmp(message,"invalid import path")){category="Invalid import path";description="Import paths must be relative .sep paths without '..'.";}
+            else if(!strcmp(message,"import read error")||!strcmp(message,"import parse error")||!strcmp(message,"import execution error")){category="Import error";description="The imported module could not be loaded or executed.";}
+            else if(!strcmp(message,"circular import")){category="Circular import";description="The imported module is already active in the import chain.";}
+            else if(!strcmp(message,"no HTTP request context")){category="HTTP request context";description="This operation requires an active HTTP request context.";}
+            else if(!strcmp(message,"HTTP request decode error")){category="HTTP request decode error";description="The HTTP request could not be decoded.";}
+            else if(!strcmp(message,"invalid HTTP response")){category="Invalid HTTP response";description="The HTTP response value is invalid.";}
+            if(category){snprintf(r->error_category,sizeof(r->error_category),"%s",category);snprintf(r->error_description,sizeof(r->error_description),"%s",description);}
+        }
+            if(!r->handler_depth)fprintf(r->errors, "SEPARAN %s: %s at line %zu, column %zu\n", r->error_code, message,line,column);
     }
 }
 static void fault_at(Runtime *r,const char *message,size_t line,size_t column) {
     size_t old_line=r->fault_line,old_column=r->fault_column;int old_executing=r->executing;
     r->fault_line=line;r->fault_column=column;r->executing=1;fault(r,message);
     r->fault_line=old_line;r->fault_column=old_column;r->executing=old_executing;
+}
+static void fault_detail_at(Runtime *r,const char *message,const char *category,const char *description,
+                            const char *actual,size_t line,size_t column) {
+    if(r->error)return;
+    snprintf(r->error_category,sizeof(r->error_category),"%s",category);
+    snprintf(r->error_description,sizeof(r->error_description),"%s",description);
+    snprintf(r->error_actual,sizeof(r->error_actual),"%s",actual);
+        fault_at(r,message,line,column);
 }
 static void external_fault(Runtime *r,const char *code,const char *message) {
     if(r->error)return;
@@ -601,10 +626,6 @@ static void external_fault(Runtime *r,const char *code,const char *message) {
     if(!r->handler_depth)fprintf(r->errors,"SEPARAN %s: %s at line %zu, column %zu\n",safe_code,
                                  message&&*message?message:"host operation failed",line,column);
 }
-static int expect(Runtime *r, const char *kind) {
-    if (accept(r, kind)) return 1;
-    fault(r, "unexpected token"); return 0;
-}
 static int expect_syntax(Runtime *r,const char *kind,const char *description) {
     if(r->error)return 0;
     if(accept(r,kind))return 1;
@@ -613,10 +634,27 @@ static int expect_syntax(Runtime *r,const char *kind,const char *description) {
     fault(r,"unexpected token");return 0;
 }
 static int expect_detail(Runtime *r,const char *kind,const char *category,const char *description) {
+    if(r->error)return 0;
     if(accept(r,kind))return 1;
     snprintf(r->error_category,sizeof(r->error_category),"%s",category);
     snprintf(r->error_description,sizeof(r->error_description),"%s",description);
     fault(r,"unexpected token");return 0;
+}
+static int expect_line_end(Runtime *r) {
+    return expect_detail(r,"NEWLINE","Unexpected token","Statements must end at the end of the line.");
+}
+static int expect_open_label_colon(Runtime *r,const char *kind) {
+    char description[128];
+    snprintf(description,sizeof(description),"Expected :label after %s expression.",kind);
+    return expect_syntax(r,"COLON",description);
+}
+static int expect_block_closer(Runtime *r,const char *token,const char *kind) {
+    char description[96];
+    snprintf(description,sizeof(description),"Expected closing %s.",kind);
+    return expect_syntax(r,token,description);
+}
+static int expect_block_closer_colon(Runtime *r) {
+    return expect_syntax(r,"COLON","Expected ':' in block closer.");
 }
 static void fault_syntax(Runtime *r,const char *message,const char *description) {
     if(r->error)return;
@@ -753,11 +791,17 @@ static Expr *parse_atom_inner(Runtime *r) {
                 if (at(r,"IDENTIFIER") && r->at + 1 < r->tokens.count &&
                     !strcmp(r->tokens.tokens[r->at + 1].type,"EQUAL")) {
                     separan_token *argument_token=take(r);const char *argument_name=argument_token->lexeme;take(r);saw_named=1;
-                    for(size_t i=0;i<e->argc;i++) if(e->arg_names[i] && !strcmp(e->arg_names[i],argument_name))
-                        fault_at(r,"duplicate named argument",argument_token->line,argument_token->column);
+                    for(size_t i=0;i<e->argc;i++) if(e->arg_names[i] && !strcmp(e->arg_names[i],argument_name)){
+                        char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                        snprintf(description,sizeof(description),"Named argument '%s' is already specified.",argument_name);
+                        fault_detail_at(r,"duplicate named argument","Duplicate named argument",description,
+                                        argument_name,argument_token->line,argument_token->column);
+                    }
                     if(r->error || !add_named_arg(e,parse_expr(r,1),argument_name)) break;
                 } else {
-                    if(saw_named){fault(r,"positional argument after named argument");break;}
+                    if(saw_named){separan_token *argument_token=peek(r);fault_detail_at(r,"positional argument after named argument",
+                        "Positional argument after named argument","Positional arguments must appear before named arguments.",
+                        argument_token->lexeme,argument_token->line,argument_token->column);break;}
                     if (!add_arg(e, parse_expr(r, 1))) break;
                 }
             } while (accept(r, "COMMA"));
@@ -796,9 +840,17 @@ static Expr *parse_primary(Runtime *r) {
                 member->kind=8;int saw_named=0;
                 if(!at(r,"RPAREN")){do{
                     if(at(r,"IDENTIFIER")&&r->at+1<r->tokens.count&&!strcmp(r->tokens.tokens[r->at+1].type,"EQUAL")){
-                        const char *argument_name=take(r)->lexeme;take(r);saw_named=1;
-                        if(!add_named_arg(member,parse_expr(r,1),argument_name)){fault(r,"out of memory");break;}
-                    }else{if(saw_named){fault(r,"positional argument after named argument");break;}if(!add_arg(member,parse_expr(r,1))){fault(r,"out of memory");break;}}
+                        separan_token *argument_token=take(r);const char *argument_name=argument_token->lexeme;take(r);saw_named=1;
+                        for(size_t i=0;i<member->argc;i++)if(member->arg_names[i]&&!strcmp(member->arg_names[i],argument_name)){
+                            char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                            snprintf(description,sizeof(description),"Named argument '%s' is already specified.",argument_name);
+                            fault_detail_at(r,"duplicate named argument","Duplicate named argument",description,
+                                            argument_name,argument_token->line,argument_token->column);
+                        }
+                        if(r->error||!add_named_arg(member,parse_expr(r,1),argument_name)){fault(r,"out of memory");break;}
+                    }else{if(saw_named){separan_token *argument_token=peek(r);fault_detail_at(r,"positional argument after named argument",
+                        "Positional argument after named argument","Positional arguments must appear before named arguments.",
+                        argument_token->lexeme,argument_token->line,argument_token->column);break;}if(!add_arg(member,parse_expr(r,1))){fault(r,"out of memory");break;}}
                 }while(accept(r,"COMMA"));}expect_detail(r,"RPAREN","Syntax error","Expected ')' after arguments.");
             }
             left = member;
@@ -884,12 +936,34 @@ static char *parse_declared_type(Runtime *r) {
         if(type)snprintf(type,length,"list<%s>",element);free(element);return type;
     }
     if(at(r,"IDENTIFIER")&&scalar_type_name(peek(r)->lexeme))return copy_text(take(r)->lexeme);
-    fault(r,"invalid declared type");return NULL;
+    if(at(r,"IDENTIFIER")){
+        separan_token *type_token=peek(r);char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+        snprintf(description,sizeof(description),"'%s' is not a supported Separan type.",type_token->lexeme);
+        fault_detail_at(r,"invalid declared type","Unknown declared type",description,
+                        type_token->lexeme,type_token->line,type_token->column);
+        snprintf(r->error_expected,sizeof(r->error_expected),"a supported Separan type");
+    }else fault(r,"invalid declared type");
+    return NULL;
 }
 static Stmt *parse_typed_declaration(Runtime *r,int constant) {
     Stmt *s=new_stmt(19);s->constant=constant;s->declared_type=parse_declared_type(r);
-    if(at(r,"IDENTIFIER"))s->name=copy_text(take(r)->lexeme);else fault_syntax(r,"expected variable name","Expected variable name after declared type.");
-    if(!accept(r,"EQUAL")){fault(r,"initializer required");return s;}s->expr=parse_expr(r,1);return s;
+    separan_token *name_token=at(r,"IDENTIFIER")?take(r):NULL;
+    if(name_token)s->name=copy_text(name_token->lexeme);else fault_syntax(r,"expected variable name","Expected variable name after declared type.");
+    if(!accept(r,"EQUAL")){
+        if(name_token&&!r->error){
+            char expected[SEPARAN_RUNTIME_DIAGNOSTIC_LEN],actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN],description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+            snprintf(expected,sizeof(expected),"%s %s = value",s->declared_type?s->declared_type:"",s->name?s->name:"");
+            snprintf(actual,sizeof(actual),"%s %s",s->declared_type?s->declared_type:"",s->name?s->name:"");
+            snprintf(description,sizeof(description),"Typed variable '%s' requires an initial value.",s->name?s->name:"");
+            snprintf(r->error_category,sizeof(r->error_category),"Initializer required");
+            snprintf(r->error_description,sizeof(r->error_description),"%s",description);
+            snprintf(r->error_expected,sizeof(r->error_expected),"%s",expected);
+            snprintf(r->error_actual,sizeof(r->error_actual),"%s",actual);
+            fault_at(r,"initializer required",name_token->line,name_token->column);
+        }else fault(r,"initializer required");
+        return s;
+    }
+    s->expr=parse_expr(r,1);return s;
 }
 static const char *assignment_operator(const char *type) {
     if(!strcmp(type,"PLUS_EQUAL"))return "PLUS";if(!strcmp(type,"MINUS_EQUAL"))return "MINUS";
@@ -998,11 +1072,36 @@ static int number_compare(Value left,Value right){
 }
 static Stmt *parse_stmt_inner(Runtime *r) {
     separan_token *head = peek(r);
+    if(at(r,"COLON")&&r->at+1<r->tokens.count&&!strcmp(r->tokens.tokens[r->at+1].type,"IDENTIFIER")&&
+       !strcmp(r->tokens.tokens[r->at+1].lexeme,"end")){
+        snprintf(r->error_category,sizeof(r->error_category),"Incomplete structural completion token");
+        snprintf(r->error_description,sizeof(r->error_description),":end is an editor completion trigger, not executable Separan syntax.");
+        snprintf(r->error_expected,sizeof(r->error_expected),"a complete block closer");
+        snprintf(r->error_actual,sizeof(r->error_actual),":end");
+        fault_at(r,"incomplete structural token",head->line,head->column);return new_stmt(6);
+    }
     if(at(r,"COLON")){fault(r,"incomplete structural token");return new_stmt(6);}
-    if(at(r,"TAG")){fault(r,r->parse_depth?"tag after statement":"tag outside function");return new_stmt(6);}
+    if(at(r,"TAG")){
+        const char *category=r->parse_depth?"Function tag must appear before executable statements":"Function tag outside function";
+        const char *description=r->parse_depth?
+            "Function tags belong to the metadata area before the first executable statement.":
+            "Function tags are valid only inside a function metadata area.";
+        char actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];snprintf(actual,sizeof(actual),"@%s",head->lexeme);
+        fault_detail_at(r,r->parse_depth?"tag after statement":"tag outside function",category,description,actual,head->line,head->column);
+        return new_stmt(6);
+    }
     if(at(r,"IDENTIFIER")&&!strcmp(head->lexeme,"system")){
-        if(r->at+1<r->tokens.count&&!strcmp(r->tokens.tokens[r->at+1].type,"DOT"))fault(r,"immutable system member");
-        else fault(r,"reserved system binding");return new_stmt(6);
+        if(r->at+1<r->tokens.count&&!strcmp(r->tokens.tokens[r->at+1].type,"DOT")){
+            const char *member=r->at+2<r->tokens.count?r->tokens.tokens[r->at+2].lexeme:"";
+            char actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN],description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+            snprintf(actual,sizeof(actual),"system.%s",member);
+            snprintf(description,sizeof(description),"Cannot assign to read-only member '%s'.",actual);
+            fault_detail_at(r,"immutable system member","Immutable member",description,actual,head->line,head->column);
+        }else{
+            fault_detail_at(r,"reserved system binding","Reserved context name",
+                            "Name 'system' is reserved for a read-only runtime context.","system",head->line,head->column);
+        }
+        return new_stmt(6);
     }
     if(at(r,"IDENTIFIER")&&(!strcmp(head->lexeme,"function")||!strcmp(head->lexeme,"end_function"))){
         fault(r,"legacy function syntax");return new_stmt(6);
@@ -1020,8 +1119,16 @@ static Stmt *parse_stmt_inner(Runtime *r) {
             if (!at(r, "RPAREN")) do {
                 if (!at(r, "IDENTIFIER")) { fault_syntax(r,"expected parameter","Expected parameter name."); break; }
                 separan_token *parameter_token=take(r);char *parameter=copy_text(parameter_token->lexeme);char *type=NULL;
-                if(!strcmp(parameter,"system"))fault_at(r,"reserved system binding",parameter_token->line,parameter_token->column);
-                for(size_t i=0;i<s->parameter_count;i++)if(!strcmp(s->parameters[i],parameter))fault_at(r,"duplicate parameter",parameter_token->line,parameter_token->column);
+                if(!strcmp(parameter,"system"))fault_detail_at(r,"reserved system binding","Reserved context name",
+                    "Name 'system' is reserved for a read-only runtime context.","system",parameter_token->line,parameter_token->column);
+                for(size_t i=0;i<s->parameter_count;i++)if(!strcmp(s->parameters[i],parameter)){
+                    if(!r->error){
+                        snprintf(r->error_category,sizeof(r->error_category),"Duplicate parameter");
+                        snprintf(r->error_description,sizeof(r->error_description),"Parameter '%s' is already defined.",parameter);
+                        snprintf(r->error_actual,sizeof(r->error_actual),"%s",parameter);
+                    }
+                    fault_at(r,"duplicate parameter",parameter_token->line,parameter_token->column);
+                }
                 if(accept(r,"COLON"))type=parse_declared_type(r);
                 char **next = realloc(s->parameters, (s->parameter_count + 1) * sizeof(*next));
                 char **next_types=realloc(s->parameter_types,(s->parameter_count+1)*sizeof(*next_types));
@@ -1029,15 +1136,21 @@ static Stmt *parse_stmt_inner(Runtime *r) {
                 s->parameters=next;s->parameter_types=next_types;s->parameters[s->parameter_count]=parameter;
                 s->parameter_types[s->parameter_count++]=type;
             } while (accept(r, "COMMA"));
-            expect(r, "RPAREN");
+            expect_syntax(r,"RPAREN","Expected ')' after parameters.");
         }
-        expect(r, "NEWLINE");
+        expect_line_end(r);
         while(at(r,"TAG")){separan_token *tag_token=take(r);const char *tag=tag_token->lexeme;if(strlen(tag)<2)fault_at(r,"tag outside function",tag_token->line,tag_token->column);
-            for(size_t i=0;i<s->tag_count;i++)if(!strcmp(s->tags[i],tag))fault_at(r,"invalid or duplicate function tag",tag_token->line,tag_token->column);
-            char **next=realloc(s->tags,(s->tag_count+1)*sizeof(*next));if(!next)fault(r,"out of memory");else{s->tags=next;s->tags[s->tag_count++]=copy_text(tag);}expect(r,"NEWLINE");}
+            for(size_t i=0;i<s->tag_count;i++)if(!strcmp(s->tags[i],tag)){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN],actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Tag '@%s' is already attached to function '%s'.",tag,s->name?s->name:"");
+                snprintf(actual,sizeof(actual),"@%s",tag);
+                fault_detail_at(r,"invalid or duplicate function tag","Duplicate function tag",description,actual,
+                                tag_token->line,tag_token->column);
+            }
+            char **next=realloc(s->tags,(s->tag_count+1)*sizeof(*next));if(!next)fault(r,"out of memory");else{s->tags=next;s->tags[s->tag_count++]=copy_text(tag);}expect_line_end(r);}
         s->body = parse_block_body(r,block_label?block_label:head,"END_FUNCTION", NULL);
         s->end_line=peek(r)->line;
-        expect(r, "END_FUNCTION"); expect(r, "COLON");
+        expect_block_closer(r,"END_FUNCTION","function"); expect_block_closer_colon(r);
         if (s->name) check_closing_label(r,s->name,"function label mismatch",s->name_line,s->name_column);
         else if (!r->error) fault_syntax(r,"expected function label","Expected closing block label.");
         return s;
@@ -1050,10 +1163,11 @@ static Stmt *parse_stmt_inner(Runtime *r) {
             if (!s->parameters) { fault(r, "out of memory"); return s; }
             s->parameters[0] = copy_text(take(r)->lexeme); s->parameter_count = 1;
         } else fault_syntax(r,"expected loop variable","Expected loop variable.");
-        expect(r, "IN"); s->expr = parse_expr(r, 1); expect(r, "COLON");
+        expect_syntax(r,"IN","Expected 'in' after loop variable."); s->expr = parse_expr(r, 1);
+        expect_syntax(r,"COLON","Expected :label after for expression.");
         if (at_label(r)){block_label=take(r);s->name = copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;} else fault_syntax(r,"expected label","Expected block label after ':'.");
-        expect(r, "NEWLINE"); s->body = parse_block_body(r,block_label?block_label:head,"ENDFOR", NULL);
-        expect(r, "ENDFOR"); expect(r, "COLON");
+        expect_line_end(r); s->body = parse_block_body(r,block_label?block_label:head,"ENDFOR", NULL);
+        expect_block_closer(r,"ENDFOR","for"); expect_block_closer_colon(r);
         if (s->name) check_closing_label(r,s->name,"block label mismatch",s->name_line,s->name_column);
         return s;
     }
@@ -1061,77 +1175,96 @@ static Stmt *parse_stmt_inner(Runtime *r) {
         int is_if = strcmp(head->type, "IF") == 0;
         Stmt *s = new_stmt(is_if ? 3 : 4);
         separan_token *block_label=NULL;
-        s->expr = parse_expr(r, 1); expect(r, "COLON");
+        s->expr = parse_expr(r, 1);
+        expect_open_label_colon(r,is_if?"if":"while");
         if (at_label(r)){block_label=take(r);s->name = copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;} else fault_syntax(r,"expected label","Expected block label after ':'.");
-        expect(r, "NEWLINE");
+        expect_line_end(r);
         s->body = parse_block_body(r,block_label?block_label:head,is_if ? "ELSE" : "ENDWHILE", is_if ? "ENDIF" : NULL);
         Stmt *branch = s;
         while (is_if && accept(r, "ELSEIF")) {
             Stmt *next = new_stmt(3);
             if (!next || !add_stmt(&branch->other, next)) { fault(r, "out of memory"); break; }
             next->name = copy_text(s->name);
-            next->expr = parse_expr(r, 1); expect(r, "COLON");
+            next->expr = parse_expr(r, 1); expect_syntax(r,"COLON","Expected ':' after elseif.");
             if(s->name)check_closing_label(r,s->name,"branch label mismatch",s->name_line,s->name_column);
-            expect(r, "NEWLINE");
+            expect_line_end(r);
             next->body = parse_block_body(r,block_label?block_label:head,"ELSE", "ENDIF");
             branch = next;
         }
         if (is_if && accept(r, "ELSE")) {
-            expect(r, "COLON");
+            expect_syntax(r,"COLON","Expected ':' after else.");
             if(s->name)check_closing_label(r,s->name,"branch label mismatch",s->name_line,s->name_column);
-            expect(r, "NEWLINE"); branch->other = parse_block_body(r,block_label?block_label:head,"ENDIF", NULL);
+            expect_line_end(r); branch->other = parse_block_body(r,block_label?block_label:head,"ENDIF", NULL);
         }
-        expect(r, is_if ? "ENDIF" : "ENDWHILE"); expect(r, "COLON");
+        expect_block_closer(r,is_if?"ENDIF":"ENDWHILE",is_if?"if":"while"); expect_block_closer_colon(r);
         if (s->name) check_closing_label(r,s->name,"block label mismatch",s->name_line,s->name_column);
         return s;
     }
     if (accept(r,"TRY")) {
-        Stmt *s=new_stmt(12);separan_token *block_label=NULL;if(!r->parse_depth)fault_at(r,"top-level expression is not allowed",head->line,head->column);expect(r,"COLON");
+        Stmt *s=new_stmt(12);separan_token *block_label=NULL;
+        if(!r->parse_depth){
+            fault_detail_at(r,"top-level expression is not allowed","Invalid top-level statement",
+                "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.",head->lexeme,head->line,head->column);
+        }
+        expect_open_label_colon(r,"try");
         if(at_label(r)){block_label=take(r);s->name=copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;}else fault_syntax(r,"expected label","Expected block label after ':'.");
-        expect(r,"NEWLINE");s->body=parse_block_body(r,block_label?block_label:head,"CATCH","FINALLY");
+        expect_line_end(r);s->body=parse_block_body(r,block_label?block_label:head,"CATCH","FINALLY");
         while(accept(r,"CATCH")){
             Stmt *branch=new_stmt(13);if(!branch||!add_stmt(&s->other,branch)){fault(r,"out of memory");break;}
             if(at(r,"IDENTIFIER")){separan_token *category=take(r);branch->name=copy_text(category->lexeme);branch->name_line=category->line;branch->name_column=category->column;}else fault_syntax(r,"expected error category","Expected error category after catch.");
             for(size_t i=0;branch->name&&i+1<s->other.count;i++){
-                if(!strcmp(s->other.items[i]->name,branch->name))fault_at(r,"duplicate catch",branch->name_line,branch->name_column);
-                if(!strcmp(s->other.items[i]->name,"any"))fault_at(r,"catch after any",branch->name_line,branch->name_column);
+                if(!strcmp(s->other.items[i]->name,branch->name)){
+                    char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                    snprintf(description,sizeof(description),"Error category '%s' is already caught.",branch->name);
+                    fault_detail_at(r,"duplicate catch","Duplicate catch",description,branch->name,
+                                    branch->name_line,branch->name_column);
+                }
+                if(!strcmp(s->other.items[i]->name,"any"))
+                    fault_detail_at(r,"catch after any","Catch after any","catch any must be the final catch branch.",
+                                    branch->name,branch->name_line,branch->name_column);
             }
-            expect(r,"COLON");if(s->name)check_closing_label(r,s->name,"branch label mismatch",s->name_line,s->name_column);
+            expect_syntax(r,"COLON","Expected ':' after catch.");if(s->name)check_closing_label(r,s->name,"branch label mismatch",s->name_line,s->name_column);
             else if(!r->error)fault_syntax(r,"expected label","Expected label after catch.");
-            expect(r,"NEWLINE");branch->body=parse_block_body(r,block_label?block_label:head,"CATCH","FINALLY");
+            expect_line_end(r);branch->body=parse_block_body(r,block_label?block_label:head,"CATCH","FINALLY");
         }
         if(accept(r,"FINALLY")){
-            expect(r,"COLON");if(s->name)check_closing_label(r,s->name,"branch label mismatch",s->name_line,s->name_column);
+            expect_syntax(r,"COLON","Expected ':' after finally.");if(s->name)check_closing_label(r,s->name,"branch label mismatch",s->name_line,s->name_column);
             else if(!r->error)fault_syntax(r,"expected label","Expected label after finally.");
-            expect(r,"NEWLINE");s->final=parse_block_body(r,block_label?block_label:head,"ENDTRY",NULL);
+            expect_line_end(r);s->final=parse_block_body(r,block_label?block_label:head,"ENDTRY",NULL);
         }
-        if(!s->other.count&&!s->final.count)fault_at(r,"empty try handler",head->line,head->column);
-        expect(r,"ENDTRY");expect(r,"COLON");
+        if(!s->other.count&&!s->final.count)
+            fault_detail_at(r,"empty try handler","Empty try handler",
+                            "A try block requires at least one catch or finally branch.","",head->line,head->column);
+        expect_block_closer(r,"ENDTRY","try");expect_block_closer_colon(r);
         if(s->name)check_closing_label(r,s->name,"block label mismatch",s->name_line,s->name_column);
         return s;
     }
     if(accept(r,"THROW")){Stmt *s=new_stmt(11);s->expr=parse_expr(r,1);return s;}
     if(accept(r,"ERROR")){
-        Stmt *s=new_stmt(14);expect(r,"COLON");if(at(r,"IDENTIFIER")){separan_token *name=take(r);s->name=copy_text(name->lexeme);s->name_line=name->line;s->name_column=name->column;}else fault_syntax(r,"expected error name","Expected custom error name.");
-        expect(r,"NEWLINE");newlines(r);expect(r,"END_ERROR");expect(r,"COLON");
+        Stmt *s=new_stmt(14);expect_syntax(r,"COLON","Expected ':' after error.");if(at(r,"IDENTIFIER")){separan_token *name=take(r);s->name=copy_text(name->lexeme);s->name_line=name->line;s->name_column=name->column;}else fault_syntax(r,"expected error name","Expected custom error name.");
+        expect_line_end(r);newlines(r);expect_block_closer(r,"END_ERROR","error");expect_block_closer_colon(r);
         if(s->name)check_closing_label(r,s->name,"error label mismatch",s->name_line,s->name_column);return s;
     }
     if(accept(r,"HTTP_ROUTE")){
         Stmt *s=new_stmt(20);separan_token *block_label=NULL;
-          separan_token *method=at(r,"IDENTIFIER")?take(r):NULL;if(method)s->method=copy_text(method->lexeme);else fault(r,"invalid route method");
+                    separan_token *method=at(r,"IDENTIFIER")?take(r):NULL;if(method)s->method=copy_text(method->lexeme);else fault(r,"invalid route method");
         if(s->method&&strcmp(s->method,"GET")&&strcmp(s->method,"HEAD")&&strcmp(s->method,"POST")&&
-              strcmp(s->method,"PUT")&&strcmp(s->method,"PATCH")&&strcmp(s->method,"DELETE"))fault_at(r,"invalid route method",method->line,method->column);
+                            strcmp(s->method,"PUT")&&strcmp(s->method,"PATCH")&&strcmp(s->method,"DELETE"))
+                        fault_detail_at(r,"invalid route method","Invalid route method",
+                                "Route method must be an uppercase supported HTTP method.",s->method,method->line,method->column);
         if(at(r,"STRING")){Expr *path=parse_atom(r);if(path&&path->literal.kind==V_STRING){s->path=copy_text(path->literal.string);s->path_line=path->line;s->path_column=path->column;}free_expr(path);}
         else fault(r,"invalid route path");
-        if(s->path&&(s->path[0]!='/'||strchr(s->path,'?')||strchr(s->path,'#')))fault_at(r,"invalid route path",s->path_line,s->path_column);
-        expect(r,"COLON");if(at_label(r)){block_label=take(r);s->name=copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;}else fault_syntax(r,"expected label","Expected block label after ':'.");
-        expect(r,"NEWLINE");s->body=parse_block_body(r,block_label?block_label:head,"END_HTTP_ROUTE",NULL);expect(r,"END_HTTP_ROUTE");expect(r,"COLON");
+        if(s->path&&(s->path[0]!='/'||strchr(s->path,'?')||strchr(s->path,'#')))
+            fault_detail_at(r,"invalid route path","Invalid route path",
+                "Route path must start with '/' and exclude query/fragment.",s->path,s->path_line,s->path_column);
+        expect_open_label_colon(r,"http_route");if(at_label(r)){block_label=take(r);s->name=copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;}else fault_syntax(r,"expected label","Expected block label after ':'.");
+        expect_line_end(r);s->body=parse_block_body(r,block_label?block_label:head,"END_HTTP_ROUTE",NULL);expect_block_closer(r,"END_HTTP_ROUTE","http_route");expect_block_closer_colon(r);
         if(s->name)check_closing_label(r,s->name,"block label mismatch",s->name_line,s->name_column);return s;
     }
     if(accept(r,"TRANSACTION")){
-        Stmt *s=new_stmt(17);separan_token *block_label=NULL;s->expr=parse_expr(r,1);expect(r,"COLON");
+        Stmt *s=new_stmt(17);separan_token *block_label=NULL;s->expr=parse_expr(r,1);expect_open_label_colon(r,"transaction");
         if(at_label(r)){block_label=take(r);s->name=copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;}else fault_syntax(r,"expected label","Expected block label after ':'.");
-        expect(r,"NEWLINE");s->body=parse_block_body(r,block_label?block_label:head,"END_TRANSACTION",NULL);expect(r,"END_TRANSACTION");expect(r,"COLON");
+        expect_line_end(r);s->body=parse_block_body(r,block_label?block_label:head,"END_TRANSACTION",NULL);expect_block_closer(r,"END_TRANSACTION","transaction");expect_block_closer_colon(r);
         if(s->name)check_closing_label(r,s->name,"block label mismatch",s->name_line,s->name_column);return s;
     }
     if(accept(r,"PRINT_ERROR")){Stmt *s=new_stmt(16);s->expr=parse_expr(r,1);return s;}
@@ -1152,38 +1285,46 @@ static Stmt *parse_stmt_inner(Runtime *r) {
     }
     if (accept(r, "OBJECT")) {
         Stmt *s = new_stmt(9);separan_token *block_label=NULL;
-        expect(r, "COLON");
+        expect_syntax(r,"COLON","Expected ':' after object.");
         if (at(r, "IDENTIFIER")){block_label=take(r);s->name = copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;}
         else fault_syntax(r,"expected object name","Expected object name.");
-        expect(r, "NEWLINE");
+        expect_line_end(r);
         s->body = parse_block_body(r,block_label?block_label:head,"END_OBJECT", NULL);
         for(size_t i=0;i<s->body.count&&!r->error;i++){
             Stmt *field=s->body.items[i];if(field->kind!=0&&field->kind!=9&&field->kind!=10&&field->kind!=19)fault_at(r,"invalid object entry",field->line,field->column);
-            for(size_t j=0;j<i&&!r->error;j++)if(field->name&&s->body.items[j]->name&&!strcmp(field->name,s->body.items[j]->name))fault_at(r,"duplicate object field",field->line,field->column);
+            for(size_t j=0;j<i&&!r->error;j++)if(field->name&&s->body.items[j]->name&&!strcmp(field->name,s->body.items[j]->name)){
+                if(!r->error){
+                    snprintf(r->error_category,sizeof(r->error_category),"Duplicate object field");
+                    snprintf(r->error_description,sizeof(r->error_description),"Field '%s' is already defined in object :%s.",field->name,s->name?s->name:"");
+                    snprintf(r->error_actual,sizeof(r->error_actual),"%s",field->name);
+                }
+                fault_at(r,"duplicate object field",field->line,field->column);
+            }
         }
-        expect(r, "END_OBJECT"); expect(r, "COLON");
+        expect_block_closer(r,"END_OBJECT","object"); expect_block_closer_colon(r);
         if(s->name)check_closing_label(r,s->name,"object label mismatch",s->name_line,s->name_column);
         return s;
     }
     if (accept(r, "LIST")) {
         Stmt *s = new_stmt(10);separan_token *block_label=NULL;
-        expect(r, "COLON");
+        expect_syntax(r,"COLON","Expected ':' after list.");
         if (at(r, "IDENTIFIER")){block_label=take(r);s->name = copy_text(block_label->lexeme);s->name_line=block_label->line;s->name_column=block_label->column;}
         else fault_syntax(r,"expected list name","Expected list name.");
-        expect(r, "NEWLINE");
+        expect_line_end(r);
         s->body = parse_block_body(r,block_label?block_label:head,"END_LIST", NULL);
-        expect(r, "END_LIST"); expect(r, "COLON");
+        expect_block_closer(r,"END_LIST","list"); expect_block_closer_colon(r);
         if(s->name)check_closing_label(r,s->name,"list label mismatch",s->name_line,s->name_column);
         return s;
     }
     if(starts_index_assignment(r)){
-        Stmt *s=new_stmt(18);s->target=parse_primary(r);expect(r,"EQUAL");s->expr=parse_expr(r,1);return s;
+        Stmt *s=new_stmt(18);s->target=parse_primary(r);expect_syntax(r,"EQUAL","Expected '=' after indexed target.");s->expr=parse_expr(r,1);return s;
     }
     if (at(r, "IDENTIFIER") && r->at + 1 < r->tokens.count &&
         (!strcmp(r->tokens.tokens[r->at + 1].type,"EQUAL")||assignment_operator(r->tokens.tokens[r->at+1].type))) {
         Stmt *s = new_stmt(0);
         s->name = copy_text(take(r)->lexeme);
-        if (!strcmp(s->name, "system")) fault(r, "reserved system binding");
+        if (!strcmp(s->name, "system")) fault_detail_at(r,"reserved system binding","Reserved context name",
+            "Name 'system' is reserved for a read-only runtime context.","system",s->line,s->column);
         separan_token *assignment = take(r);
         Expr *right = parse_expr(r, 1);
         const char *op = assignment_operator(assignment->type);
@@ -1210,7 +1351,11 @@ static Body parse_body(Runtime *r, const char *stop_a, const char *stop_b) {
     while (!r->error && !at(r, "EOF") && !(stop_a && at(r, stop_a)) && !(stop_b && at(r, stop_b)) &&
            !(stop_a && strcmp(stop_a, "ELSE") == 0 && at(r, "ELSEIF")) &&
            !(stop_a && strcmp(stop_a,"CATCH")==0 && at(r,"ENDTRY"))) {
-        if((at(r,"ELSE")||at(r,"ELSEIF"))&&stop_a&&strcmp(stop_a,"ELSE")&&strcmp(stop_a,"ELSEIF")){fault(r,"invalid branch order");break;}
+        if((at(r,"ELSE")||at(r,"ELSEIF"))&&stop_a&&strcmp(stop_a,"ELSE")&&strcmp(stop_a,"ELSEIF")){
+            fault_detail_at(r,"invalid branch order","Invalid if branch",
+                            "else must be the final branch and may occur only once.",peek(r)->lexeme,
+                            peek(r)->line,peek(r)->column);break;
+        }
         if(closer_token(peek(r)->type)){
             separan_token *closer=peek(r);const char *expected_type=expected_closer_type(stop_a,stop_b);
             separan_token *actual_label=(r->at+2<r->tokens.count&&
@@ -1253,15 +1398,24 @@ static Body parse_body(Runtime *r, const char *stop_a, const char *stop_b) {
         Stmt *stmt = parse_stmt(r);
         if (!stmt || !add_stmt(&body, stmt)) { fault(r, "out of memory"); break; }
         if(stmt->kind==15){
-            if(stop_a||stop_b)fault_at(r,"nested import",stmt->line,stmt->column);
-            else if(seen_non_import)fault_at(r,"import order",stmt->line,stmt->column);
+            if(stop_a||stop_b)fault_detail_at(r,"nested import","Nested import",
+                "Imports are allowed only at top level.","",stmt->line,stmt->column);
+            else if(seen_non_import)fault_detail_at(r,"import order","Late import",
+                "Imports must appear before other top-level declarations and statements.","",stmt->line,stmt->column);
         }else{
+            if((stop_a||stop_b)&&stmt->kind==20)fault_detail_at(r,"nested HTTP route","Nested HTTP route",
+                "HTTP routes may only be declared at top level.","",stmt->line,stmt->column);
             seen_non_import=1;
-            if(!stop_a&&!stop_b&&(stmt->kind==2||stmt->kind==3||stmt->kind==4||stmt->kind==7||stmt->kind==11||stmt->kind==12||stmt->kind==17))fault_at(r,"top-level expression is not allowed",stmt->line,stmt->column);
-            if((stop_a||stop_b)&&stmt->kind==5)fault_at(r,"top-level expression is not allowed",stmt->line,stmt->column);
-            if((stop_a||stop_b)&&stmt->kind==14)fault_at(r,"nested error declaration",stmt->line,stmt->column);
+            if(!stop_a&&!stop_b&&(stmt->kind==2||stmt->kind==3||stmt->kind==4||stmt->kind==7||stmt->kind==11||stmt->kind==12||stmt->kind==17))fault_detail_at(r,"top-level expression is not allowed","Invalid top-level statement",
+                "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.",r->tokens.tokens[old].lexeme,stmt->line,stmt->column);
+            if((stop_a||stop_b)&&stmt->kind==5)fault_detail_at(r,"top-level expression is not allowed","Invalid top-level statement",
+                "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.",r->tokens.tokens[old].lexeme,stmt->line,stmt->column);
+            if((stop_a||stop_b)&&stmt->kind==14)
+                fault_detail_at(r,"nested error declaration","Nested error declaration",
+                                "Custom errors may only be declared at top level.","",stmt->line,stmt->column);
         }
-        if (!stop_a && !stop_b && stmt->kind == 6) fault_at(r,"top-level expression is not allowed",stmt->line,stmt->column);
+        if (!stop_a && !stop_b && stmt->kind == 6) fault_detail_at(r,"top-level expression is not allowed","Invalid top-level statement",
+            "Only function definitions, data blocks, const declarations, assignments, and print are allowed at top level.",r->tokens.tokens[old].lexeme,stmt->line,stmt->column);
         if (!at(r, "EOF") && !at(r, "NEWLINE")) fault(r, "expected end of line");
         newlines(r);
         if (old == r->at) { fault(r, "parser did not advance"); break; }
@@ -4716,7 +4870,11 @@ static Value evaluate_inner(Runtime *r, Frame *frame, Expr *e) {
                (left.kind == V_NUMBER && right.kind == V_DURATION && !strcmp(op, "STAR"))) {
         Value duration = left.kind == V_DURATION ? left : right;
         Value scalar = left.kind == V_NUMBER ? left : right;
-        if (!strcmp(op, "SLASH") && scalar.number == 0) fault(r, "division by zero");
+        if (!strcmp(op, "SLASH") && scalar.number == 0){
+            char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+            snprintf(description,sizeof(description),"Operator '/' cannot use zero as its right operand.");
+            fault_detail_at(r,"division by zero","Division by zero",description,"0",e->line,e->column);
+        }
         else {
             long double scaled = !strcmp(op, "SLASH") ? (long double)duration.integer / scalar.number :
                                  (long double)duration.integer * scalar.number;
@@ -4727,7 +4885,11 @@ static Value evaluate_inner(Runtime *r, Frame *frame, Expr *e) {
     } else if (left.kind == V_NUMBER && right.kind == V_NUMBER) {
         double a = left.number, b = right.number;
         if(left.exact_integer&&right.exact_integer){char xb[32],yb[32];const char *x=integer_text(left,xb),*y=integer_text(right,yb);int comparison=big_compare(x,y);
-            if((!strcmp(op,"SLASH")||!strcmp(op,"FLOOR_DIV")||!strcmp(op,"PERCENT"))&&!strcmp(y,"0"))fault(r,"division by zero");
+            if((!strcmp(op,"SLASH")||!strcmp(op,"FLOOR_DIV")||!strcmp(op,"PERCENT"))&&!strcmp(y,"0")){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Operator '%s' cannot use zero as its right operand.",!strcmp(op,"SLASH")?"/":!strcmp(op,"FLOOR_DIV")?"//":"%%");
+                fault_detail_at(r,"division by zero","Division by zero",description,"0",e->line,e->column);
+            }
             else if(!strcmp(op,"PLUS"))result=big_result(big_add(x,y));
             else if(!strcmp(op,"MINUS")){char *negative=big_negate(y),*sum=negative?big_add(x,negative):NULL;free(negative);result=big_result(sum);}
             else if(!strcmp(op,"STAR"))result=big_result(big_multiply(x,y));
@@ -4740,7 +4902,11 @@ static Value evaluate_inner(Runtime *r, Frame *frame, Expr *e) {
             else fault(r,"invalid numeric operation");
             if(result.kind==V_EMPTY&&!r->error)fault(r,"numeric domain error");
         }
-        else if ((!strcmp(op,"SLASH")||!strcmp(op,"FLOOR_DIV")||!strcmp(op,"PERCENT"))&&b==0) fault(r,"division by zero");
+        else if ((!strcmp(op,"SLASH")||!strcmp(op,"FLOOR_DIV")||!strcmp(op,"PERCENT"))&&b==0){
+            char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+            snprintf(description,sizeof(description),"Operator '%s' cannot use zero as its right operand.",!strcmp(op,"SLASH")?"/":!strcmp(op,"FLOOR_DIV")?"//":"%%");
+            fault_detail_at(r,"division by zero","Division by zero",description,"0",e->line,e->column);
+        }
         else if (!strcmp(op, "PLUS")) result = number_value(a + b);
         else if (!strcmp(op, "MINUS")) result = number_value(a - b);
         else if (!strcmp(op, "STAR")) result = number_value(a * b);
@@ -5053,10 +5219,22 @@ static void execute_body(Runtime *r, Frame *frame, Body body) {
             }else if(s->kind!=18){fault(r,"EMPTYS requires container");free_value(value);continue;}
         }
         if (value.kind == V_VOID && s->kind != 6) {
-            fault(r, "VOID value cannot be used"); free_value(value); break;
+            const char *description=s->kind==1||s->kind==16?
+                "VOID cannot be printed because it does not represent a value.":
+                "VOID does not represent a value and cannot be assigned.";
+            fault_detail_at(r,"VOID value cannot be used","VOID value use",description,"VOID",s->line,s->column);
+            free_value(value); break;
         }
-        if(value.kind==V_EMPTY&&s->kind==19&&s->constant){fault(r,"EMPTY constant");free_value(value);continue;}
-        if(value.kind==V_EMPTY&&s->kind==8){fault(r,"EMPTY constant");free_value(value);continue;}
+        if(value.kind==V_EMPTY&&s->kind==19&&s->constant){
+            fault_detail_at(r,"EMPTY constant","EMPTY constant",
+                "A constant must contain a value and cannot be initialized with EMPTY.","EMPTY",s->line,s->column);
+            free_value(value);continue;
+        }
+        if(value.kind==V_EMPTY&&s->kind==8){
+            fault_detail_at(r,"EMPTY constant","EMPTY constant",
+                "A constant must contain a value and cannot be initialized with EMPTY.","EMPTY",s->line,s->column);
+            free_value(value);continue;
+        }
         if(s->kind==19){
             Binding *existing=lookup_local(frame,s->name);
             if(existing)fault(r,"duplicate typed declaration");
@@ -5074,10 +5252,20 @@ static void execute_body(Runtime *r, Frame *frame, Body body) {
                     else{fault(r,"list element type required");free_value(value);continue;}
                 }else free(inferred);
             }
-            if(value.kind==V_EMPTY&&!existing){fault(r,"untyped EMPTY");free_value(value);continue;}
+            if(value.kind==V_EMPTY&&!existing){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Variable '%s' cannot infer a type from EMPTY.",s->name?s->name:"");
+                fault_detail_at(r,"untyped EMPTY","EMPTY type required",description,"EMPTY",s->line,s->column);
+                free_value(value);continue;
+            }
             if(value.kind==V_EMPTY&&existing&&!value.retained_type){
                 value.retained_type=existing->declared_type?copy_text(existing->declared_type):value_type_text(existing->value);
-                if(!value.retained_type){fault(r,"untyped EMPTY");free_value(value);continue;}
+                if(!value.retained_type){
+                    char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                    snprintf(description,sizeof(description),"Variable '%s' cannot infer a type from EMPTY.",s->name?s->name:"");
+                    fault_detail_at(r,"untyped EMPTY","EMPTY type required",description,"EMPTY",s->line,s->column);
+                    free_value(value);continue;
+                }
             }
             if(existing&&s->kind==8)fault(r,"duplicate typed declaration");
             else if (existing && existing->constant) fault(r, "constant cannot be reassigned");
@@ -5123,18 +5311,62 @@ static void validate_program(Runtime *r) {
     for(size_t i=0;i<r->program.count&&!r->error;i++){Stmt *current=r->program.items[i];
     if(current->line){r->fault_line=current->line;r->fault_column=current->column;}
         if(current->kind==5){
-            if(builtin_name(current->name))fault(r,"reserved function name");
-            else if(!strcmp(current->name,"main")&&current->parameter_count)fault(r,"invalid main function");
-            for(size_t j=0;j<i&&!r->error;j++)if(r->program.items[j]->kind==5&&!strcmp(current->name,r->program.items[j]->name))fault(r,"duplicate function");
+            if(builtin_name(current->name)){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Function '%s' is a built-in and cannot be redefined.",current->name);
+                fault_detail_at(r,"reserved function name","Reserved function name",description,current->name,current->line,current->column);
+            }else if(!strcmp(current->name,"main")&&current->parameter_count){
+                char actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];actual[0]='\0';
+                strcat(actual,"main(");
+                for(size_t p=0;p<current->parameter_count;p++){if(p)strcat(actual,", ");strcat(actual,current->parameters[p]);}
+                strcat(actual,")");
+                snprintf(r->error_category,sizeof(r->error_category),"Invalid main function");
+                snprintf(r->error_description,sizeof(r->error_description),"main must have zero parameters in v0.1.");
+                snprintf(r->error_expected,sizeof(r->error_expected),"main()");
+                snprintf(r->error_actual,sizeof(r->error_actual),"%s",actual);
+                fault_at(r,"invalid main function",current->line,current->column);
+            }
+            for(size_t j=0;j<i&&!r->error;j++)if(r->program.items[j]->kind==5&&!strcmp(current->name,r->program.items[j]->name)){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Function '%s' is already defined.",current->name);
+                fault_detail_at(r,"duplicate function","Duplicate function",description,current->name,current->line,current->column);
+            }
         }else if(current->kind==14){
-            size_t name_length=strlen(current->name);if(name_length<7||strcmp(current->name+name_length-6,"_error"))fault_at(r,"invalid error name",current->name_line?current->name_line:current->line,current->name_column?current->name_column:current->column);
-            else if(builtin_name(current->name)||error_category_name(current->name))fault(r,"duplicate error name");
-            for(size_t j=0;j<r->program.count&&!r->error;j++)if(r->program.items[j]->kind==5&&!strcmp(current->name,r->program.items[j]->name))fault(r,"error name conflicts with function");
-            for(size_t j=0;j<i&&!r->error;j++)if(r->program.items[j]->kind==14&&!strcmp(current->name,r->program.items[j]->name))fault(r,"duplicate error name");
+            size_t name_length=strlen(current->name);if(name_length<7||strcmp(current->name+name_length-6,"_error")){
+                if(!r->error){
+                    snprintf(r->error_category,sizeof(r->error_category),"Invalid error name");
+                    snprintf(r->error_description,sizeof(r->error_description),"Custom error names must end with '_error'.");
+                    snprintf(r->error_actual,sizeof(r->error_actual),"%s",current->name?current->name:"");
+                }
+                fault_at(r,"invalid error name",current->name_line?current->name_line:current->line,current->name_column?current->name_column:current->column);
+            }
+            else if(builtin_name(current->name)||error_category_name(current->name)){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Custom error name '%s' conflicts with an existing declaration or built-in.",current->name);
+                fault_detail_at(r,"duplicate error name","Duplicate error name",description,current->name,
+                                current->line,current->column);
+            }
+            for(size_t j=0;j<r->program.count&&!r->error;j++)if(r->program.items[j]->kind==5&&!strcmp(current->name,r->program.items[j]->name)){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Custom error name '%s' conflicts with an existing declaration or built-in.",current->name);
+                fault_detail_at(r,"error name conflicts with function","Duplicate error name",description,current->name,
+                                current->line,current->column);
+            }
+            for(size_t j=0;j<i&&!r->error;j++)if(r->program.items[j]->kind==14&&!strcmp(current->name,r->program.items[j]->name)){
+                char description[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(description,sizeof(description),"Custom error name '%s' conflicts with an existing declaration or built-in.",current->name);
+                fault_detail_at(r,"duplicate error name","Duplicate error name",description,current->name,
+                                current->line,current->column);
+            }
         }else if(current->kind==20){
             if(!valid_route_parameters(current->path))fault_at(r,"invalid route path",current->path_line?current->path_line:current->line,current->path_column?current->path_column:current->column);
             for(size_t j=0;j<i&&!r->error;j++)if(r->program.items[j]->kind==20&&!strcmp(current->method,r->program.items[j]->method)&&
-                !strcmp(current->path,r->program.items[j]->path))fault(r,"duplicate HTTP route");
+                !strcmp(current->path,r->program.items[j]->path)){
+                char actual[SEPARAN_RUNTIME_DIAGNOSTIC_LEN];
+                snprintf(actual,sizeof(actual),"%s %s",current->method,current->path);
+                fault_detail_at(r,"duplicate HTTP route","Duplicate HTTP route",
+                    "HTTP method and path must be unique.",actual,current->line,current->column);
+            }
         }
     }
 }
@@ -5439,6 +5671,22 @@ int separan_runtime_dispatch_http_json(separan_runtime *handle,const char *reque
     free_value(r->http_request);r->http_request=empty_value();free_value(r->http_params);r->http_params=empty_value();
     free_value(r->http_response);r->http_response=empty_value();free_value(r->http_cookies);r->http_cookies=empty_value();r->http_active=0;r->http_returned=0;
     return r->error?1:0;
+}
+
+void separan_runtime_get_diagnostic(const separan_runtime *handle,
+                                   separan_runtime_diagnostic *diagnostic) {
+    if(!diagnostic)return;
+    memset(diagnostic,0,sizeof(*diagnostic));
+    if(!handle)return;
+    const Runtime *r=&handle->runtime;
+    diagnostic->line_number=r->error_line;
+    diagnostic->column_number=r->error_column;
+    diagnostic->related_line_number=r->error_related_line;
+    diagnostic->related_column_number=r->error_related_column;
+    snprintf(diagnostic->category,sizeof(diagnostic->category),"%s",r->error_category);
+    snprintf(diagnostic->description,sizeof(diagnostic->description),"%s",r->error_description);
+    snprintf(diagnostic->expected,sizeof(diagnostic->expected),"%s",r->error_expected);
+    snprintf(diagnostic->actual,sizeof(diagnostic->actual),"%s",r->error_actual);
 }
 
 void separan_runtime_release_string(char *value){free(value);}
