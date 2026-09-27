@@ -1,0 +1,16 @@
+PackageIdentifier: Separan.Separan
+PackageVersion: 1.1.1
+InstallerType: inno
+Scope: user
+UpgradeBehavior: install
+ProductCode: '{EDAFDCD7-2243-4A5F-BC98-09B0F66F2A32}_is1'
+ReleaseDate: 2026-09-27
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/mocchii2/Separan/releases/download/v1.1.1/separan-installer.exe
+  InstallerSha256: 959A3FE0D66918304342D1A939FCFBDB1DBBD74D451160030E6EEECBA7F69DB8
+  InstallerSwitches:
+    Silent: /VERYSILENT /NORESTART
+    SilentWithProgress: /SILENT /NORESTART
+ManifestType: installer
+ManifestVersion: 1.9.0
