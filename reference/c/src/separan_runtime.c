@@ -6327,6 +6327,40 @@ static void validate_body_labels(Runtime *r,Body body,const char **labels,Stmt *
         if(labeled&&s->name)depth--;
     }
 }
+static int generic_label_number(const char *label,uint64_t *number,int *looks_generic) {
+    size_t length=label?strlen(label):0;*looks_generic=length>1&&label[0]=='_'&&
+        (label[length-1]=='_'||(label[1]>='0'&&label[1]<='9'));
+    if(!*looks_generic)return 0;
+    if(length<3||label[length-1]!='_'||label[1]<'1'||label[1]>'9')return 0;
+    uint64_t value=0;for(size_t index=1;index+1<length;index++){
+        if(label[index]<'0'||label[index]>'9')return 0;
+        unsigned digit=(unsigned)(label[index]-'0');if(value>(UINT64_MAX-digit)/10)return 0;value=value*10+digit;
+    }
+    *number=value;return 1;
+}
+static void validate_generic_labels(Runtime *r,Body body,uint64_t **numbers,size_t *count,size_t *capacity) {
+    for(size_t index=0;index<body.count&&!r->error;index++){
+        Stmt *statement=body.items[index];int labeled=statement->kind==3||statement->kind==4||statement->kind==5||
+            statement->kind==7||statement->kind==9||statement->kind==10||statement->kind==12||statement->kind==17||statement->kind==20;
+        if(labeled&&statement->name){uint64_t number;int looks_generic;
+            if(looks_generic=0,!generic_label_number(statement->name,&number,&looks_generic)&&looks_generic){
+                fault_at(r,"invalid generic structural label",statement->name_line?statement->name_line:statement->line,
+                    statement->name_column?statement->name_column:statement->column);break;
+            }
+            if(looks_generic){for(size_t used=0;used<*count;used++)if((*numbers)[used]==number){
+                    fault_at(r,"duplicate generic structural label",statement->name_line?statement->name_line:statement->line,
+                        statement->name_column?statement->name_column:statement->column);break;}
+                if(r->error)break;if(*count==*capacity){size_t next=*capacity?*capacity*2:16;uint64_t *grown=realloc(*numbers,next*sizeof(*grown));
+                    if(!grown){fault(r,"out of memory");break;}*numbers=grown;*capacity=next;}(*numbers)[(*count)++]=number;
+            }
+        }
+        validate_generic_labels(r,statement->body,numbers,count,capacity);
+        if(statement->kind==3&&statement->other.count==1&&statement->other.items[0]->kind==3)
+            validate_generic_labels(r,statement->other.items[0]->body,numbers,count,capacity);
+        else validate_generic_labels(r,statement->other,numbers,count,capacity);
+        validate_generic_labels(r,statement->final,numbers,count,capacity);
+    }
+}
 
 static int runtime_create_internal(const char *source,const separan_runtime_options *options,
                                    FILE *output,FILE *errors,int execute_top_level,
@@ -6352,7 +6386,11 @@ static int runtime_create_internal(const char *source,const separan_runtime_opti
                 r->tokens.error_code, r->tokens.error_line, r->tokens.error_column);
         runtime_contents_destroy(handle);free(handle);return 1;
     }
-    r->program=parse_body(r,NULL,NULL);if(!r->error){int old_executing=r->executing;r->executing=1;const char *labels[128];Stmt *openers[128];validate_body_labels(r,r->program,labels,openers,0);if(!r->error)validate_program(r);r->executing=old_executing;r->fault_line=0;r->fault_column=0;}
+    r->program=parse_body(r,NULL,NULL);if(!r->error){int old_executing=r->executing;r->executing=1;const char *labels[128];Stmt *openers[128];validate_body_labels(r,r->program,labels,openers,0);
+        uint64_t *generic_numbers=NULL;size_t generic_count=0,generic_capacity=0;
+        if(!r->error)for(size_t index=0;index<r->program.count&&!r->error;index++)if(r->program.items[index]->kind==5)
+            validate_generic_labels(r,r->program.items[index]->body,&generic_numbers,&generic_count,&generic_capacity);
+        free(generic_numbers);if(!r->error)validate_program(r);r->executing=old_executing;r->fault_line=0;r->fault_column=0;}
     if(!r->error){
         bytecode_route_cache_load(r,source);
         if(!bytecode_compile_http_routes(r))fault(r,"bytecode compilation out of memory");

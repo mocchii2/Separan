@@ -643,6 +643,8 @@ int main(void) {
     remove(complex_cache);
 
     FILE *check_errors = tmpfile(); if (!check_errors) return 46;
+    if (separan_check_source("SEP:main\nif true :_1_\nendif:_1_\nEND_SEP:main\n", check_errors)) return 105;
+    if (!separan_check_source("SEP:main\nif true :_1_\nendif:_1_\nwhile true :_1_\nendwhile:_1_\nEND_SEP:main\n", check_errors)) return 106;
     if (separan_check_source("value = network_hostname()\nSEP:main\nEND_SEP:main\n", check_errors)) return 47;
     if (!separan_check_source("SEP:main\nprint (1 + )\nEND_SEP:main\n", check_errors)) return 48;
     fclose(check_errors);
