@@ -56,6 +56,24 @@ END_SEP:main
     def test_duplicate_open_labels_across_kinds(self):
         self.assert_code('SEP:main\nif true :main\nendif:main\nEND_SEP:main\n', "E109")
 
+    def test_generic_structural_labels_are_sep_local_and_stable(self):
+        source = '''SEP:first
+if true :_1_
+endif:_1_
+END_SEP:first
+SEP:second
+if true :_1_
+endif:_1_
+END_SEP:second
+'''
+        parse(source)
+        self.assert_code('SEP:main\nif true :_1_\nendif:_1_\nwhile true :_1_\nendwhile:_1_\nEND_SEP:main\n', "E109")
+
+    def test_generic_structural_label_canonical_form(self):
+        for label in ("_0_", "_01_", "_1", "_abc_"):
+            with self.subTest(label=label):
+                self.assert_code(f'SEP:main\nif true :{label}\nendif:{label}\nEND_SEP:main\n', "E101")
+
     def test_unexpected_closer_kinds(self):
         for closer in ('endif:x', 'endwhile:x', 'endfor:x', 'END_SEP:x'):
             with self.subTest(closer=closer): self.assert_code(closer + '\n', "E107")

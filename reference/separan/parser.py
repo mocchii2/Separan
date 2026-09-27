@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 
 from .ast_nodes import *
 from .errors import SeparanError, error
@@ -32,6 +33,7 @@ class Parser:
 
     def __init__(self, tokens: list[Token]):
         self.tokens, self.current, self.stack = tokens, 0, []
+        self.generic_labels_by_sep = {}
 
     def parse(self) -> Program:
         self._newlines(); statements = []; seen_executable = False
@@ -400,10 +402,26 @@ class Parser:
         return token
 
     def _push(self, kind, label):
+        generic = self._generic_label_number(label.lexeme)
+        if label.lexeme.startswith("_") and (label.lexeme.endswith("_") or label.lexeme[1:2].isdigit()) and generic is None:
+            raise error("E101", "Invalid generic structural label", "Generic structural labels must use :_<positive-decimal-integer>_.", label.position, actual=label.lexeme)
         for opened in self.stack:
             if opened.label == label.lexeme:
                 raise error("E109", "Duplicate open label", f":{label.lexeme} is already used by an open block.", label.position, actual=label.lexeme, related=opened.position)
+        if generic is not None:
+            sep = next((opened for opened in reversed(self.stack) if opened.kind == "SEP"), None)
+            if sep is None:
+                raise error("E109", "Generic label outside SEP", "Generic structural labels must be contained by a SEP.", label.position, actual=label.lexeme)
+            used = self.generic_labels_by_sep.setdefault(id(sep), set())
+            if generic in used:
+                raise error("E109", "Duplicate generic structural label", f":{label.lexeme} is already used in the containing SEP.", label.position, actual=label.lexeme, related=sep.position)
+            used.add(generic)
         self.stack.append(OpenBlock(kind, label.lexeme, label.position))
+
+    @staticmethod
+    def _generic_label_number(label):
+        match = re.fullmatch(r"_([1-9][0-9]*)_", label)
+        return int(match.group(1)) if match else None
 
     def _branch_label(self, label, branch):
         self._consume(T.COLON, f"Expected ':' after {branch}.")
@@ -422,6 +440,7 @@ class Parser:
                 raise error("E105", "Block nesting error", f"Cannot close {kind} :{label.lexeme} because {opened.kind} :{opened.label} is still open.", closer.position, expected=self._closer_text(opened.kind, opened.label), actual=f"{closer.lexeme}:{label.lexeme}", related=opened.position)
             self._mismatch(label, opened.label, closer.lexeme, opened.position)
         self._line_end(); self.stack.pop()
+        if opened.kind == "SEP": self.generic_labels_by_sep.pop(id(opened), None)
 
     def _unexpected_or_nesting(self, closer):
         kind = self.CLOSERS[closer.type]
