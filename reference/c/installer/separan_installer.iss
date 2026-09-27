@@ -1,5 +1,5 @@
 ; Separan native installer
-#define MyAppName "Separan Native Core"
+#define MyAppName "Separan Core"
 #define MyAppVersion "1.1.1"
 #define MyAppPublisher "Separan"
 #define MyAppExeName "separan.exe"

@@ -1,12 +1,12 @@
-PackageIdentifier: Separan.Separan
+PackageIdentifier: Separan.Core
 PackageVersion: 1.1.1
 PackageLocale: en-US
 Publisher: Separan
 PublisherUrl: https://github.com/mocchii2/Separan
-PackageName: Separan
+PackageName: Separan Core
 PackageUrl: https://github.com/mocchii2/Separan
 License: Apache-2.0
 LicenseUrl: https://github.com/mocchii2/Separan/blob/main/LICENSE
-ShortDescription: Label-structured programming language with native C and Python runtimes.
+ShortDescription: Separan Core native C command-line runtime.
 ManifestType: defaultLocale
 ManifestVersion: 1.9.0

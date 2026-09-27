@@ -18,6 +18,7 @@
 ## ネイティブ C CLI のダウンロード
 
 - Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) は native CLI を install し、user PATH に追加します。新しい terminal を開き、`separan examples/hello.sep` で実行できます。
+- WinGet: `winget install Separan.Core`
 - Windows x86_64 portable CLI: [separan-windows-x86_64.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-windows-x86_64.zip) は install 不要です。展開後、`separan.exe` を起動してください。
 - Linux x86_64 binary: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz)
 - Linux ARM64 binary: [separan-linux-aarch64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-aarch64.tar.gz)
