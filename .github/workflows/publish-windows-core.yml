@@ -1,0 +1,63 @@
+name: Publish Windows Core
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing GitHub release tag to attach Windows Core assets to
+        required: true
+        type: string
+      build_ref:
+        description: Branch, tag, or commit to build from
+        required: false
+        default: main
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  windows-core:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.build_ref }}
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Windows Core
+        shell: msys2 {0}
+        run: |
+          cd reference/c
+          mkdir -p dist/separan-windows-x86_64
+          gcc -O1 -std=c11 -Wall -Wextra -I include \
+            src/main.c src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
+            -lm -o dist/separan-windows-x86_64/separan.exe
+          cp ../../README.md dist/separan-windows-x86_64/
+
+      - name: Package and upload Windows Core assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $root = Join-Path $PWD "reference/c/dist"
+          $source = Join-Path $root "separan-windows-x86_64"
+          $archive = Join-Path $root "separan-windows-x86_64.zip"
+          Compress-Archive -Path (Join-Path $source "*") -DestinationPath $archive -Force
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found: $iscc" }
+          & $iscc (Join-Path $PWD "reference/c/installer/separan_installer.iss")
+          $installer = Join-Path $root "separan-installer.exe"
+          if (-not (Test-Path $installer)) { throw "Installer was not produced: $installer" }
+          gh release upload $env:RELEASE_TAG $archive $installer --clobber
