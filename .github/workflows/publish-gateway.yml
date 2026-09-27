@@ -121,10 +121,18 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
 
+          - name: Install Inno Setup
+            shell: pwsh
+            run: choco install innosetup --no-progress --yes
+
       - name: Build Windows Gateway Worker
         shell: msys2 {0}
         run: |
           cd reference/c
+          mkdir -p dist/separan-windows-x86_64
+          gcc -O1 -std=c11 -Wall -Wextra -I include \
+            src/main.c src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
+            -lm -o dist/separan-windows-x86_64/separan.exe
           mkdir -p dist/separan-gw-windows-x86_64
           gcc -O1 -std=c11 -Wall -Wextra -I include \
             src/separan_gw.c src/separan_gw_fastcgi.c src/separan_gw_supervisor.c \
@@ -141,7 +149,15 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           $root = Join-Path $PWD "reference/c/dist"
+          $coreSource = Join-Path $root "separan-windows-x86_64"
+          $coreArchive = Join-Path $root "separan-windows-x86_64.zip"
           $source = Join-Path $root "separan-gw-windows-x86_64"
           $archive = Join-Path $root "separan-gw-windows-x86_64.zip"
+          Compress-Archive -Path (Join-Path $coreSource "*") -DestinationPath $coreArchive -Force
           Compress-Archive -Path (Join-Path $source "*") -DestinationPath $archive -Force
-          gh release upload $env:RELEASE_TAG $archive --clobber
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler not found: $iscc" }
+          & $iscc (Join-Path $PWD "reference/c/installer/separan_installer.iss")
+          $installer = Join-Path $root "separan-installer.exe"
+          if (-not (Test-Path $installer)) { throw "Installer was not produced: $installer" }
+          gh release upload $env:RELEASE_TAG $coreArchive $archive $installer --clobber

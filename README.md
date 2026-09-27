@@ -28,7 +28,7 @@ reconstructing indentation or counting brackets.
 The easiest way to try Separan is to download the native C CLI release for your platform:
 
 - Windows installer: [separan-installer.exe](https://github.com/mocchii2/Separan/releases/latest/download/separan-installer.exe) installs the native CLI and adds it to your user PATH. Open a new terminal, then run `separan examples/hello.sep`.
-- Windows portable ZIP: [separan-portable.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-portable.zip) needs no installation; extract it and run the bundled executable.
+- Windows x86_64 portable ZIP: [separan-windows-x86_64.zip](https://github.com/mocchii2/Separan/releases/latest/download/separan-windows-x86_64.zip) needs no installation; extract it and run `separan.exe`.
 - Linux x86_64 binary: [separan-linux-x86_64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-x86_64.tar.gz).
 - Linux ARM64 binary: [separan-linux-aarch64.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-aarch64.tar.gz).
 - Linux source: [separan-linux-source.tar.gz](https://github.com/mocchii2/Separan/releases/latest/download/separan-linux-source.tar.gz) contains CLI and Gateway source for either architecture.
