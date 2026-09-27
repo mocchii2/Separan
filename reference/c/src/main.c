@@ -7,7 +7,7 @@
 #include <string.h>
 
 static void print_help(const char *program_name) {
-    printf("Separan native core\n");
+    printf("Separan native core %s\n", SEPARAN_VERSION);
     printf("Usage: %s <source.sep> [arguments...]\n", program_name);
     printf("       %s --check <source.sep>\n", program_name);
     printf("       %s --tokens <source.sep>\n", program_name);
@@ -182,6 +182,7 @@ static int print_formatted_source(const char *path) {
 }
 
 int main(int argc, char **argv) {
+    if (argc == 2 && !strcmp(argv[1], "--version")) { puts(SEPARAN_VERSION); return 0; }
     if (argc == 2 && (strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "/?") == 0)) {
         print_help(argv[0]);
         return 0;

@@ -1,4 +1,4 @@
-"""Temporal value model for the Separan v0.2 preview."""
+"""Temporal value model for the Separan 1.1.1 runtime."""
 
 from dataclasses import dataclass
 from datetime import datetime as PyDateTime, timedelta, timezone as py_timezone

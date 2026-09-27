@@ -10,7 +10,7 @@ from .objects import ObjectValue
 from .runtime_values import empty_of
 
 
-VERSION = "0.2.0-alpha.13"
+VERSION = "1.1.1"
 ENGINE = "python-reference"
 
 

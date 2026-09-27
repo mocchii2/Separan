@@ -1,4 +1,4 @@
-"""Strict built-in functions for the Separan v0.2 alpha reference runtime."""
+"""Strict built-in functions for the Separan 1.1.1 reference runtime."""
 
 from dataclasses import dataclass
 from datetime import datetime as PyDateTime, timezone as py_timezone

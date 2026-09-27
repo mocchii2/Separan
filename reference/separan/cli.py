@@ -40,7 +40,7 @@ def main(argv=None):
         return _build(command_line[1:])
     if command_line and command_line[0] == "flash":
         return _flash(command_line[1:])
-    parser = argparse.ArgumentParser(prog="separan", description="Separan v0.2 alpha interpreter")
+    parser = argparse.ArgumentParser(prog="separan", description="Separan 1.1.1 interpreter")
     parser.add_argument("source", type=Path, nargs="?")
     parser.add_argument("--ast", action="store_true", help="print the parsed AST instead of executing")
     parser.add_argument("--timezone-version", action="store_true", help="print the timezone database version")

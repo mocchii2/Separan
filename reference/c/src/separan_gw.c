@@ -222,7 +222,7 @@ static char *read_source(const char *path) {
 }
 
 static void print_help(const char *program) {
-    printf("Separan Gateway Worker\n");
+    printf("Separan Gateway Worker %s\n", SEPARAN_VERSION);
     printf("Usage: %s --source <app.sep> [--stdio|--fastcgi-stdio|--listen unix:<path>|tcp:<host>:<port>|pipe:<name>]\n", program);
     printf("       %s --source <app.sep> --fastcgi-stdio\n", program);
     printf("       %s --config <separan-gw.conf> [--service]\n", program);
@@ -244,6 +244,7 @@ int main(int argc, char **argv) {
     int internal_worker = 0;
     int run_as_service = 0;
     for (int index = 1; index < argc; index++) {
+        if (!strcmp(argv[index], "--version")) { puts(SEPARAN_VERSION); return 0; }
         if (!strcmp(argv[index], "-help") || !strcmp(argv[index], "--help")) {
             print_help(argv[0]);
             return 0;

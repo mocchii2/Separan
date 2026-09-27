@@ -206,7 +206,7 @@ CIやreview botでは`--json`を利用できます。公開済みVS Code 1.0.1�
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
-## v1.0.0
+## v1.1.1
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
 型推論後の型固定、同一型リスト、関数、`main`自動実行、条件分岐、ループ、
@@ -218,7 +218,7 @@ v0.4 tooling層では、v0.1言語意味論を変えずに
 構造化diagnostic APIはsyntax、block、declaration、import、tag、HTTP routeの診断情報を提供し、
 保持したruntime instanceからも最後の失敗詳細を取得できます。現在のsuiteは2,145件を収集し、
 自動実行では2,142件が成功、credentialsが必要な外部database 3件はskipされます。
-PostgreSQL、MySQL、Oracleのintegration caseは手動実行で確認済みです。VS Code拡張は`separan-language` 1.1.0として公開予定です。
+PostgreSQL、MySQL、Oracleのintegration caseは手動実行で確認済みです。VS Code拡張は`separan-language` 1.1.1として公開予定です。
 
 標準ライブラリには、明示的型変換、Unicode文字列、同型list、不変bytes、
 datetime／duration、再現可能乱数とsecure乱数、filesystem／process utility、
@@ -523,7 +523,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanのcore言語とstable standard libraryは **v1.0.0** として公開します。
+Separanのcore言語とstable standard libraryは **v1.1.1** として公開します。
 previewまたはexperimentalと明記された機能は、将来の昇格までstable互換性の
 対象外です。core構文、診断、cross-implementation適合contractは固定されています。
 
