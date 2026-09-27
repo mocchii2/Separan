@@ -52,6 +52,7 @@ typedef struct {
     int read_environment;
     int write_environment;
     const char *script_path;
+   const char *cache_dir;
     const char *const *command_arguments;
     size_t command_argument_count;
     const separan_database_adapter *database;

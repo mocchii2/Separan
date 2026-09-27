@@ -16,6 +16,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
 
 #define SEPARAN_MAX_BIG_INTEGER_DIGITS 4096
 
@@ -38,9 +43,51 @@ struct ParseOpenFrame { const char *label; const char *closer; size_t line,colum
 static const char *closer_spelling(const char *type);
 struct Value { ValueKind kind; double number; int64_t integer; char *big_integer; int temporal[7]; int offset_minutes; int floating; int exact_integer; int boolean; char *string; size_t string_length; Value *items; char **keys; size_t count; void *external; char *retained_type; };
 static Value string_value(const char *s);
+static Value http_default_response(int status,const char *body);
 typedef struct Expr Expr;
 typedef struct Stmt Stmt;
 typedef struct { Stmt **items; size_t count; } Body;
+typedef enum { BC_PUSH_CONSTANT, BC_PRINT_STDOUT, BC_PRINT_STDERR, BC_EVAL_EXPR, BC_HTTP_RETURN_SOURCE, BC_HALT } BytecodeOpcode;
+typedef enum { HTTP_SOURCE_METHOD, HTTP_SOURCE_PATH, HTTP_SOURCE_PARAM, HTTP_SOURCE_QUERY } HttpSourceKind;
+typedef struct { uint8_t opcode; uint32_t operand; } BytecodeInstruction;
+typedef struct { size_t line, column; } BytecodeSourceLocation;
+typedef struct {
+    BytecodeInstruction *instructions;
+    BytecodeSourceLocation *source_map;
+    size_t count, capacity;
+    Value *constants;
+    size_t constant_count, constant_capacity;
+    Expr **expressions;
+    size_t expression_count, expression_capacity;
+    struct BytecodeHttpReturnPlan *http_returns;
+    size_t http_return_count, http_return_capacity;
+} BytecodeProgram;
+typedef struct BytecodeHttpReturnPlan {
+    int status;
+    HttpSourceKind source_kind;
+    char *key;
+    Expr *body_expression;
+} BytecodeHttpReturnPlan;
+/* Pointer-free HTTP route body IR persisted by the SEPRT02 route cache. */
+typedef enum { RE_LITERAL_STRING, RE_VARIABLE, RE_CONCAT, RE_REQ_METHOD, RE_REQ_PATH, RE_REQ_PARAM, RE_REQ_QUERY } RouteExprKind;
+typedef struct RouteExpr {
+    uint8_t kind;
+    char *text;
+    size_t text_length;
+    struct RouteExpr *left, *right;
+} RouteExpr;
+typedef enum { RA_ASSIGN, RA_SET_COOKIE, RA_RETURN_HTTP } RouteActionKind;
+typedef struct {
+    uint8_t kind;
+    int status;
+    char *name;
+    RouteExpr *left, *right;
+} RouteAction;
+typedef struct {
+    RouteAction *actions;
+    size_t count, capacity;
+} RouteScript;
+typedef struct { Stmt *statement; BytecodeProgram bytecode; RouteScript *script; } CompiledHttpRoute;
 
 struct Expr {
     int kind; /* 0 literal, 1 variable, 2 unary, 3 binary, 4 call, 5 list, 6 index, 7 member, 8 member call, 9 state test */
@@ -67,6 +114,8 @@ struct Stmt {
     char **tags;
     size_t tag_count;
     int constant;
+    size_t compiled_route_index;
+    int has_compiled_route;
 };
 
 typedef struct { char *name; char *declared_type; Value value; int constant; } Binding;
@@ -88,6 +137,10 @@ typedef struct Runtime {
     size_t parse_open_line,parse_open_column;
     const char *parse_open_label;
     ParseOpenFrame *parse_open_frame;
+    BytecodeProgram bytecode;
+    int bytecode_active;
+    CompiledHttpRoute *compiled_http_routes;
+    size_t compiled_http_route_count, compiled_http_route_capacity;
     int executing;
     size_t fault_line, fault_column;
     FILE *errors;
@@ -105,6 +158,7 @@ typedef struct Runtime {
     separan_files files;
     int read_files, write_files, discover_paths, import_modules, read_environment, write_environment;
     const char *script_path;
+    const char *cache_dir;
     const char *const *command_arguments;
     size_t command_argument_count;
     const separan_database_adapter *database;
@@ -112,6 +166,9 @@ typedef struct Runtime {
     const separan_host_adapter *host;
     Value http_request, http_params, http_response, http_cookies;
     int http_active, http_returned;
+    Stmt *http_cached_route;
+    char *http_cached_method, *http_cached_path;
+    Value http_cached_params;
     struct Runtime *import_parent;
     ModuleCache **module_cache;
 } Runtime;
@@ -2620,9 +2677,33 @@ static const char *process_status_message(int status) {
 static void process_release(const separan_process_adapter *adapter,char *value) {
     if(!value)return;if(adapter->release_string)adapter->release_string(adapter->context,value);else free(value);
 }
+static Value *object_field(Value *object,const char *name);
 static int database_json(Value value,char **json) {
     TextBuffer buffer={0}; if(!json_value(&buffer,value,0)){free(buffer.data);return 0;}
     if(!buffer_append(&buffer,"",1)){free(buffer.data);return 0;} buffer.length--; *json=buffer.data; return 1;
+}
+static int http_response_json(Value response,char **json) {
+    if(!json||response.kind!=V_OBJECT)return 0;
+    Value *status=object_field(&response,"status"),*headers=object_field(&response,"headers"),
+          *body=object_field(&response,"body"),*cookies=object_field(&response,"cookies");
+    if(!status||status->kind!=V_NUMBER||!headers||headers->kind!=V_OBJECT||!body||!cookies||cookies->kind!=V_LIST)return 0;
+    TextBuffer buffer={0};int ok=buffer_append(&buffer,"{\"status\":",10)&&json_value(&buffer,*status,0)&&
+        buffer_append(&buffer,",\"headers\":{",12);
+    for(size_t index=0;ok&&index<headers->count;index++){
+        Value *value=&headers->items[index];
+        if(value->kind!=V_STRING)ok=0;
+        else ok=(!index||buffer_append(&buffer,",",1))&&json_string(&buffer,headers->keys[index],strlen(headers->keys[index]))&&
+            buffer_append(&buffer,":",1)&&json_string(&buffer,value->string,value->string_length);
+    }
+    ok=ok&&buffer_append(&buffer,"},\"body\":",9)&&json_value(&buffer,*body,0)&&buffer_append(&buffer,",\"cookies\":[",12);
+    for(size_t index=0;ok&&index<cookies->count;index++){
+        Value *cookie=&cookies->items[index];
+        if(cookie->kind!=V_STRING)ok=0;
+        else ok=(!index||buffer_append(&buffer,",",1))&&json_string(&buffer,cookie->string,cookie->string_length);
+    }
+    ok=ok&&buffer_append(&buffer,"]}",2)&&buffer_append(&buffer,"",1);
+    if(!ok){free(buffer.data);return 0;}
+    buffer.length--;*json=buffer.data;return 1;
 }
 static Value adapter_parse_json(Runtime *r,const char *text,const char *missing,const char *invalid) {
     if(!text){fault(r,missing);return empty_value();}
@@ -2842,20 +2923,20 @@ static int normalize_exec_result(Value *value) {
     duration->kind=V_DURATION;duration->integer=(int64_t)duration->number;duration->number=0;
     value->kind=V_EXEC_RESULT;return 1;
 }
-static int accepts_named_argument(const char *function,const char *argument) {
-    const HostSignature *host=any_host_signature(function);if(host)return host_named_argument(host,argument);
-    if(!strcmp(function,"exec")||!strcmp(function,"exec_checked")||!strcmp(function,"shell_exec")) {
+static int accepts_named_argument(const char *logic,const char *argument) {
+    const HostSignature *host=any_host_signature(logic);if(host)return host_named_argument(host,argument);
+    if(!strcmp(logic,"exec")||!strcmp(logic,"exec_checked")||!strcmp(logic,"shell_exec")) {
         const char *names[]={"cwd","timeout","env","inherit_env","input","encoding","max_stdout_bytes","max_stderr_bytes"};
         for(size_t i=0;i<sizeof(names)/sizeof(*names);i++)if(!strcmp(argument,names[i]))return 1;
     }
-    if((!strcmp(function,"bytes_from_string") || !strcmp(function,"string_from_bytes")) && !strcmp(argument,"encoding")) return 1;
-    if((!strcmp(function,"env_get") || !strcmp(function,"arg_value")) && !strcmp(argument,"default")) return 1;
-    if(!strcmp(function,"datetime") && !strcmp(argument,"timezone")) return 1;
-    if(!strcmp(function,"db_connect")) {
+    if((!strcmp(logic,"bytes_from_string") || !strcmp(logic,"string_from_bytes")) && !strcmp(argument,"encoding")) return 1;
+    if((!strcmp(logic,"env_get") || !strcmp(logic,"arg_value")) && !strcmp(argument,"default")) return 1;
+    if(!strcmp(logic,"datetime") && !strcmp(argument,"timezone")) return 1;
+    if(!strcmp(logic,"db_connect")) {
         const char *names[]={"driver","host","port","database","user","password","timeout","charset","ssl","mode"};
         for(size_t i=0;i<sizeof(names)/sizeof(*names);i++)if(!strcmp(argument,names[i]))return 1;
     }
-    if((!strcmp(function,"db_query")||!strcmp(function,"db_query_one")||!strcmp(function,"db_scalar")||!strcmp(function,"db_execute"))&&!strcmp(argument,"timeout"))return 1;
+    if((!strcmp(logic,"db_query")||!strcmp(logic,"db_query_one")||!strcmp(logic,"db_scalar")||!strcmp(logic,"db_execute"))&&!strcmp(argument,"timeout"))return 1;
     return 0;
 }
 static Value *shape_target(Runtime *r,Frame *frame,Expr *expression) {
@@ -4764,8 +4845,8 @@ static Value evaluate_inner(Runtime *r, Frame *frame, Expr *e) {
         Value *arguments=calloc(e->argc?e->argc:1,sizeof(*arguments));if(!arguments){fault(r,"out of memory");free_value(target);return result;}
         for(size_t i=0;i<e->argc&&!r->error;i++)arguments[i]=evaluate(r,frame,e->args[i]);
         Runtime *child=&module->runtime;child->output=r->output;child->errors=r->errors;child->handler_depth=r->handler_depth;
-        Stmt *function=find_logic(child,e->text);
-        if(!r->error&&function)result=invoke_named(child,e->text,arguments,e->argc);
+        Stmt *logic=find_logic(child,e->text);
+        if(!r->error&&logic)result=invoke_named(child,e->text,arguments,e->argc);
         else if(!r->error){if(e->argc!=1||arguments[0].kind!=V_STRING)fault(r,"wrong argument count");else result=error_value(e->text,arguments[0]);}
         if(child->error){r->error=1;r->message=child->message;snprintf(r->error_code,sizeof(r->error_code),"%s",child->error_code);child->error=0;}
         if(child->throwing){r->throwing=1;free_value(r->thrown);r->thrown=clone_value(child->thrown);snprintf(r->thrown_code,sizeof(r->thrown_code),"%s",child->thrown_code);r->thrown_line=child->thrown_line;r->thrown_column=child->thrown_column;child->throwing=0;free_value(child->thrown);child->thrown=empty_value();}
@@ -5290,10 +5371,871 @@ static void execute_body(Runtime *r, Frame *frame, Body body) {
     r->executing=was_executing;r->fault_line=old_line;r->fault_column=old_column;
 }
 
+static void bytecode_free(BytecodeProgram *program) {
+    if(!program)return;
+    for(size_t index=0;index<program->constant_count;index++)free_value(program->constants[index]);
+    for(size_t index=0;index<program->http_return_count;index++)free(program->http_returns[index].key);
+    free(program->http_returns);free(program->constants);free(program->expressions);free(program->instructions);free(program->source_map);memset(program,0,sizeof(*program));
+}
+
+static int bytecode_emit(BytecodeProgram *program,BytecodeOpcode opcode,uint32_t operand,size_t line,size_t column) {
+    if(program->count==program->capacity){
+        size_t capacity=program->capacity?program->capacity*2:16;
+        if(capacity<program->capacity||capacity>SIZE_MAX/sizeof(*program->instructions))return 0;
+        BytecodeInstruction *instructions=realloc(program->instructions,capacity*sizeof(*instructions));
+        if(!instructions)return 0;
+        program->instructions=instructions;
+        BytecodeSourceLocation *source_map=realloc(program->source_map,capacity*sizeof(*source_map));
+        if(!source_map)return 0;
+        program->source_map=source_map;program->capacity=capacity;
+    }
+    program->instructions[program->count]=(BytecodeInstruction){(uint8_t)opcode,operand};
+    program->source_map[program->count]=(BytecodeSourceLocation){line,column};
+    program->count++;
+    return 1;
+}
+
+static int bytecode_add_constant(BytecodeProgram *program,Value value,uint32_t *index) {
+    if(program->constant_count>=UINT32_MAX)return 0;
+    if(program->constant_count==program->constant_capacity){
+        size_t capacity=program->constant_capacity?program->constant_capacity*2:8;
+        if(capacity<program->constant_capacity||capacity>SIZE_MAX/sizeof(*program->constants))return 0;
+        Value *constants=realloc(program->constants,capacity*sizeof(*constants));
+        if(!constants)return 0;
+        program->constants=constants;program->constant_capacity=capacity;
+    }
+    *index=(uint32_t)program->constant_count;
+    program->constants[program->constant_count++]=value;
+    return 1;
+}
+
+static int bytecode_add_expression(BytecodeProgram *program,Expr *expression,uint32_t *index) {
+    if(program->expression_count>=UINT32_MAX)return 0;
+    if(program->expression_count==program->expression_capacity){
+        size_t capacity=program->expression_capacity?program->expression_capacity*2:8;
+        if(capacity<program->expression_capacity||capacity>SIZE_MAX/sizeof(*program->expressions))return 0;
+        Expr **expressions=realloc(program->expressions,capacity*sizeof(*expressions));
+        if(!expressions)return 0;
+        program->expressions=expressions;program->expression_capacity=capacity;
+    }
+    *index=(uint32_t)program->expression_count;
+    program->expressions[program->expression_count++]=expression;
+    return 1;
+}
+
+static int bytecode_add_http_return(BytecodeProgram *program,int status,HttpSourceKind source_kind,
+                                    const char *key,Expr *body_expression,uint32_t *index) {
+    if(program->http_return_count>=UINT32_MAX)return 0;
+    if(program->http_return_count==program->http_return_capacity){
+        size_t capacity=program->http_return_capacity?program->http_return_capacity*2:4;
+        if(capacity<program->http_return_capacity||capacity>SIZE_MAX/sizeof(*program->http_returns))return 0;
+        BytecodeHttpReturnPlan *plans=realloc(program->http_returns,capacity*sizeof(*plans));
+        if(!plans)return 0;
+        program->http_returns=plans;program->http_return_capacity=capacity;
+    }
+    char *copy=key?copy_text(key):NULL;
+    if(key&&!copy)return 0;
+    *index=(uint32_t)program->http_return_count;
+    program->http_returns[program->http_return_count++]=(BytecodeHttpReturnPlan){status,source_kind,copy,body_expression};
+    return 1;
+}
+
+static uint64_t bytecode_source_hash(const char *source) {
+    uint64_t hash=1469598103934665603ULL;
+    for(const unsigned char *cursor=(const unsigned char *)source;*cursor;cursor++){hash^=*cursor;hash*=1099511628211ULL;}
+    return hash;
+}
+static int cache_write_u32(FILE *file,uint32_t value) { return fwrite(&value,sizeof(value),1,file)==1; }
+static int cache_write_u64(FILE *file,uint64_t value) { return fwrite(&value,sizeof(value),1,file)==1; }
+static int cache_read_u32(FILE *file,uint32_t *value) { return fread(value,sizeof(*value),1,file)==1; }
+static int cache_read_u64(FILE *file,uint64_t *value) { return fread(value,sizeof(*value),1,file)==1; }
+static int cache_write_value(FILE *file,Value value) {
+    uint8_t kind=(uint8_t)value.kind;if(fwrite(&kind,sizeof(kind),1,file)!=1)return 0;
+    if(value.kind==V_STRING||value.kind==V_BYTES){
+        return cache_write_u64(file,value.string_length)&&fwrite(value.string,1,value.string_length,file)==value.string_length;
+    }
+    if(value.kind==V_BOOL)return fwrite(&value.boolean,sizeof(value.boolean),1,file)==1;
+    if(value.kind==V_NUMBER){
+        uint8_t flags=(uint8_t)((value.floating?1:0)|(value.exact_integer?2:0));
+        size_t big_length=value.big_integer?strlen(value.big_integer):0;
+        return fwrite(&value.number,sizeof(value.number),1,file)==1&&fwrite(&value.integer,sizeof(value.integer),1,file)==1&&
+            fwrite(&flags,sizeof(flags),1,file)==1&&cache_write_u64(file,big_length)&&
+            (!big_length||fwrite(value.big_integer,1,big_length,file)==big_length);
+    }
+    return 0;
+}
+static Value cache_read_value(FILE *file) {
+    uint8_t kind;
+    if(fread(&kind,sizeof(kind),1,file)!=1)return empty_value();
+    if(kind==V_STRING||kind==V_BYTES){
+        uint64_t length;if(!cache_read_u64(file,&length)||length>SIZE_MAX)return empty_value();
+        char *data=malloc((size_t)length+1);if(!data)return empty_value();
+        if(fread(data,1,(size_t)length,file)!=(size_t)length){free(data);return empty_value();}data[length]=0;
+        Value value=string_bytes(data,(size_t)length);free(data);if(kind==V_BYTES)value.kind=V_BYTES;return value;
+    }
+    if(kind==V_BOOL){Value value=empty_value();value.kind=V_BOOL;return fread(&value.boolean,sizeof(value.boolean),1,file)==1?value:empty_value();}
+    if(kind==V_NUMBER){
+        Value value=empty_value();uint8_t flags;uint64_t big_length;
+        if(fread(&value.number,sizeof(value.number),1,file)!=1||fread(&value.integer,sizeof(value.integer),1,file)!=1||
+           fread(&flags,sizeof(flags),1,file)!=1||!cache_read_u64(file,&big_length)||big_length>SIZE_MAX-1)return empty_value();
+        value.kind=V_NUMBER;value.floating=!!(flags&1);value.exact_integer=!!(flags&2);
+        if(big_length){value.big_integer=malloc((size_t)big_length+1);if(!value.big_integer)return empty_value();
+            if(fread(value.big_integer,1,(size_t)big_length,file)!=(size_t)big_length){free_value(value);return empty_value();}value.big_integer[big_length]=0;}
+        return value;
+    }
+    return empty_value();
+}
+static int bytecode_cache_path(const Runtime *runtime,uint64_t hash,char *path,size_t capacity) {
+    if(!runtime->cache_dir||!runtime->cache_dir[0])return 0;
+    int written=snprintf(path,capacity,"%s%cseparan-%016llx.bc",runtime->cache_dir,
+#ifdef _WIN32
+        '\\',
+#else
+        '/',
+#endif
+        (unsigned long long)hash);
+    return written>0&&(size_t)written<capacity;
+}
+static int route_cache_path(const Runtime *runtime,uint64_t hash,char *path,size_t capacity) {
+    if(!runtime->cache_dir||!runtime->cache_dir[0])return 0;
+    int written=snprintf(path,capacity,"%s%cseparan-%016llx.routes",runtime->cache_dir,
+#ifdef _WIN32
+        '\\',
+#else
+        '/',
+#endif
+        (unsigned long long)hash);
+    return written>0&&(size_t)written<capacity;
+}
+static int cache_write_text(FILE *file,const char *text) {
+    size_t length=text?strlen(text):0;if(!cache_write_u64(file,length))return 0;
+    return !length||fwrite(text,1,length,file)==length;
+}
+static char *cache_read_text(FILE *file) {
+    uint64_t length;if(!cache_read_u64(file,&length)||length>SIZE_MAX-1)return NULL;
+    char *text=malloc((size_t)length+1);if(!text)return NULL;
+    if(length&&fread(text,1,(size_t)length,file)!=(size_t)length){free(text);return NULL;}text[length]=0;return text;
+}
+static int cache_replace_file(const char *temporary,const char *path) {
+    if(!rename(temporary,path))return 1;
+#ifdef _WIN32
+    remove(path);
+    return !rename(temporary,path);
+#else
+    return 0;
+#endif
+}
+static int bytecode_cache_load(Runtime *runtime,const char *source,BytecodeProgram *program) {
+    char path[4096];uint64_t hash=bytecode_source_hash(source);if(!bytecode_cache_path(runtime,hash,path,sizeof(path)))return 0;
+    FILE *file=fopen(path,"rb");if(!file)return 0;
+    char magic[8];uint64_t stored_hash;uint32_t instruction_count,constant_count;
+    int ok=fread(magic,1,sizeof(magic),file)==sizeof(magic)&&!memcmp(magic,"SEPBC01",7)&&
+        cache_read_u64(file,&stored_hash)&&stored_hash==hash&&cache_read_u32(file,&instruction_count)&&cache_read_u32(file,&constant_count);
+    if(ok&&instruction_count>1000000U){ok=0;}
+    memset(program,0,sizeof(*program));
+    if(ok)for(uint32_t index=0;index<instruction_count;index++){
+        uint8_t opcode;uint32_t operand;uint64_t line,column;
+        if(fread(&opcode,sizeof(opcode),1,file)!=1||!cache_read_u32(file,&operand)||!cache_read_u64(file,&line)||!cache_read_u64(file,&column)||
+           !bytecode_emit(program,(BytecodeOpcode)opcode,operand,(size_t)line,(size_t)column)){ok=0;break;}
+    }
+    if(ok)for(uint32_t index=0;index<constant_count;index++){
+        Value value=cache_read_value(file);if(value.kind==V_EMPTY){ok=0;break;}
+        uint32_t ignored;if(!bytecode_add_constant(program,value,&ignored)){free_value(value);ok=0;break;}
+    }
+    fclose(file);if(!ok){bytecode_free(program);return 0;}
+    return 1;
+}
+static int runtime_add_compiled_route(Runtime *runtime,Stmt *statement,BytecodeProgram program,RouteScript *script) {
+    if(runtime->compiled_http_route_count==runtime->compiled_http_route_capacity){
+        size_t capacity=runtime->compiled_http_route_capacity?runtime->compiled_http_route_capacity*2:8;
+        if(capacity<runtime->compiled_http_route_capacity||capacity>SIZE_MAX/sizeof(*runtime->compiled_http_routes))return 0;
+        CompiledHttpRoute *routes=realloc(runtime->compiled_http_routes,capacity*sizeof(*routes));if(!routes)return 0;
+        runtime->compiled_http_routes=routes;runtime->compiled_http_route_capacity=capacity;
+    }
+    statement->compiled_route_index=runtime->compiled_http_route_count;statement->has_compiled_route=1;
+    runtime->compiled_http_routes[runtime->compiled_http_route_count++]=(CompiledHttpRoute){statement,program,script};return 1;
+}
+
+/* SEPRT02 route cache: pointer-free script layer for complex HTTP route handlers.
+   Supported subset (all else stays as an in-memory bytecode/interpreter fallback):
+     Statements:
+       - typed-less simple assignment `name = <route-expr>`
+       - `http_set_cookie(<name>, <value>)` positional-only (defaults: Path=/, HttpOnly, SameSite=Lax)
+       - `return_http(status = <int-literal>?, body = <route-expr>)`   (must be terminal)
+     Route expressions:
+       - string literal
+       - variable reference to a name assigned earlier in this route body
+       - `<string> + <string>` concatenation
+       - request_method() / request_path()
+       - request_param(<literal>) / request_query(<literal>)
+   Deliberately unsupported for safety: if / for / try / throw / print / index-assignment /
+   typed declarations / any call other than the three whitelisted above (including
+   request_body, request_header, request_cookie, redirect_http and cookie forms with
+   named arguments such as secure=true). Those routes keep using the AST interpreter. */
+static RouteExpr *route_expr_new(RouteExprKind kind) {
+    RouteExpr *expr=calloc(1,sizeof(*expr));if(expr)expr->kind=(uint8_t)kind;return expr;
+}
+static void route_expr_free(RouteExpr *expr) {
+    if(!expr)return;route_expr_free(expr->left);route_expr_free(expr->right);free(expr->text);free(expr);
+}
+static RouteExpr *route_expr_literal_bytes(RouteExprKind kind,const char *text,size_t length) {
+    RouteExpr *expr=route_expr_new(kind);if(!expr)return NULL;
+    expr->text=malloc(length+1);if(!expr->text){free(expr);return NULL;}
+    if(length)memcpy(expr->text,text,length);expr->text[length]=0;expr->text_length=length;return expr;
+}
+static int route_known_contains(const char *const *known_names,size_t count,const char *name) {
+    for(size_t i=0;i<count;i++)if(!strcmp(known_names[i],name))return 1;
+    return 0;
+}
+static RouteExpr *route_expr_compile(Expr *expression,const char *const *known_names,size_t known_count) {
+    if(!expression)return NULL;
+    if(expression->kind==0){
+        if(expression->literal.kind!=V_STRING)return NULL;
+        return route_expr_literal_bytes(RE_LITERAL_STRING,expression->literal.string,expression->literal.string_length);
+    }
+    if(expression->kind==1){
+        if(!expression->text||!route_known_contains(known_names,known_count,expression->text))return NULL;
+        return route_expr_literal_bytes(RE_VARIABLE,expression->text,strlen(expression->text));
+    }
+    if(expression->kind==3&&expression->text&&!strcmp(expression->text,"+")){
+        RouteExpr *left=route_expr_compile(expression->left,known_names,known_count);
+        RouteExpr *right=left?route_expr_compile(expression->right,known_names,known_count):NULL;
+        if(!left||!right){route_expr_free(left);route_expr_free(right);return NULL;}
+        RouteExpr *concat=route_expr_new(RE_CONCAT);
+        if(!concat){route_expr_free(left);route_expr_free(right);return NULL;}
+        concat->left=left;concat->right=right;return concat;
+    }
+    if(expression->kind==4&&expression->text){
+        if(expression->argc==0&&!strcmp(expression->text,"request_method"))return route_expr_new(RE_REQ_METHOD);
+        if(expression->argc==0&&!strcmp(expression->text,"request_path"))return route_expr_new(RE_REQ_PATH);
+        int is_param=!strcmp(expression->text,"request_param");
+        int is_query=!strcmp(expression->text,"request_query");
+        if((is_param||is_query)&&expression->argc==1&&expression->args[0]&&expression->args[0]->kind==0&&
+           expression->args[0]->literal.kind==V_STRING&&(!expression->arg_names||!expression->arg_names[0]))
+            return route_expr_literal_bytes(is_param?RE_REQ_PARAM:RE_REQ_QUERY,
+                expression->args[0]->literal.string,expression->args[0]->literal.string_length);
+    }
+    return NULL;
+}
+static void route_script_free(RouteScript *script) {
+    if(!script)return;
+    for(size_t i=0;i<script->count;i++){
+        free(script->actions[i].name);
+        route_expr_free(script->actions[i].left);
+        route_expr_free(script->actions[i].right);
+    }
+    free(script->actions);free(script);
+}
+static int route_script_append(RouteScript *script,RouteAction action) {
+    if(script->count==script->capacity){
+        size_t capacity=script->capacity?script->capacity*2:4;
+        if(capacity<script->capacity||capacity>SIZE_MAX/sizeof(*script->actions))return 0;
+        RouteAction *actions=realloc(script->actions,capacity*sizeof(*actions));
+        if(!actions)return 0;
+        script->actions=actions;script->capacity=capacity;
+    }
+    script->actions[script->count++]=action;return 1;
+}
+static int route_script_compile(Stmt *route,RouteScript **out) {
+    *out=NULL;if(!route||!route->body.count)return 0;
+    RouteScript *script=calloc(1,sizeof(*script));if(!script)return -1;
+    char **known_names=NULL;size_t known_count=0,known_capacity=0;
+    int compatible=1,oom=0,has_return=0;
+    for(size_t i=0;compatible&&!oom&&i<route->body.count;i++){
+        Stmt *stmt=route->body.items[i];
+        if(has_return){compatible=0;break;}
+        if(stmt->kind==0&&stmt->name&&!stmt->declared_type&&!stmt->target&&stmt->expr){
+            RouteExpr *rhs=route_expr_compile(stmt->expr,(const char *const *)known_names,known_count);
+            if(!rhs){compatible=0;break;}
+            char *name_copy=copy_text(stmt->name);
+            if(!name_copy){route_expr_free(rhs);oom=1;break;}
+            RouteAction action={RA_ASSIGN,0,name_copy,rhs,NULL};
+            if(!route_script_append(script,action)){free(name_copy);route_expr_free(rhs);oom=1;break;}
+            if(known_count==known_capacity){
+                size_t capacity=known_capacity?known_capacity*2:4;
+                char **next=realloc(known_names,capacity*sizeof(*next));
+                if(!next){oom=1;break;}
+                known_names=next;known_capacity=capacity;
+            }
+            known_names[known_count++]=name_copy;
+            continue;
+        }
+        if(stmt->kind==6&&stmt->expr&&stmt->expr->kind==4&&stmt->expr->text){
+            Expr *call=stmt->expr;
+            if(!strcmp(call->text,"http_set_cookie")){
+                if(call->argc!=2){compatible=0;break;}
+                if(call->arg_names&&(call->arg_names[0]||call->arg_names[1])){compatible=0;break;}
+                RouteExpr *name_expr=route_expr_compile(call->args[0],(const char *const *)known_names,known_count);
+                RouteExpr *value_expr=name_expr?route_expr_compile(call->args[1],(const char *const *)known_names,known_count):NULL;
+                if(!name_expr||!value_expr){route_expr_free(name_expr);route_expr_free(value_expr);compatible=0;break;}
+                RouteAction action={RA_SET_COOKIE,0,NULL,name_expr,value_expr};
+                if(!route_script_append(script,action)){route_expr_free(name_expr);route_expr_free(value_expr);oom=1;break;}
+                continue;
+            }
+            if(!strcmp(call->text,"return_http")){
+                int status=200;RouteExpr *body_expr=NULL;int valid=1;
+                for(size_t j=0;j<call->argc;j++){
+                    const char *name=call->arg_names?call->arg_names[j]:NULL;Expr *argument=call->args[j];
+                    if(!name||!argument){valid=0;break;}
+                    if(!strcmp(name,"status")){
+                        if(argument->kind!=0||argument->literal.kind!=V_NUMBER||argument->literal.floating||
+                           argument->literal.number<100||argument->literal.number>599){valid=0;break;}
+                        status=(int)argument->literal.number;
+                    }else if(!strcmp(name,"body")){
+                        if(body_expr){valid=0;break;}
+                        body_expr=route_expr_compile(argument,(const char *const *)known_names,known_count);
+                        if(!body_expr){valid=0;break;}
+                    }else{valid=0;break;}
+                }
+                if(!valid||!body_expr){route_expr_free(body_expr);compatible=0;break;}
+                RouteAction action={RA_RETURN_HTTP,status,NULL,body_expr,NULL};
+                if(!route_script_append(script,action)){route_expr_free(body_expr);oom=1;break;}
+                has_return=1;continue;
+            }
+        }
+        compatible=0;break;
+    }
+    free(known_names);
+    if(oom){route_script_free(script);return -1;}
+    if(!compatible||!has_return){route_script_free(script);return 0;}
+    *out=script;return 1;
+}
+
+static Value route_expr_evaluate(Runtime *runtime,Frame *frame,const RouteExpr *expr) {
+    if(!expr)return empty_value();
+    switch((RouteExprKind)expr->kind){
+    case RE_LITERAL_STRING:
+        return string_bytes(expr->text?expr->text:"",expr->text_length);
+    case RE_VARIABLE:{
+        Binding *binding=expr->text?lookup(frame,expr->text):NULL;
+        return binding?clone_value(binding->value):empty_value();
+    }
+    case RE_CONCAT:{
+        Value left=route_expr_evaluate(runtime,frame,expr->left);
+        if(left.kind!=V_STRING){free_value(left);return empty_value();}
+        Value right=route_expr_evaluate(runtime,frame,expr->right);
+        if(right.kind!=V_STRING){free_value(left);free_value(right);return empty_value();}
+        size_t total=left.string_length+right.string_length;
+        char *buffer=malloc(total+1);
+        if(!buffer){free_value(left);free_value(right);return empty_value();}
+        memcpy(buffer,left.string,left.string_length);
+        memcpy(buffer+left.string_length,right.string,right.string_length);
+        buffer[total]=0;
+        Value result=string_bytes(buffer,total);
+        free(buffer);free_value(left);free_value(right);return result;
+    }
+    case RE_REQ_METHOD:{
+        Value *value=object_field(&runtime->http_request,"method");
+        return value?clone_value(*value):empty_value();
+    }
+    case RE_REQ_PATH:{
+        Value *value=object_field(&runtime->http_request,"path");
+        return value?clone_value(*value):empty_value();
+    }
+    case RE_REQ_PARAM:{
+        Value *value=object_field(&runtime->http_params,expr->text?expr->text:"");
+        return value?clone_value(*value):empty_value();
+    }
+    case RE_REQ_QUERY:{
+        Value *query=object_field(&runtime->http_request,"query");
+        Value *value=query?object_field(query,expr->text?expr->text:""):NULL;
+        if(value&&value->kind==V_LIST&&value->count)return clone_value(value->items[0]);
+        return empty_value();
+    }
+    }
+    return empty_value();
+}
+
+static int route_script_execute(Runtime *runtime,Frame *frame,const RouteScript *script) {
+    int was_executing=runtime->executing;runtime->executing=1;
+    if(runtime->http_cookies.kind!=V_LIST){free_value(runtime->http_cookies);runtime->http_cookies=empty_value();runtime->http_cookies.kind=V_LIST;}
+    for(size_t i=0;i<script->count&&!runtime->error;i++){
+        if(++runtime->steps>1000000){fault(runtime,"execution limit exceeded");break;}
+        const RouteAction *action=&script->actions[i];
+        if(action->kind==RA_ASSIGN){
+            Value value=route_expr_evaluate(runtime,frame,action->left);
+            if(value.kind!=V_STRING){free_value(value);fault(runtime,"invalid HTTP response");break;}
+            int ok=bind(frame,action->name,value,0);
+            free_value(value);
+            if(!ok){fault(runtime,"cannot declare or assign variable");break;}
+        }else if(action->kind==RA_SET_COOKIE){
+            Value name_value=route_expr_evaluate(runtime,frame,action->left);
+            Value cookie_value=name_value.kind==V_STRING?route_expr_evaluate(runtime,frame,action->right):empty_value();
+            int ok=name_value.kind==V_STRING&&cookie_value.kind==V_STRING&&name_value.string_length>0;
+            for(size_t j=0;ok&&j<name_value.string_length;j++)
+                if(strchr("()<>@,;:\\\"/[]?={} \t\r\n",name_value.string[j]))ok=0;
+            for(size_t j=0;ok&&j<cookie_value.string_length;j++){
+                unsigned char c=(unsigned char)cookie_value.string[j];
+                if(c>=128||c==';'||c=='\r'||c=='\n')ok=0;
+            }
+            if(!ok){free_value(name_value);free_value(cookie_value);fault(runtime,"invalid HTTP response");break;}
+            size_t length=name_value.string_length+cookie_value.string_length+48;
+            char *text=malloc(length);
+            if(!text){free_value(name_value);free_value(cookie_value);fault(runtime,"out of memory");break;}
+            snprintf(text,length,"%.*s=%.*s; Path=/; HttpOnly; SameSite=Lax",
+                (int)name_value.string_length,name_value.string,
+                (int)cookie_value.string_length,cookie_value.string);
+            Value *items=realloc(runtime->http_cookies.items,
+                (runtime->http_cookies.count+1)*sizeof(*items));
+            if(!items){free(text);free_value(name_value);free_value(cookie_value);fault(runtime,"out of memory");break;}
+            runtime->http_cookies.items=items;
+            runtime->http_cookies.items[runtime->http_cookies.count++]=string_value(text);
+            free(text);free_value(name_value);free_value(cookie_value);
+        }else if(action->kind==RA_RETURN_HTTP){
+            Value body=route_expr_evaluate(runtime,frame,action->left);
+            if(body.kind!=V_STRING){free_value(body);fault(runtime,"invalid HTTP response");break;}
+            free_value(runtime->http_response);
+            runtime->http_response=http_default_response(action->status,"");
+            Value *body_field=object_field(&runtime->http_response,"body");
+            if(body_field){free_value(*body_field);*body_field=clone_value(body);}
+            free_value(body);
+            Value *cookies=object_field(&runtime->http_response,"cookies");
+            if(cookies){free_value(*cookies);*cookies=clone_value(runtime->http_cookies);}
+            runtime->http_returned=1;
+        }else{
+            fault(runtime,"invalid route script action");
+        }
+    }
+    runtime->executing=was_executing;
+    return runtime->error?1:0;
+}
+
+static int route_expr_write(FILE *file,const RouteExpr *expr,size_t depth) {
+    if(depth>64||!expr)return 0;
+    uint8_t kind=expr->kind;
+    if(fwrite(&kind,sizeof(kind),1,file)!=1)return 0;
+    size_t length=expr->text?expr->text_length:0;
+    if(!cache_write_u64(file,length))return 0;
+    if(length&&fwrite(expr->text,1,length,file)!=length)return 0;
+    uint8_t has_left=expr->left?1:0,has_right=expr->right?1:0;
+    if(fwrite(&has_left,sizeof(has_left),1,file)!=1)return 0;
+    if(has_left&&!route_expr_write(file,expr->left,depth+1))return 0;
+    if(fwrite(&has_right,sizeof(has_right),1,file)!=1)return 0;
+    if(has_right&&!route_expr_write(file,expr->right,depth+1))return 0;
+    return 1;
+}
+static RouteExpr *route_expr_read(FILE *file,size_t depth) {
+    if(depth>64)return NULL;
+    uint8_t kind;
+    if(fread(&kind,sizeof(kind),1,file)!=1)return NULL;
+    if(kind>RE_REQ_QUERY)return NULL;
+    uint64_t length;
+    if(!cache_read_u64(file,&length)||length>1024*1024)return NULL;
+    RouteExpr *expr=route_expr_new((RouteExprKind)kind);
+    if(!expr)return NULL;
+    expr->text=malloc((size_t)length+1);
+    if(!expr->text){free(expr);return NULL;}
+    if(length&&fread(expr->text,1,(size_t)length,file)!=(size_t)length){free(expr->text);free(expr);return NULL;}
+    expr->text[length]=0;expr->text_length=(size_t)length;
+    uint8_t has_left=0,has_right=0;
+    if(fread(&has_left,sizeof(has_left),1,file)!=1){route_expr_free(expr);return NULL;}
+    if(has_left){expr->left=route_expr_read(file,depth+1);if(!expr->left){route_expr_free(expr);return NULL;}}
+    if(fread(&has_right,sizeof(has_right),1,file)!=1){route_expr_free(expr);return NULL;}
+    if(has_right){expr->right=route_expr_read(file,depth+1);if(!expr->right){route_expr_free(expr);return NULL;}}
+    if(kind==RE_CONCAT){if(!expr->left||!expr->right){route_expr_free(expr);return NULL;}}
+    else if(expr->left||expr->right){route_expr_free(expr);return NULL;}
+    if(kind==RE_REQ_METHOD||kind==RE_REQ_PATH){if(length){route_expr_free(expr);return NULL;}}
+    else if((kind==RE_VARIABLE||kind==RE_REQ_PARAM||kind==RE_REQ_QUERY)&&!length){route_expr_free(expr);return NULL;}
+    return expr;
+}
+static int route_action_write(FILE *file,const RouteAction *action) {
+    uint8_t kind=action->kind;
+    if(fwrite(&kind,sizeof(kind),1,file)!=1)return 0;
+    if(!cache_write_u32(file,(uint32_t)action->status))return 0;
+    if(!cache_write_text(file,action->name))return 0;
+    uint8_t has_left=action->left?1:0,has_right=action->right?1:0;
+    if(fwrite(&has_left,sizeof(has_left),1,file)!=1)return 0;
+    if(has_left&&!route_expr_write(file,action->left,0))return 0;
+    if(fwrite(&has_right,sizeof(has_right),1,file)!=1)return 0;
+    if(has_right&&!route_expr_write(file,action->right,0))return 0;
+    return 1;
+}
+static int route_action_read(FILE *file,RouteAction *action) {
+    memset(action,0,sizeof(*action));
+    uint8_t kind=0;
+    if(fread(&kind,sizeof(kind),1,file)!=1)return 0;
+    if(kind>RA_RETURN_HTTP)return 0;
+    action->kind=kind;
+    uint32_t status=0;
+    if(!cache_read_u32(file,&status))return 0;
+    action->status=(int)status;
+    action->name=cache_read_text(file);
+    if(!action->name)return 0;
+    uint8_t has_left=0,has_right=0;
+    if(fread(&has_left,sizeof(has_left),1,file)!=1)return 0;
+    if(has_left){action->left=route_expr_read(file,0);if(!action->left)return 0;}
+    if(fread(&has_right,sizeof(has_right),1,file)!=1)return 0;
+    if(has_right){action->right=route_expr_read(file,0);if(!action->right)return 0;}
+    if(kind==RA_ASSIGN){
+        if(!action->name[0]||!action->left||action->right||action->status)return 0;
+    }else if(kind==RA_SET_COOKIE){
+        if(action->name[0]||!action->left||!action->right||action->status)return 0;
+    }else{
+        if(action->name[0]||!action->left||action->right||action->status<100||action->status>599)return 0;
+    }
+    return 1;
+}
+static int route_expr_scope_valid(const RouteExpr *expr,const char *const *defined,size_t count) {
+    if(!expr)return 1;
+    if(expr->kind==RE_VARIABLE){
+        if(!expr->text)return 0;
+        for(size_t i=0;i<count;i++)if(!strcmp(defined[i],expr->text))return 1;
+        return 0;
+    }
+    return route_expr_scope_valid(expr->left,defined,count)&&route_expr_scope_valid(expr->right,defined,count);
+}
+static int route_script_structurally_valid(const RouteScript *script) {
+    if(!script||!script->count)return 0;
+    for(size_t i=0;i+1<script->count;i++)if(script->actions[i].kind==RA_RETURN_HTTP)return 0;
+    if(script->actions[script->count-1].kind!=RA_RETURN_HTTP)return 0;
+    const char **defined=NULL;size_t count=0,capacity=0;int ok=1;
+    for(size_t i=0;ok&&i<script->count;i++){
+        const RouteAction *a=&script->actions[i];
+        ok=route_expr_scope_valid(a->left,defined,count)&&route_expr_scope_valid(a->right,defined,count);
+        if(ok&&a->kind==RA_ASSIGN){
+            if(count==capacity){
+                size_t next=capacity?capacity*2:4;
+                const char **buf=realloc(defined,next*sizeof(*buf));
+                if(!buf){ok=0;break;}
+                defined=buf;capacity=next;
+            }
+            defined[count++]=a->name;
+        }
+    }
+    free(defined);return ok;
+}
+static int route_script_write(FILE *file,const RouteScript *script) {
+    if(!cache_write_u32(file,(uint32_t)script->count))return 0;
+    for(size_t i=0;i<script->count;i++)if(!route_action_write(file,&script->actions[i]))return 0;
+    return 1;
+}
+static RouteScript *route_script_read(FILE *file) {
+    uint32_t count=0;
+    if(!cache_read_u32(file,&count))return NULL;
+    if(count>4096)return NULL;
+    RouteScript *script=calloc(1,sizeof(*script));
+    if(!script)return NULL;
+    for(uint32_t i=0;i<count;i++){
+        RouteAction action;
+        if(!route_action_read(file,&action)){
+            free(action.name);route_expr_free(action.left);route_expr_free(action.right);
+            route_script_free(script);return NULL;
+        }
+        if(!route_script_append(script,action)){
+            free(action.name);route_expr_free(action.left);route_expr_free(action.right);
+            route_script_free(script);return NULL;
+        }
+    }
+    return script;
+}
+
+static int bytecode_route_cache_load(Runtime *runtime,const char *source) {
+    char path[4096];uint64_t hash=bytecode_source_hash(source);
+    if(!route_cache_path(runtime,hash,path,sizeof(path)))return 0;
+    FILE *file=fopen(path,"rb");if(!file)return 0;
+    char magic[8];uint64_t stored_hash=0;uint32_t count=0;
+    int ok=fread(magic,1,sizeof(magic),file)==sizeof(magic)&&
+        !memcmp(magic,"SEPRT02",7)&&magic[7]==0&&
+        cache_read_u64(file,&stored_hash)&&stored_hash==hash&&
+        cache_read_u32(file,&count)&&count<=100000U;
+    size_t initial_count=runtime->compiled_http_route_count;
+    for(uint32_t index=0;ok&&index<count;index++){
+        char *method=cache_read_text(file);
+        char *route_path=method?cache_read_text(file):NULL;
+        RouteScript *script=route_path?route_script_read(file):NULL;
+        if(!method||!route_path||!script||!route_script_structurally_valid(script)){
+            free(method);free(route_path);if(script)route_script_free(script);ok=0;break;
+        }
+        Stmt *statement=NULL;
+        for(size_t item=0;item<runtime->program.count;item++){
+            Stmt *candidate=runtime->program.items[item];
+            if(candidate->kind==20&&candidate->method&&candidate->path&&
+               !strcmp(candidate->method,method)&&!strcmp(candidate->path,route_path)){
+                statement=candidate;break;
+            }
+        }
+        free(method);free(route_path);
+        if(!statement||statement->has_compiled_route){route_script_free(script);ok=0;break;}
+        BytecodeProgram empty={0};
+        if(!runtime_add_compiled_route(runtime,statement,empty,script)){
+            route_script_free(script);ok=0;break;
+        }
+    }
+    fclose(file);
+    if(!ok){
+        while(runtime->compiled_http_route_count>initial_count){
+            CompiledHttpRoute *rolled=&runtime->compiled_http_routes[--runtime->compiled_http_route_count];
+            if(rolled->statement)rolled->statement->has_compiled_route=0;
+            route_script_free(rolled->script);bytecode_free(&rolled->bytecode);
+            memset(rolled,0,sizeof(*rolled));
+        }
+        return 0;
+    }
+    return 1;
+}
+static void bytecode_route_cache_save(Runtime *runtime,const char *source) {
+    char path[4096],temporary[4096];uint64_t hash=bytecode_source_hash(source);
+    if(!route_cache_path(runtime,hash,path,sizeof(path)))return;
+#ifdef _WIN32
+    _mkdir(runtime->cache_dir);
+#else
+    mkdir(runtime->cache_dir,0700);
+#endif
+    int written=snprintf(temporary,sizeof(temporary),"%s.tmp",path);
+    if(written<0||(size_t)written>=sizeof(temporary))return;
+    FILE *file=fopen(temporary,"wb");if(!file)return;
+    char magic[8]="SEPRT02";uint32_t count=0;
+    for(size_t index=0;index<runtime->compiled_http_route_count;index++)
+        if(runtime->compiled_http_routes[index].script)count++;
+    int ok=fwrite(magic,1,sizeof(magic),file)==sizeof(magic)&&
+        cache_write_u64(file,hash)&&cache_write_u32(file,count);
+    for(size_t index=0;ok&&index<runtime->compiled_http_route_count;index++){
+        CompiledHttpRoute *route=&runtime->compiled_http_routes[index];
+        if(!route->script)continue;
+        ok=cache_write_text(file,route->statement->method)&&
+           cache_write_text(file,route->statement->path)&&
+           route_script_write(file,route->script);
+    }
+    if(ok){if(fclose(file))ok=0;else ok=cache_replace_file(temporary,path);}
+    else{fclose(file);remove(temporary);}
+}
+static void bytecode_cache_save(Runtime *runtime,const char *source,const BytecodeProgram *program) {
+    char path[4096],temporary[4096];uint64_t hash=bytecode_source_hash(source);
+    if(!bytecode_cache_path(runtime,hash,path,sizeof(path)))return;
+#ifdef _WIN32
+    _mkdir(runtime->cache_dir);
+#else
+    mkdir(runtime->cache_dir,0700);
+#endif
+    int written=snprintf(temporary,sizeof(temporary),"%s.tmp",path);if(written<0||(size_t)written>=sizeof(temporary))return;
+    FILE *file=fopen(temporary,"wb");if(!file)return;
+    char magic[8]="SEPBC01";int ok=fwrite(magic,1,sizeof(magic),file)==sizeof(magic)&&cache_write_u64(file,hash)&&
+        cache_write_u32(file,(uint32_t)program->count)&&cache_write_u32(file,(uint32_t)program->constant_count);
+    for(size_t index=0;ok&&index<program->count;index++)ok=fwrite(&program->instructions[index].opcode,sizeof(uint8_t),1,file)==1&&
+        cache_write_u32(file,program->instructions[index].operand)&&cache_write_u64(file,program->source_map[index].line)&&cache_write_u64(file,program->source_map[index].column);
+    for(size_t index=0;ok&&index<program->constant_count;index++)ok=cache_write_value(file,program->constants[index]);
+    if(ok){if(fclose(file))ok=0;else ok=cache_replace_file(temporary,path);}else{fclose(file);remove(temporary);}
+}
+
+static int http_body_expression_supported(const Expr *expression) {
+    if(!expression)return 0;
+    if(expression->kind==0)return expression->literal.kind==V_STRING;
+    if(expression->kind==3&&expression->text&&!strcmp(expression->text,"+"))
+        return http_body_expression_supported(expression->left)&&http_body_expression_supported(expression->right);
+    if(expression->kind!=4)return 0;
+    if(!strcmp(expression->text,"request_method")||!strcmp(expression->text,"request_path"))return expression->argc==0;
+    if(!strcmp(expression->text,"request_param")||!strcmp(expression->text,"request_query"))
+        return expression->argc==1&&expression->args[0]->kind==0&&expression->args[0]->literal.kind==V_STRING;
+    return 0;
+}
+
+static Value http_source_value(Runtime *runtime,const Expr *expression) {
+    if(!strcmp(expression->text,"request_method")){
+        Value *value=object_field(&runtime->http_request,"method");return value?clone_value(*value):empty_value();
+    }
+    if(!strcmp(expression->text,"request_path")){
+        Value *value=object_field(&runtime->http_request,"path");return value?clone_value(*value):empty_value();
+    }
+    const char *key=expression->args[0]->literal.string;
+    if(!strcmp(expression->text,"request_param")){
+        Value *value=object_field(&runtime->http_params,key);return value?clone_value(*value):empty_value();
+    }
+    Value *query=object_field(&runtime->http_request,"query");Value *value=query?object_field(query,key):NULL;
+    if(value&&value->kind==V_LIST&&value->count)return clone_value(value->items[0]);
+    return empty_value();
+}
+
+static int append_http_body_expression(Runtime *runtime,const Expr *expression,TextBuffer *buffer) {
+    if(expression->kind==0)return buffer_append(buffer,expression->literal.string,expression->literal.string_length);
+    if(expression->kind==3)return append_http_body_expression(runtime,expression->left,buffer)&&
+        append_http_body_expression(runtime,expression->right,buffer);
+    Value value=http_source_value(runtime,expression);int ok=value.kind==V_STRING&&buffer_append(buffer,value.string,value.string_length);
+    free_value(value);return ok;
+}
+static int append_http_plan_body(Runtime *runtime,const BytecodeHttpReturnPlan *plan,TextBuffer *buffer) {
+    if(plan->body_expression)return append_http_body_expression(runtime,plan->body_expression,buffer);
+    Value value=empty_value();
+    if(plan->source_kind==HTTP_SOURCE_METHOD){Value *item=object_field(&runtime->http_request,"method");if(item)value=clone_value(*item);}
+    else if(plan->source_kind==HTTP_SOURCE_PATH){Value *item=object_field(&runtime->http_request,"path");if(item)value=clone_value(*item);}
+    else if(plan->source_kind==HTTP_SOURCE_PARAM){Value *item=object_field(&runtime->http_params,plan->key);if(item)value=clone_value(*item);}
+    else {Value *query=object_field(&runtime->http_request,"query"),*item=query?object_field(query,plan->key):NULL;
+        if(item&&item->kind==V_LIST&&item->count)value=clone_value(item->items[0]);}
+    int ok=value.kind==V_STRING&&buffer_append(buffer,value.string,value.string_length);free_value(value);return ok;
+}
+
+static int bytecode_compile_top_level(Body body,BytecodeProgram *program) {
+    memset(program,0,sizeof(*program));
+    for(size_t index=0;index<body.count;index++){
+        Stmt *statement=body.items[index];
+        if((statement->kind!=1&&statement->kind!=16)||!statement->expr||statement->expr->kind!=0){
+            bytecode_free(program);return 0;
+        }
+        ValueKind kind=statement->expr->literal.kind;
+        if(kind!=V_STRING&&kind!=V_NUMBER&&kind!=V_BOOL&&kind!=V_BYTES){
+            bytecode_free(program);return 0;
+        }
+        Value constant=clone_value(statement->expr->literal);
+        uint32_t constant_index;
+        if(!bytecode_add_constant(program,constant,&constant_index)){
+            free_value(constant);bytecode_free(program);return -1;
+        }
+        if(!bytecode_emit(program,BC_PUSH_CONSTANT,constant_index,statement->line,statement->column)){
+            bytecode_free(program);return -1;
+        }
+        BytecodeOpcode print_opcode=statement->kind==1?BC_PRINT_STDOUT:BC_PRINT_STDERR;
+        if(!bytecode_emit(program,print_opcode,0,statement->line,statement->column)){
+            bytecode_free(program);return -1;
+        }
+    }
+    if(!bytecode_emit(program,BC_HALT,0,0,0)){bytecode_free(program);return -1;}
+    return 1;
+}
+
+static int bytecode_execute(Runtime *runtime,Frame *frame,const BytecodeProgram *program) {
+    Value stack[1];size_t stack_size=0;int was_executing=runtime->executing;runtime->executing=1;
+    for(size_t pc=0;pc<program->count&&!runtime->error;pc++){
+        const BytecodeInstruction *instruction=&program->instructions[pc];
+        BytecodeSourceLocation location=program->source_map[pc];
+        if(location.line){runtime->fault_line=location.line;runtime->fault_column=location.column;}
+        if(++runtime->steps>1000000){fault(runtime,"execution limit exceeded");break;}
+        switch(instruction->opcode){
+        case BC_PUSH_CONSTANT:
+            if(stack_size>=sizeof(stack)/sizeof(*stack)){fault(runtime,"bytecode stack overflow");break;}
+            if(instruction->operand>=program->constant_count){fault(runtime,"invalid bytecode constant index");break;}
+            stack[stack_size++]=clone_value(program->constants[instruction->operand]);break;
+        case BC_PRINT_STDOUT:
+        case BC_PRINT_STDERR:
+            if(!stack_size){fault(runtime,"bytecode stack underflow");break;}
+            if(stack[stack_size-1].kind==V_EMPTY){fault(runtime,"EMPTY value cannot be used");free_value(stack[--stack_size]);break;}
+            {
+                FILE *output=instruction->opcode==BC_PRINT_STDOUT?runtime->output:runtime->errors;
+                Value value=stack[--stack_size];print_value(output,value);fputc('\n',output);free_value(value);
+            }
+            break;
+        case BC_EVAL_EXPR:
+            if(instruction->operand>=program->expression_count){fault(runtime,"invalid bytecode expression index");break;}
+            Value result=evaluate(runtime,frame,program->expressions[instruction->operand]);
+            free_value(result);
+            break;
+        case BC_HTTP_RETURN_SOURCE:
+            if(instruction->operand>=program->http_return_count){fault(runtime,"invalid HTTP bytecode plan index");break;}
+            {
+                const BytecodeHttpReturnPlan *plan=&program->http_returns[instruction->operand];
+                TextBuffer body={0};
+                if(!append_http_plan_body(runtime,plan,&body)){
+                    free(body.data);fault(runtime,"invalid HTTP response");break;
+                }
+                free_value(runtime->http_response);runtime->http_response=http_default_response(plan->status,body.data?body.data:"");
+                free(body.data);runtime->http_returned=1;
+            }
+            break;
+        case BC_HALT:
+            pc=program->count;break;
+        default:
+            fault(runtime,"invalid bytecode instruction");break;
+        }
+    }
+    while(stack_size)free_value(stack[--stack_size]);
+    runtime->executing=was_executing;runtime->fault_line=0;runtime->fault_column=0;
+    return runtime->error?1:0;
+}
+
+static int bytecode_compile_http_route(Stmt *route,BytecodeProgram *program) {
+    if(!route->body.count)return 0;
+    if(route->body.count==1||route->body.count==2){
+        Stmt *statement=route->body.items[route->body.count-1];Expr *call=statement->expr;
+        Expr *assigned_expression=NULL;const char *assigned_name=NULL;
+        if(route->body.count==2){
+            Stmt *assignment=route->body.items[0];
+            if(assignment->kind!=0||!assignment->name||!assignment->expr||
+               !http_body_expression_supported(assignment->expr))return 0;
+            assigned_name=assignment->name;assigned_expression=assignment->expr;
+        }
+        if(statement->kind==6&&call&&call->kind==4&&!strcmp(call->text,"return_http")){
+            int status=200;Expr *body_expression=NULL;int valid=1;
+            for(size_t index=0;index<call->argc;index++){
+                const char *name=call->arg_names?call->arg_names[index]:NULL;Expr *argument=call->args[index];
+                if(!name||!argument){valid=0;break;}
+                if(!strcmp(name,"status")&&argument->kind==0&&argument->literal.kind==V_NUMBER&&
+                   !argument->literal.floating&&argument->literal.number>=100&&argument->literal.number<=599)
+                    status=(int)argument->literal.number;
+                else if(!strcmp(name,"body")){
+                    if(route->body.count==2&&argument->kind==1&&assigned_name&&!strcmp(argument->text,assigned_name))
+                        body_expression=assigned_expression;
+                    else body_expression=argument;
+                }
+                else if(strcmp(name,"status")){valid=0;break;}
+            }
+            if(valid&&body_expression&&http_body_expression_supported(body_expression)){
+                HttpSourceKind source_kind=HTTP_SOURCE_METHOD;const char *key=NULL;
+                if(body_expression->kind==4){
+                    if(!strcmp(body_expression->text,"request_path"))source_kind=HTTP_SOURCE_PATH;
+                    else if(!strcmp(body_expression->text,"request_param"))source_kind=HTTP_SOURCE_PARAM;
+                    else if(!strcmp(body_expression->text,"request_query"))source_kind=HTTP_SOURCE_QUERY;
+                    if((source_kind==HTTP_SOURCE_PARAM||source_kind==HTTP_SOURCE_QUERY)&&body_expression->argc)
+                        key=body_expression->args[0]->literal.string;
+                }
+                {
+                    uint32_t plan_index;
+                    if(!bytecode_add_http_return(program,status,source_kind,key,body_expression,&plan_index)||
+                       !bytecode_emit(program,BC_HTTP_RETURN_SOURCE,plan_index,statement->line,statement->column)){
+                        bytecode_free(program);return -1;
+                    }
+                    if(!bytecode_emit(program,BC_HALT,0,0,0)){bytecode_free(program);return -1;}
+                    return 1;
+                }
+            }
+        }
+    }
+    for(size_t index=0;index<route->body.count;index++){
+        Stmt *statement=route->body.items[index];
+        if(statement->kind!=6||!statement->expr||statement->expr->kind!=4) return 0;
+        uint32_t expression_index;
+        if(!bytecode_add_expression(program,statement->expr,&expression_index)||
+           !bytecode_emit(program,BC_EVAL_EXPR,expression_index,statement->line,statement->column)){
+            bytecode_free(program);return -1;
+        }
+    }
+    if(!bytecode_emit(program,BC_HALT,0,0,0)){bytecode_free(program);return -1;}
+    return 1;
+}
+
+static int bytecode_compile_http_routes(Runtime *runtime) {
+    for(size_t index=0;index<runtime->program.count;index++){
+        Stmt *statement=runtime->program.items[index];
+        if(statement->kind!=20)continue;
+        if(statement->has_compiled_route)continue;
+        RouteScript *script=NULL;
+        int script_status=route_script_compile(statement,&script);
+        if(script_status<0)return 0;
+        if(script_status>0){
+            BytecodeProgram empty={0};
+            if(!runtime_add_compiled_route(runtime,statement,empty,script)){
+                route_script_free(script);return 0;
+            }
+            continue;
+        }
+        BytecodeProgram route_bytecode={0};
+        int status=bytecode_compile_http_route(statement,&route_bytecode);
+        if(status<0)return 0;
+        if(!status){bytecode_free(&route_bytecode);continue;}
+        if(!runtime_add_compiled_route(runtime,statement,route_bytecode,NULL)){
+            bytecode_free(&route_bytecode);return 0;
+        }
+    }
+    return 1;
+}
+
 static void runtime_contents_destroy(separan_runtime *handle) {
     if(!handle)return;Runtime *r=&handle->runtime;
     free_value(r->thrown);free_value(r->returned);free_value(r->http_request);free_value(r->http_params);
-    free_value(r->http_response);free_value(r->http_cookies);free_frame(&r->global);free_body(r->program);
+    free_value(r->http_response);free_value(r->http_cookies);free_frame(&r->global);free_body(r->program);bytecode_free(&r->bytecode);
+    free(r->http_cached_method);free(r->http_cached_path);free_value(r->http_cached_params);
+    for(size_t index=0;index<r->compiled_http_route_count;index++){
+        bytecode_free(&r->compiled_http_routes[index].bytecode);
+        route_script_free(r->compiled_http_routes[index].script);
+    }
+    free(r->compiled_http_routes);
     while(handle->module_cache){ModuleCache *next=handle->module_cache->next;free(handle->module_cache->path);
         module_release(handle->module_cache->module);free(handle->module_cache);handle->module_cache=next;}
     separan_tokens_free(&r->tokens);separan_files_free(&r->files);
@@ -5401,6 +6343,7 @@ static int runtime_create_internal(const char *source,const separan_runtime_opti
     r->script_path=options->script_path;r->command_arguments=options->command_arguments;
     r->command_argument_count=options->command_argument_count;r->database=options->database;
     r->process=options->process;r->host=options->host;
+    r->cache_dir=options->cache_dir;
     if (separan_files_init(&r->files, options->root ? options->root : ".")) {
         fprintf(r->errors, "SEPARAN E721: invalid capability root\n");free(handle);return 1;
     }
@@ -5410,7 +6353,21 @@ static int runtime_create_internal(const char *source,const separan_runtime_opti
         runtime_contents_destroy(handle);free(handle);return 1;
     }
     r->program=parse_body(r,NULL,NULL);if(!r->error){int old_executing=r->executing;r->executing=1;const char *labels[128];Stmt *openers[128];validate_body_labels(r,r->program,labels,openers,0);if(!r->error)validate_program(r);r->executing=old_executing;r->fault_line=0;r->fault_column=0;}
-    if(!r->error&&execute_top_level)execute_body(r,&r->global,r->program);
+    if(!r->error){
+        bytecode_route_cache_load(r,source);
+        if(!bytecode_compile_http_routes(r))fault(r,"bytecode compilation out of memory");
+        if(r->cache_dir&&r->compiled_http_route_count)bytecode_route_cache_save(r,source);
+    }
+    if(!r->error){
+        int compile_status=bytecode_cache_load(r,source,&r->bytecode)?1:bytecode_compile_top_level(r->program,&r->bytecode);
+        if(compile_status<0)fault(r,"bytecode compilation out of memory");
+        else if(compile_status>0){
+            r->bytecode_active=1;
+            if(r->cache_dir&&r->program.count)bytecode_cache_save(r,source,&r->bytecode);
+            free_body(r->program);r->program=(Body){0};
+            if(execute_top_level)bytecode_execute(r,&r->global,&r->bytecode);
+        }else if(execute_top_level)execute_body(r,&r->global,r->program);
+    }
     if(r->throwing&&!r->error){
         Value *category=object_field(&r->thrown,"category"),*message=object_field(&r->thrown,"message");
         fprintf(r->errors,"SEPARAN %s: %.*s: %.*s at line %zu, column %zu\n",
@@ -5518,10 +6475,10 @@ int separan_inspect_path_json(const char *path,char **result_json,FILE *errors) 
     if(!ok){free(writer.json.data);fprintf(errors?errors:stderr,"SEPARAN E741: structure JSON encoding failed\n");return 1;}
     *result_json=writer.json.data;return 0;
 }
-static int tag_path_matches(const Stmt *function,const char *query) {
+static int tag_path_matches(const Stmt *logic,const char *query) {
     size_t query_length=strlen(query);
-    for(size_t index=0;index<function->tag_count;index++){
-        const char *tag=function->tags[index];
+    for(size_t index=0;index<logic->tag_count;index++){
+        const char *tag=logic->tags[index];
         if(!strncmp(tag,query,query_length)&&(tag[query_length]=='\0'||tag[query_length]==':'))return 1;
     }
     return 0;
@@ -5535,13 +6492,13 @@ int separan_inspect_tag_path_json(const char *path,const char *tag,char **result
     int status=runtime_create_internal(source,&options,NULL,errors,0,&handle,NULL);free(source);if(status)return status;
     TextBuffer json={0};int matches=0,ok=buffer_append(&json,"{\"tag\":",7)&&json_string(&json,query,strlen(query))&&buffer_append(&json,",\"functions\":[",14);
     for(size_t index=0;ok&&index<handle->runtime.program.count;index++){
-        Stmt *function=handle->runtime.program.items[index];if(function->kind!=5||!tag_path_matches(function,query))continue;
+          Stmt *logic=handle->runtime.program.items[index];if(logic->kind!=5||!tag_path_matches(logic,query))continue;
         if((matches++&&!buffer_char(&json,','))||!buffer_append(&json,"{\"name\":",8)||
-           !json_string(&json,function->name,strlen(function->name))||!buffer_append(&json,",\"line\":",8)) {ok=0;break;}
-        char location[48];int written=snprintf(location,sizeof(location),"%zu,\"column\":%zu,\"tags\":[",function->line,function->column);
+              !json_string(&json,logic->name,strlen(logic->name))||!buffer_append(&json,",\"line\":",8)) {ok=0;break;}
+          char location[48];int written=snprintf(location,sizeof(location),"%zu,\"column\":%zu,\"tags\":[",logic->line,logic->column);
         if(written<0||(size_t)written>=sizeof(location)||!buffer_append(&json,location,(size_t)written)){ok=0;break;}
-        for(size_t tag_index=0;tag_index<function->tag_count;tag_index++){
-            if((tag_index&&!buffer_char(&json,','))||!json_string(&json,function->tags[tag_index],strlen(function->tags[tag_index]))){ok=0;break;}
+        for(size_t tag_index=0;tag_index<logic->tag_count;tag_index++){
+            if((tag_index&&!buffer_char(&json,','))||!json_string(&json,logic->tags[tag_index],strlen(logic->tags[tag_index]))){ok=0;break;}
         }
         if(ok&&!buffer_append(&json,"]}",2))ok=0;
     }
@@ -5551,9 +6508,9 @@ int separan_inspect_tag_path_json(const char *path,const char *tag,char **result
     if(!buffer_append(&json,"]}",2)){free(json.data);return 1;}
     *result_json=json.data;return 0;
 }
-static int token_inside_tag_scope(const separan_token *token,Stmt **functions,size_t count) {
+static int token_inside_tag_scope(const separan_token *token,Stmt **logics,size_t count) {
     for(size_t index=0;index<count;index++)
-        if(token->line>=functions[index]->line&&token->line<=functions[index]->end_line)return 1;
+        if(token->line>=logics[index]->line&&token->line<=logics[index]->end_line)return 1;
     return 0;
 }
 int separan_verify_tag_scope_json(const char *before_path,const char *after_path,const char *tag,
@@ -5577,19 +6534,19 @@ int separan_verify_tag_scope_json(const char *before_path,const char *after_path
         Stmt *item=after->runtime.program.items[index];if(item->kind==5&&tag_path_matches(item,query))after_count++;
     }
     if(!before_count){runtime_contents_destroy(before);free(before);runtime_contents_destroy(after);free(after);fprintf(errors?errors:stderr,"SEPARAN S404: unknown semantic tag '@%s'\n",query);return 1;}
-    Stmt **before_functions=calloc(before_count,sizeof(*before_functions));
-    Stmt **after_functions=calloc(after_count?after_count:1,sizeof(*after_functions));
-    if(!before_functions||!after_functions){free(before_functions);free(after_functions);runtime_contents_destroy(before);free(before);runtime_contents_destroy(after);free(after);return 1;}
-    size_t at=0;for(size_t index=0;index<before->runtime.program.count;index++){Stmt *item=before->runtime.program.items[index];if(item->kind==5&&tag_path_matches(item,query))before_functions[at++]=item;}
-    at=0;for(size_t index=0;index<after->runtime.program.count;index++){Stmt *item=after->runtime.program.items[index];if(item->kind==5&&tag_path_matches(item,query))after_functions[at++]=item;}
+    Stmt **before_logics=calloc(before_count,sizeof(*before_logics));
+    Stmt **after_logics=calloc(after_count?after_count:1,sizeof(*after_logics));
+    if(!before_logics||!after_logics){free(before_logics);free(after_logics);runtime_contents_destroy(before);free(before);runtime_contents_destroy(after);free(after);return 1;}
+    size_t at=0;for(size_t index=0;index<before->runtime.program.count;index++){Stmt *item=before->runtime.program.items[index];if(item->kind==5&&tag_path_matches(item,query))before_logics[at++]=item;}
+    at=0;for(size_t index=0;index<after->runtime.program.count;index++){Stmt *item=after->runtime.program.items[index];if(item->kind==5&&tag_path_matches(item,query))after_logics[at++]=item;}
 
     int boundary_ok=before_count==after_count;
     if(boundary_ok)for(size_t index=0;index<before_count;index++)
-        if(strcmp(before_functions[index]->name,after_functions[index]->name)||!tag_path_matches(after_functions[index],query)){boundary_ok=0;break;}
+        if(strcmp(before_logics[index]->name,after_logics[index]->name)||!tag_path_matches(after_logics[index],query)){boundary_ok=0;break;}
     int outside_ok=boundary_ok;size_t left=0,right=0;
     while(outside_ok){
-        while(left<before->runtime.tokens.count&&token_inside_tag_scope(&before->runtime.tokens.tokens[left],before_functions,before_count))left++;
-        while(right<after->runtime.tokens.count&&token_inside_tag_scope(&after->runtime.tokens.tokens[right],after_functions,after_count))right++;
+        while(left<before->runtime.tokens.count&&token_inside_tag_scope(&before->runtime.tokens.tokens[left],before_logics,before_count))left++;
+        while(right<after->runtime.tokens.count&&token_inside_tag_scope(&after->runtime.tokens.tokens[right],after_logics,after_count))right++;
         if(left==before->runtime.tokens.count||right==after->runtime.tokens.count){outside_ok=left==before->runtime.tokens.count&&right==after->runtime.tokens.count;break;}
         separan_token *a=&before->runtime.tokens.tokens[left++],*b=&after->runtime.tokens.tokens[right++];
         if(strcmp(a->type,b->type)||strcmp(a->lexeme,b->lexeme))outside_ok=0;
@@ -5601,14 +6558,14 @@ int separan_verify_tag_scope_json(const char *before_path,const char *after_path
     int ok=buffer_append(&json,prefix,strlen(prefix))&&json_string(&json,query,strlen(query))&&
         buffer_append(&json,middle,strlen(middle));
     for(size_t index=0;ok&&index<before_count;index++)
-        if((index&&!buffer_char(&json,','))||!json_string(&json,before_functions[index]->name,strlen(before_functions[index]->name)))ok=0;
+        if((index&&!buffer_char(&json,','))||!json_string(&json,before_logics[index]->name,strlen(before_logics[index]->name)))ok=0;
     const char *suffix=*passed?"],\"violations\":[]}":"],\"violations\":[";
     if(ok)ok=buffer_append(&json,suffix,strlen(suffix));
     if(ok&&!*passed){
         const char *reason=!boundary_ok?"boundary_removed":"outside_scope_changed";
         ok=buffer_append(&json,"{\"reason\":",10)&&json_string(&json,reason,strlen(reason))&&buffer_append(&json,"}]}",3);
     }
-    free(before_functions);free(after_functions);runtime_contents_destroy(before);free(before);runtime_contents_destroy(after);free(after);
+    free(before_logics);free(after_logics);runtime_contents_destroy(before);free(before);runtime_contents_destroy(after);free(after);
     if(!ok){free(json.data);fprintf(errors?errors:stderr,"SEPARAN E741: semantic scope JSON encoding failed\n");return 1;}
     *result_json=json.data;return 0;
 }
@@ -5659,13 +6616,25 @@ static int dispatch_http_request(separan_runtime *handle,const char *request_jso
     Value *method=object_field(&request,"method"),*path=object_field(&request,"path");
     if(cursor.error||cursor.at!=cursor.length||request.kind!=V_OBJECT||!method||method->kind!=V_STRING||!path||path->kind!=V_STRING){
         free_value(request);fprintf(r->errors,"SEPARAN E100: invalid HTTP request JSON\n");return 1;}
-    Stmt *route=NULL;Value params=empty_value();
-    for(size_t pass=0;pass<2&&!route;pass++)for(size_t i=0;i<r->program.count;i++){Stmt *candidate=r->program.items[i];if(candidate->kind!=20)continue;
+    Stmt *route=NULL;CompiledHttpRoute *compiled_route=NULL;Value params=empty_value();
+    if(r->http_cached_route&&r->http_cached_method&&r->http_cached_path&&
+       !strcmp(r->http_cached_method,method->string)&&!strcmp(r->http_cached_path,path->string)){
+        route=r->http_cached_route;params=clone_value(r->http_cached_params);
+    }else for(size_t pass=0;pass<2&&!route;pass++)for(size_t i=0;i<r->program.count;i++){Stmt *candidate=r->program.items[i];if(candidate->kind!=20)continue;
         const char *wanted=pass==0?method->string:(!strcmp(method->string,"HEAD")?"GET":"");if(!*wanted||strcmp(candidate->method,wanted))continue;
-        Value found=empty_value();if(route_match(candidate->path,path->string,&found)){route=candidate;params=found;break;}}
+        Value found=empty_value();if(route_match(candidate->path,path->string,&found)){route=candidate;params=found;
+            free(r->http_cached_method);free(r->http_cached_path);r->http_cached_method=copy_text(method->string);r->http_cached_path=copy_text(path->string);
+            free_value(r->http_cached_params);r->http_cached_params=clone_value(found);r->http_cached_route=candidate;
+            break;}}
+    if(route&&route->has_compiled_route&&route->compiled_route_index<r->compiled_http_route_count)
+        compiled_route=&r->compiled_http_routes[route->compiled_route_index];
     if(!route){*response=http_default_response(404,"Not Found");free_value(request);return response->kind==V_EMPTY?1:0;}
     r->http_active=1;r->http_returned=0;r->http_request=request;r->http_params=params;r->http_cookies.kind=V_LIST;
-    Frame request_frame={0};request_frame.parent=&r->global;execute_body(r,&request_frame,route->body);free_frame(&request_frame);
+    Frame request_frame={0};request_frame.parent=&r->global;
+    if(compiled_route&&compiled_route->script)route_script_execute(r,&request_frame,compiled_route->script);
+    else if(compiled_route)bytecode_execute(r,&request_frame,&compiled_route->bytecode);
+    else execute_body(r,&request_frame,route->body);
+    free_frame(&request_frame);
     if(!r->error&&!r->http_returned)r->http_response=http_default_response(204,"");
     if(!r->error){*response=r->http_response;r->http_response=empty_value();}
     free_value(r->http_request);r->http_request=empty_value();free_value(r->http_params);r->http_params=empty_value();
@@ -5676,7 +6645,7 @@ static int dispatch_http_request(separan_runtime *handle,const char *request_jso
 int separan_runtime_dispatch_http_json(separan_runtime *handle,const char *request_json,char **response_json) {
     if(!response_json)return 1;*response_json=NULL;Value response=empty_value();
     if(dispatch_http_request(handle,request_json,&response)){free_value(response);return 1;}
-    int ok=database_json(response,response_json);free_value(response);return ok?0:1;
+    int ok=http_response_json(response,response_json);free_value(response);return ok?0:1;
 }
 
 int separan_runtime_dispatch_http_cgi(separan_runtime *handle,const char *request_json,

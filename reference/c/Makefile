@@ -59,6 +59,10 @@ library-test: $(LIB)
 	$(CC) $(CFLAGS) -Iinclude -o test_runtime_api.exe test_runtime_api.c $(LIB) -lm
 	./test_runtime_api.exe
 
+benchmark-http: $(LIB)
+	$(CC) $(CFLAGS) -Iinclude -o benchmark_http.exe benchmark_http.c $(LIB) -lm
+	./benchmark_http.exe
+
 zip: $(ZIP)
 
 ifeq ($(OS),Windows_NT)
@@ -72,5 +76,5 @@ linux-tarball:
 endif
 
 clean:
-	$(RM) $(BIN) $(GW_BIN) $(LINUX_BIN) $(LIB) test_library_api.exe test_lexer_api.exe test_runtime_api.exe $(OBJ) $(EXTRA_BINS) $(EXTRA_OBJ)
+	$(RM) $(BIN) $(GW_BIN) $(LINUX_BIN) $(LIB) test_library_api.exe test_lexer_api.exe test_runtime_api.exe benchmark_http.exe $(OBJ) $(EXTRA_BINS) $(EXTRA_OBJ)
 	python -c "import pathlib, shutil; root = pathlib.Path('dist'); portable = root / 'separan-portable'; linux = root / 'separan-linux-x86_64'; zip_archive = root / 'separan-portable.zip'; tgz = root / 'separan-linux-x86_64.tar.gz'; shutil.rmtree(portable, ignore_errors=True) if portable.exists() else None; shutil.rmtree(linux, ignore_errors=True) if linux.exists() else None; zip_archive.unlink() if zip_archive.exists() else None; tgz.unlink() if tgz.exists() else None"

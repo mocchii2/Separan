@@ -10,6 +10,13 @@ static char *copy_result(const char *text) {
     size_t length = strlen(text); char *copy = malloc(length + 1);
     if (copy) memcpy(copy, text, length + 1); return copy;
 }
+static unsigned long long source_hash(const char *source) {
+    unsigned long long hash = 1469598103934665603ULL;
+    for (const unsigned char *cursor = (const unsigned char *)source; *cursor; cursor++) {
+        hash ^= *cursor; hash *= 1099511628211ULL;
+    }
+    return hash;
+}
 static int db_connect(void *context, const char *request, void **connection, char **error) {
     (void)error;
     if (context) return *(int *)context;
@@ -163,6 +170,30 @@ int main(void) {
     rewind(output);
     char line[512];
     if (!fgets(line, sizeof(line), output) || strcmp(line, "5\n")) return 3;
+    const char *cached_source = "print \"persistent cache\"\n";
+    char cache_path[96];
+    snprintf(cache_path, sizeof(cache_path), "separan-%016llx.bc", source_hash(cached_source));
+    remove(cache_path);
+    separan_runtime_options cached_options = restricted; cached_options.cache_dir = ".";
+    separan_runtime *cached_runtime = NULL;
+    if (separan_runtime_create(cached_source, &cached_options, output, errors, &cached_runtime)) return 72;
+    separan_runtime_destroy(cached_runtime);
+    FILE *cache_file = fopen(cache_path, "rb");
+    if (!cache_file) return 73;
+    fclose(cache_file);
+    cached_runtime = NULL;
+    if (separan_runtime_create(cached_source, &cached_options, output, errors, &cached_runtime)) return 74;
+    separan_runtime_destroy(cached_runtime); remove(cache_path);
+    FILE *bytecode_output=tmpfile(),*bytecode_errors=tmpfile();
+    if(!bytecode_output||!bytecode_errors)return 66;
+    if(separan_run_source_with_options("print \"bytecode\"\nprint 42\nprint true\nprint_error \"warning\"\n",
+                                      &restricted,bytecode_output,bytecode_errors))return 67;
+    rewind(bytecode_output);rewind(bytecode_errors);
+    if(!fgets(line,sizeof(line),bytecode_output)||strcmp(line,"bytecode\n"))return 68;
+    if(!fgets(line,sizeof(line),bytecode_output)||strcmp(line,"42\n"))return 69;
+    if(!fgets(line,sizeof(line),bytecode_output)||strcmp(line,"true\n"))return 70;
+    if(!fgets(line,sizeof(line),bytecode_errors)||strcmp(line,"warning\n"))return 71;
+    fclose(bytecode_output);fclose(bytecode_errors);
     if (!separan_run_source_with_options("print read_text(\"x.txt\")\n", &restricted, output, errors)) return 4;
     rewind(errors);
     if (!fgets(line, sizeof(line), errors) || !strstr(line, "E720")) return 5;
@@ -447,15 +478,25 @@ int main(void) {
         "http_set_cookie(\"session\", \"abc\", secure = true)\n"
         "return_http(status = 200, content_type = \"text/plain\", body = request_method() + \" \" + request_param(\"id\") + \" \" + request_query(\"view\"))\n"
         "end_http_route:user\n"
+        "http_route GET \"/direct/:id\" :direct\n"
+        "return_http(status = 202, body = request_param(\"id\"))\n"
+        "end_http_route:direct\n"
         "http_route POST \"/login\" :login\nreturn_http(status = 201, body = request_body())\nend_http_route:login\n"
-        "http_route GET \"/old\" :old\nredirect_http(\"/new\", status = 308)\nend_http_route:old\n";
-    retained = NULL; restricted.host = NULL;
+        "http_route GET \"/old\" :old\nredirect_http(\"/new\", status = 308)\nend_http_route:old\n"
+        "http_route GET \"/static\" :static\nreturn_http(status = 202, content_type = \"text/plain\", body = \"accepted\")\nend_http_route:static\n";
+    char route_cache_file[96];snprintf(route_cache_file,sizeof(route_cache_file),"separan-%016llx.routes",source_hash(route_source));remove(route_cache_file);
+    retained = NULL; restricted.host = NULL; restricted.cache_dir = ".";
     if (separan_runtime_create(route_source, &restricted, output, errors, &retained)) return 39;
+    FILE *route_cache = fopen(route_cache_file,"rb");if(!route_cache)return 39;fclose(route_cache);
     if (separan_runtime_dispatch_http_json(retained,
         "{\"method\":\"GET\",\"path\":\"/user/42\",\"query\":{\"view\":[\"full\"]},\"headers\":{\"cookie\":\"session=old\"}}",
         &json_result)) return 40;
     if (!strstr(json_result, "\"status\":200") || !strstr(json_result, "GET 42 full") ||
         !strstr(json_result, "session=abc; Path=/; Secure; HttpOnly; SameSite=Lax")) return 41;
+    separan_runtime_release_string(json_result);
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/direct/99\"}", &json_result) ||
+        !strstr(json_result, "\"status\":202") || !strstr(json_result, "\"body\":\"99\"")) return 46;
     separan_runtime_release_string(json_result);
     if (separan_runtime_dispatch_http_json(retained,
         "{\"method\":\"HEAD\",\"path\":\"/user/7\",\"query\":{\"view\":[\"brief\"]}}", &json_result) ||
@@ -474,6 +515,11 @@ int main(void) {
         !strstr(json_result, "\"status\":308") || !strstr(json_result, "\"Location\":\"/new\"")) return 44;
     separan_runtime_release_string(json_result);
     if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/static\"}", &json_result) ||
+        !strstr(json_result, "\"status\":202") || !strstr(json_result, "\"body\":\"accepted\"") ||
+        !strstr(json_result, "\"Content-Type\":\"text/plain\"")) return 46;
+    separan_runtime_release_string(json_result);
+    if (separan_runtime_dispatch_http_json(retained,
         "{\"method\":\"GET\",\"path\":\"/missing\"}", &json_result) ||
         !strstr(json_result, "\"status\":404")) return 45;
     separan_runtime_release_string(json_result);json_result=NULL;
@@ -485,7 +531,117 @@ int main(void) {
            !json_result||!strstr(json_result,expected_body))return 98;
         separan_runtime_release_string(json_result);json_result=NULL;
     }
-    separan_runtime_destroy(retained);
+    separan_runtime_destroy(retained);retained=NULL;
+    if (separan_runtime_create(route_source, &restricted, output, errors, &retained)) return 99;
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/direct/100\"}", &json_result) ||
+        !strstr(json_result, "\"status\":202") || !strstr(json_result, "\"body\":\"100\"")) return 100;
+    separan_runtime_release_string(json_result);separan_runtime_destroy(retained);remove(route_cache_file);
+
+    /* Persistent complex-route cache regression tests: cover the SEPRT02
+       script subset (assignment, positional http_set_cookie, return_http). */
+    const char *complex_source =
+        "http_route GET \"/greet/:name\" :greet\n"
+        "who = request_param(\"name\")\n"
+        "http_set_cookie(\"visited\", who)\n"
+        "return_http(status = 200, body = \"hi \" + who)\n"
+        "end_http_route:greet\n"
+        "http_route GET \"/plain\" :plain\n"
+        "return_http(status = 202, body = \"ok\")\n"
+        "end_http_route:plain\n"
+        "http_route GET \"/redir\" :redir\n"
+        "redirect_http(\"/new\", status = 301)\n"
+        "end_http_route:redir\n";
+    char complex_cache[96];
+    snprintf(complex_cache, sizeof(complex_cache),
+             "separan-%016llx.routes", source_hash(complex_source));
+    remove(complex_cache);
+    restricted.cache_dir = ".";
+    retained = NULL;
+    if (separan_runtime_create(complex_source, &restricted, output, errors, &retained)) return 200;
+    FILE *complex_cache_file = fopen(complex_cache, "rb");
+    if (!complex_cache_file) return 201;
+    char complex_magic[8] = {0};
+    if (fread(complex_magic, 1, 8, complex_cache_file) != 8 ||
+        memcmp(complex_magic, "SEPRT02", 7) != 0 || complex_magic[7] != 0) {
+        fclose(complex_cache_file); return 202;
+    }
+    fclose(complex_cache_file);
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/greet/alice\"}", &json_result) ||
+        !strstr(json_result, "\"status\":200") ||
+        !strstr(json_result, "\"body\":\"hi alice\"") ||
+        !strstr(json_result, "visited=alice; Path=/; HttpOnly; SameSite=Lax")) return 203;
+    separan_runtime_release_string(json_result);
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/plain\"}", &json_result) ||
+        !strstr(json_result, "\"status\":202") ||
+        !strstr(json_result, "\"body\":\"ok\"")) return 204;
+    separan_runtime_release_string(json_result);
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/redir\"}", &json_result) ||
+        !strstr(json_result, "\"status\":301") ||
+        !strstr(json_result, "\"Location\":\"/new\"")) return 205;
+    separan_runtime_release_string(json_result);
+    separan_runtime_destroy(retained); retained = NULL;
+
+    if (separan_runtime_create(complex_source, &restricted, output, errors, &retained)) return 206;
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/greet/bob\"}", &json_result) ||
+        !strstr(json_result, "\"body\":\"hi bob\"") ||
+        !strstr(json_result, "visited=bob; Path=/; HttpOnly; SameSite=Lax")) return 207;
+    separan_runtime_release_string(json_result);
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/redir\"}", &json_result) ||
+        !strstr(json_result, "\"status\":301")) return 208;
+    separan_runtime_release_string(json_result);
+    separan_runtime_destroy(retained); retained = NULL;
+
+    const char *variant_source =
+        "http_route GET \"/greet/:name\" :greet\n"
+        "who = request_param(\"name\")\n"
+        "http_set_cookie(\"visited\", who)\n"
+        "return_http(status = 200, body = \"hello \" + who)\n"
+        "end_http_route:greet\n"
+        "http_route GET \"/plain\" :plain\n"
+        "return_http(status = 202, body = \"ok\")\n"
+        "end_http_route:plain\n"
+        "http_route GET \"/redir\" :redir\n"
+        "redirect_http(\"/new\", status = 301)\n"
+        "end_http_route:redir\n";
+    char variant_cache[96];
+    snprintf(variant_cache, sizeof(variant_cache),
+             "separan-%016llx.routes", source_hash(variant_source));
+    if (!strcmp(variant_cache, complex_cache)) return 209;
+    remove(variant_cache);
+    if (separan_runtime_create(variant_source, &restricted, output, errors, &retained)) return 210;
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/greet/carol\"}", &json_result) ||
+        !strstr(json_result, "\"body\":\"hello carol\"")) return 211;
+    separan_runtime_release_string(json_result);
+    separan_runtime_destroy(retained); retained = NULL;
+    remove(variant_cache);
+
+    FILE *corrupt = fopen(complex_cache, "wb");
+    if (!corrupt) return 212;
+    fwrite("GARBAGEBYTES-not-a-valid-cache-file", 1, 35, corrupt);
+    fclose(corrupt);
+    if (separan_runtime_create(complex_source, &restricted, output, errors, &retained)) return 213;
+    if (separan_runtime_dispatch_http_json(retained,
+        "{\"method\":\"GET\",\"path\":\"/greet/dave\"}", &json_result) ||
+        !strstr(json_result, "\"body\":\"hi dave\"")) return 214;
+    separan_runtime_release_string(json_result);
+    FILE *repaired = fopen(complex_cache, "rb");
+    if (!repaired) return 215;
+    char repaired_magic[8] = {0};
+    if (fread(repaired_magic, 1, 8, repaired) != 8 ||
+        memcmp(repaired_magic, "SEPRT02", 7) != 0) {
+        fclose(repaired); return 216;
+    }
+    fclose(repaired);
+    separan_runtime_destroy(retained); retained = NULL;
+    remove(complex_cache);
+
     FILE *check_errors = tmpfile(); if (!check_errors) return 46;
     if (separan_check_source("value = network_hostname()\nSEP:main\nEND_SEP:main\n", check_errors)) return 47;
     if (!separan_check_source("SEP:main\nprint (1 + )\nEND_SEP:main\n", check_errors)) return 48;

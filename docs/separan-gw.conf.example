@@ -1,6 +1,7 @@
 # FastCGI Unix-socket deployment with a supervised worker pool.
 # Install as /etc/separan-gw/separan-gw.conf on Linux.
 source = /srv/separan/app.sep
+cache_dir = /var/cache/separan-gw
 transport = fastcgi-unix
 listen = unix:/run/separan-gw/separan-gw.sock
 workers = 4

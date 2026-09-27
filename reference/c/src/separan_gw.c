@@ -100,6 +100,7 @@ static int parse_duration_ms(const char *text, unsigned *result) {
 static int read_config(const char *path, char *source_path, size_t source_capacity,
                        char *transport, size_t transport_capacity,
                        char *socket_path, size_t socket_capacity,
+                       char *cache_dir, size_t cache_capacity,
                        separan_gw_supervisor_options *supervisor) {
     FILE *file = fopen(path, "rb");
     if (!file) { fprintf(stderr, "separan-gw: cannot read config %s\n", path); return 0; }
@@ -134,6 +135,12 @@ static int read_config(const char *path, char *source_path, size_t source_capaci
                 ok = 0; break;
             }
             snprintf(source_path, source_capacity, "%s", value);
+        } else if (!strcmp(key, "cache_dir")) {
+            if (strlen(value) >= cache_capacity) {
+                fprintf(stderr, "separan-gw: %s:%u: cache_dir path is too long\n", path, line_number);
+                ok = 0; break;
+            }
+            snprintf(cache_dir, cache_capacity, "%s", value);
         } else if (!strcmp(key, "transport")) {
             if (strcmp(value, "stdio") && strcmp(value, "fastcgi-stdio") && strcmp(value, "fastcgi-unix") &&
                 strcmp(value, "fastcgi-tcp") && strcmp(value, "fastcgi-pipe")) {
@@ -220,7 +227,7 @@ static void print_help(const char *program) {
     printf("       %s --source <app.sep> --fastcgi-stdio\n", program);
     printf("       %s --config <separan-gw.conf> [--service]\n", program);
     printf("\n");
-    printf("Config supports source, transport, listeners, workers, max_memory, max_requests, restart_grace, and restart_backoff.\n");
+    printf("Config supports source, cache_dir, transport, listeners, workers, max_memory, max_requests, restart_grace, and restart_backoff.\n");
     printf("stdio reads JSON lines; FastCGI transports speak FastCGI v1 records.\n");
     printf("Listeners currently run single-worker; process supervision is not implemented yet.\n");
 }
@@ -231,6 +238,7 @@ int main(int argc, char **argv) {
     char config_path[4096] = {0};
     char transport[32] = "stdio";
     char socket_path[4096] = {0};
+    char cache_dir[4096] = {0};
     char inherited_listener_pipe[256] = {0};
     separan_gw_supervisor_options supervisor = {1, 0, 0, 5000, 1000, 0};
     int internal_worker = 0;
@@ -242,7 +250,7 @@ int main(int argc, char **argv) {
         }
         if (!strcmp(argv[index], "--config") && index + 1 < argc) {
             snprintf(config_path, sizeof(config_path), "%s", argv[++index]);
-            if (!read_config(config_path, source_path, sizeof(source_path), transport, sizeof(transport), socket_path, sizeof(socket_path), &supervisor)) return 2;
+            if (!read_config(config_path, source_path, sizeof(source_path), transport, sizeof(transport), socket_path, sizeof(socket_path), cache_dir, sizeof(cache_dir), &supervisor)) return 2;
             continue;
         }
         if (!strcmp(argv[index], "--internal-worker")) { internal_worker = 1; continue; }
@@ -253,6 +261,10 @@ int main(int argc, char **argv) {
         }
         if (!strcmp(argv[index], "--source") && index + 1 < argc) {
             snprintf(source_path, sizeof(source_path), "%s", argv[++index]);
+            continue;
+        }
+        if (!strcmp(argv[index], "--cache-dir") && index + 1 < argc) {
+            snprintf(cache_dir, sizeof(cache_dir), "%s", argv[++index]);
             continue;
         }
         if (!strcmp(argv[index], "--stdio")) continue;
@@ -302,7 +314,7 @@ int main(int argc, char **argv) {
     separan_runtime_options options = {
         .root = ".", .read_files = 1, .write_files = 0, .discover_paths = 0,
         .import_modules = 1, .read_environment = 1, .write_environment = 0,
-        .script_path = source_path,
+        .script_path = source_path, .cache_dir = cache_dir[0] ? cache_dir : NULL,
     };
     separan_runtime *runtime = NULL;
     if (separan_runtime_create(source, &options, stdout, errors, &runtime)) {

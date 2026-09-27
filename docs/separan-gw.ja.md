@@ -44,7 +44,7 @@ TCP listener と named-pipe listener は、既定では single-worker です。P
 
 Linux の release bundle は x86_64 と ARM64（`aarch64`）を別々に配布します。Gateway と CLI は共通の `make install` で install できます。architecture 非依存の source bundle では、対象 Linux の C compiler で両方を build/install できます。
 
-バイナリは `--config <path>` を受け取ります。設定 parser は `source`、3種類の FastCGI listener transport、および下記 supervisor settings に対応します。不明な key や transport/listener の不正な組み合わせは拒否します。
+バイナリは `--config <path>` を受け取ります。設定 parser は `source`、`cache_dir`、3種類の FastCGI listener transport、および下記 supervisor settings に対応します。不明な key や transport/listener の不正な組み合わせは拒否します。
 
 ## Gateway の役割
 
@@ -93,6 +93,8 @@ POSIX では parent がアプリケーションを読み込み、copy-on-write r
 - `restart_backoff`: 終了した worker を再起動するまでの固定待ち時間。`ms`、`s`、`m` で指定します。
 
 supervisor settings は FastCGI listener と一緒に指定します。POSIX worker は SIGTERM を受けると処理中の request を終えてから終了します。grace 期限を超えても終了しない worker は kill されます。Windows named-pipe worker は CTRL_BREAK を受け、同じ期限を超えた場合は強制終了されます。POSIX では parent に SIGHUP を送ると worker pool を drain し、同じ process 内で再実行して config と application source を読み直します。付属 systemd unit は既定で `systemctl reload` action を定義していません。
+
+`cache_dir` を指定すると、対応する top-level program と direct request-source route handler の永続 compact-bytecode cache を有効にできます。cache は version と source hash で検証され、source が変わると古い entry は無視されます。Gateway service account に directory の書き込み権限が必要です。複雑な route AST handler は従来どおり worker 内で compile されます。未指定の場合も worker 内の bytecode cache は通常どおり動作します。
 
 Windows では `--service` で登録し、SCM stop/shutdown controls で worker を drain できます。service parameter-change control は pool を置き換え、worker が config と application を読み直します。実行中の Windows supervisor は worker 数と restart policy を保持するため、これらの設定変更には service 再起動が必要です。
 

@@ -60,7 +60,7 @@ Linux release bundles are published separately for x86_64 and ARM64
 an architecture-independent source bundle can build and install both programs
 with the host C compiler.
 
-The binary accepts `--config <path>`. The parser supports `source`, all three
+The binary accepts `--config <path>`. The parser supports `source`, `cache_dir`, all three
 FastCGI listener transports, and the supervisor settings below. Unknown keys
 and invalid transport/listener combinations are rejected.
 
@@ -143,6 +143,13 @@ replaces the pool so workers reload the config and application.
 The running Windows supervisor keeps its worker-count and restart policy until
 the service itself is restarted; changes to those supervisor settings require
 a service restart.
+
+Set `cache_dir` to enable the persistent compact-bytecode cache for eligible
+top-level programs and direct request-source route handlers. Cache files are
+versioned and keyed by the source hash; changed source creates a new entry, and
+the old entry is ignored. The directory must be writable by the Gateway service
+account. Complex route AST handlers still use the in-memory compile path.
+Without `cache_dir`, workers still compile and retain bytecode in memory.
 
 Example Windows service registration from an elevated terminal:
 
