@@ -1,0 +1,3 @@
+http_route GET "/cache/:id" :cache_test
+return_http(status = 200, body = request_param("id"))
+end_http_route:cache_test
