@@ -13,6 +13,7 @@ BLOCK_KINDS = {
 CLOSER_KIND = {closer: kind for kind, (closer, _) in BLOCK_KINDS.items()}
 CLOSER_KIND.update({"END_SEP": "SEP", "end_sep": "SEP"})
 LABEL = r"[^\s:()]+"
+GENERIC_LABEL_RE = re.compile(r"^_([1-9][0-9]*)_$")
 OPEN_RE = re.compile(r"^\s*(SEP|sep|if|while|for|object|list|try|error|http_route|transaction)\b.*?:(" + LABEL + r")\s*(?:\([^\n]*\))?\s*$")
 CLOSE_RE = re.compile(r"^\s*(END_SEP|end_sep|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):(" + LABEL + r")\s*$")
 BRANCH_RE = re.compile(r"^\s*(elseif\b.*?|else|catch\b.*?|finally):(" + LABEL + r")\s*$")
@@ -273,7 +274,7 @@ class Variable:
 
 
 def analyze_blocks(source):
-    roots, stack, all_blocks = [], [], []; comment_label = None
+    roots, stack, all_blocks = [], [], []; comment_label = None; generic_by_sep = {}
     for number, text in enumerate(source.splitlines()):
         delimiter = _multiline_delimiter(text)
         if delimiter is not None:
@@ -285,6 +286,15 @@ def analyze_blocks(source):
         if opened:
             kind = opened.group(1)
             label = opened.group(2) if opened.lastindex and opened.lastindex >= 2 else opened.group(0).split(":")[-1].strip()
+            generic = GENERIC_LABEL_RE.fullmatch(label)
+            if label.startswith("_") and (label.endswith("_") or label[1:2].isdigit()) and not generic:
+                continue
+            if generic:
+                sep = next((item for item in reversed(stack) if item.kind == "SEP"), None)
+                if sep is not None:
+                    numbers = generic_by_sep.setdefault(id(sep), set())
+                    if int(generic.group(1)) in numbers: continue
+                    numbers.add(int(generic.group(1)))
             normalized_kind = "SEP" if kind.lower().replace("_", "") == "sep" else kind
             label_start = text.rfind(":" + label) + 1
             item = Block(normalized_kind, label, number, label_start, BLOCK_KINDS.get(normalized_kind, (None, 12))[1], stack[-1] if stack else None)

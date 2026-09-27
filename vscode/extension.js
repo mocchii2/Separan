@@ -1272,6 +1272,8 @@ function documentStructure(source) {
   const lines = source.split(/\r?\n/u);
   const openPattern = /^\s*(SEP|if|while|for|object|list|try|error|http_route|transaction)\b.*?:([^\s:()]+)\s*(?:\([^)]*\))?\s*$/u;
   const closePattern = /^\s*(END_SEP|endif|endwhile|endfor|end_object|end_list|endtry|end_error|end_http_route|end_transaction):([^\s:()]+)\s*$/u;
+  const genericLabelPattern = /^_([1-9][0-9]*)_$/u;
+  const genericBySep = new Map();
   const closerKinds = { END_SEP: "SEP", endif: "if", endwhile: "while", endfor: "for", end_object: "object", end_list: "list", endtry: "try", end_error: "error", end_http_route: "http_route", end_transaction: "transaction" };
   for (let line = 0; line < lines.length; line += 1) {
     const delimiter = multilineCommentDelimiter(lines[line]);
@@ -1280,8 +1282,22 @@ function documentStructure(source) {
     const text = codeText(lines[line]); const opened = openPattern.exec(text); const closed = closePattern.exec(text);
     if (opened) {
       const parent = stack[stack.length - 1];
+      const generic = genericLabelPattern.exec(opened[2]);
+      if (opened[2].startsWith("_") && (opened[2].endsWith("_") || /^_[0-9]/u.test(opened[2])) && !generic) {
+        diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Invalid generic structural label :${opened[2]}.` }); continue;
+      }
+      if (generic) {
+        const sep = [...stack].reverse().find((item) => item.kind === "SEP");
+        if (!sep) diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Generic structural label :${opened[2]} must be inside a SEP.` });
+        else {
+          const numbers = genericBySep.get(sep) || new Set();
+          if (numbers.has(generic[1])) diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Generic structural label :${opened[2]} is already used in this SEP.` });
+          numbers.add(generic[1]); genericBySep.set(sep, numbers);
+        }
+      }
       const pathName = parent ? `${parent.path}/${opened[2]}` : opened[2];
       const node = { id: `${opened[1]}:${pathName}:${line + 1}`, kind: opened[1], label: opened[2], path: pathName,
+        label_kind: generic ? "generic" : "descriptive", generic_number: generic ? Number(generic[1]) : undefined,
         start_line: line + 1, start_column: Math.max(1, lines[line].indexOf(`:${opened[2]}`) + 2), end_line: line + 1,
         tags: [], parameters: [], reads: [], writes: [], calls: [], children: [], source: "" };
       if (opened[1] === "SEP") {
