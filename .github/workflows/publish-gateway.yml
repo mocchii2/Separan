@@ -79,8 +79,8 @@ jobs:
           if [[ "$ARCHITECTURE" == "x86_64" ]]; then
             source_dir="dist/separan-linux-source"
             mkdir -p "$source_dir/include" "$source_dir/src" "$source_dir/docs"
-            cp -R include/. "$source_dir/include/"
-            cp -R src/. "$source_dir/src/"
+            find include -maxdepth 1 -type f -name '*.h' -exec cp {} "$source_dir/include/" \;
+            find src -maxdepth 1 -type f \( -name '*.c' -o -name '*.inc' \) -exec cp {} "$source_dir/src/" \;
             cp packaging/linux/Makefile "$source_dir/Makefile"
             cp README.md "$source_dir/README.md"
             cp "$root/docs/separan-gw.md" "$source_dir/docs/"
