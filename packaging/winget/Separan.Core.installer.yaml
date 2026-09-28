@@ -9,7 +9,7 @@ ReleaseDate: 2026-09-27
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/mocchii2/Separan/releases/download/v1.1.1/separan-installer.exe
-  InstallerSha256: E91A4E970655DB3D14D8EAE98CA8A91C7A2621BA4B4ACEF4210BD979DF63CF75
+  InstallerSha256: 6CDC12C4C5395D3B9F717C0A4306A5FB93FE1DBFDC27B052C4AE141C0FE0BCD5
   InstallerSwitches:
     Silent: /VERYSILENT /NORESTART
     SilentWithProgress: /SILENT /NORESTART
