@@ -29,7 +29,7 @@ mailer = mail_create_sender(
 
 result = mail_send_message(mailer, message)
 print result.message_id
-end_SEP:send_alert
+END_SEP:send_alert
 ```
 
 実装済みmessage関数:

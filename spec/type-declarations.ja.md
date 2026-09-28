@@ -36,7 +36,7 @@ values = ["one"]      # E201
 ```separan
 SEP:show_age(age: number, labels: list<string>)
 ...
-end_SEP:show_age
+END_SEP:show_age
 ```
 
 型付き引数は`EMPTY`を直接受け取れます。型なし引数が受け取れるのは、呼び出し元の

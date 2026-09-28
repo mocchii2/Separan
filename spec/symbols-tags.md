@@ -43,7 +43,7 @@ SEP:notify
 @aws:sns
 @通知
 send_message()
-end_SEP:notify
+END_SEP:notify
 ```
 
 They are valid only in the metadata area after a named logic boundary and

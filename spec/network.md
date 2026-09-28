@@ -188,7 +188,7 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_SEP:main
+END_SEP:main
 ```
 
 The public configuration operations are:

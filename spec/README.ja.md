@@ -81,7 +81,7 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 |---|---|---|
 | `length(value)` | string、list、bytes | Unicodeコードポイント数、要素数、バイト数 |
 | `is_empty(value)` | string、list、bytes | 長さが0か |
-| `len(value)` | string、list、bytes | `length`の互換alias |
+| `len(value)` | string、list、bytes | `length`のdeprecated compatibility alias。1.xでは利用可能 |
 | `type(value)` | 任意の値 | ユーザー向け型名のstring |
 | `type_of(value)` | 任意の値 | ユーザー向け型名の読みやすいalias |
 | `is_number/string/boolean/list/object(value)` | 任意の値 | 公開型との完全一致判定 |
@@ -96,16 +96,16 @@ bytesはbytes部分列または0..255の整数byteを検索できます。不在
 | `log10(value)`／`log2(value)` | 正のnumber | 底10／底2の対数 |
 | `exp(value)` | number | 有限の`e`のべき乗 |
 | `pow(base, exponent)` | number | 有限の実数べき乗 |
-| `range(stop)` | 整数値number | 0から`stop`未満までのlist |
-| `range(start, stop)` | 整数値number | `start`から`stop`未満までのlist |
-| `range(start, stop, step)` | 整数値number、stepは0以外 | step間隔のnumber list |
-| `number_range(...)` | `range`と同じ厳密な引数 | number listを明示する読みやすい別名 |
+| `number_range(stop)` | 整数値number | 0から`stop`未満までのlist |
+| `number_range(start, stop)` | 整数値number | `start`から`stop`未満までのlist |
+| `number_range(start, stop, step)` | 整数値number、stepは0以外 | step間隔のnumber list |
+| `range(...)` | `number_range`と同じ厳密な引数 | deprecated compatibility alias。1.xでは利用可能 |
 | `number(value)` | numberまたは厳密な10進string | number |
 | `string(value)` | number、string、boolean | 正規化したstring表現 |
 | `boolean(value)` | booleanまたは完全一致する`"true"`／`"false"` | boolean |
 
-`range`は`step`の方向に進み、`stop`へ到達できない方向なら空listを返します。
-整数と浮動小数点はユーザーからは同じnumber型ですが、`range`は浮動小数点と
+`number_range`は`step`の方向に進み、`stop`へ到達できない方向なら空listを返します。
+整数と浮動小数点はユーザーからは同じnumber型ですが、`number_range`は浮動小数点と
 booleanを拒否します。
 
 変換は明示的かつ厳密です。`number`が受け付ける10進文字列は

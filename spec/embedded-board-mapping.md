@@ -27,7 +27,7 @@ SEP:main
 gpio_set_mode(pin.LED_BUILTIN, "output")
 gpio_write(pin.LED_BUILTIN, true)
 sensor_bus = i2c_open(0)
-end_SEP:main
+END_SEP:main
 ```
 
 The build target can instead be supplied outside source:

@@ -11,7 +11,7 @@ ok = true
 request_id = context.aws_request_id
 end_object:result
 return result
-end_SEP:handler
+END_SEP:handler
 ```
 
 runtimeはLambda workerごとにapplicationを一度だけparseし、warm invocationではASTと

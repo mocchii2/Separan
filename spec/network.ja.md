@@ -178,7 +178,7 @@ else:address_ready
 print "DHCP failed"
 endif:address_ready
 
-end_SEP:main
+END_SEP:main
 ```
 
 公開する設定操作は次です。

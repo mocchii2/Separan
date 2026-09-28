@@ -40,7 +40,7 @@ primary readable unit:
 ```separan
 SEP:show_age(age: number, labels: list<string>)
 ...
-end_SEP:show_age
+END_SEP:show_age
 ```
 
 A typed parameter accepts `EMPTY`; an untyped parameter can accept only an

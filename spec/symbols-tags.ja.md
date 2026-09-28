@@ -41,7 +41,7 @@ SEP:notify
 @aws:sns
 @通知
 send_message()
-end_SEP:notify
+END_SEP:notify
 ```
 
 tag名はNFC正規化済みidentifierを`:`で区切ったcase-sensitiveなpathです。
