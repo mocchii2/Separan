@@ -20,7 +20,7 @@ ArchitecturesInstallIn64BitMode=x64
 ArchitecturesAllowed=x64
 
 [Files]
-Source: "..\separan.exe"; DestDir: "{app}"
+Source: "..\dist\separan-windows-x86_64\separan.exe"; DestDir: "{app}"
 Source: "..\..\..\README.md"; DestDir: "{app}"
 Source: "..\..\..\docs\README.ja.md"; DestDir: "{app}\docs"
 Source: "..\..\..\docs\philosophy.md"; DestDir: "{app}\docs"
@@ -28,6 +28,9 @@ Source: "..\..\..\docs\philosophy.ja.md"; DestDir: "{app}\docs"
 Source: "..\..\..\docs\ai-integration.md"; DestDir: "{app}\docs"
 Source: "..\..\..\docs\ai-integration.ja.md"; DestDir: "{app}\docs"
 Source: "..\..\..\spec\*"; DestDir: "{app}\spec"; Flags: recursesubdirs createallsubdirs
+
+[InstallDelete]
+Type: files; Name: "{app}\separan.cmd"
 
 [Environment]
 Name: "PATH"; Value: "{app}"; Flags: userenvironpath
