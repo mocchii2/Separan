@@ -10,7 +10,6 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\Separan
-DefaultGroupName=Separan
 OutputDir=..\dist
 OutputBaseFilename=separan-installer
 Compression=lzma
@@ -22,14 +21,13 @@ ArchitecturesAllowed=x64
 
 [Files]
 Source: "..\separan.exe"; DestDir: "{app}"
-Source: "..\separan.cmd"; DestDir: "{app}"
-
-[Icons]
-Name: "{group}\Separan"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\Separan Help"; Filename: "{app}\{#MyAppExeName}"; Parameters: "-help"
+Source: "..\..\..\README.md"; DestDir: "{app}"
+Source: "..\..\..\docs\README.ja.md"; DestDir: "{app}\docs"
+Source: "..\..\..\docs\philosophy.md"; DestDir: "{app}\docs"
+Source: "..\..\..\docs\philosophy.ja.md"; DestDir: "{app}\docs"
+Source: "..\..\..\docs\ai-integration.md"; DestDir: "{app}\docs"
+Source: "..\..\..\docs\ai-integration.ja.md"; DestDir: "{app}\docs"
+Source: "..\..\..\spec\*"; DestDir: "{app}\spec"; Flags: recursesubdirs createallsubdirs
 
 [Environment]
 Name: "PATH"; Value: "{app}"; Flags: userenvironpath
-
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Parameters: "-help"; Description: "Show Separan help"; Flags: postinstall skipifdoesntexist

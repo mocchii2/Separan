@@ -43,7 +43,11 @@ jobs:
           gcc -O1 -std=c11 -Wall -Wextra -I include \
             src/main.c src/separan_core.c src/separan_lexer.c src/separan_files.c src/separan_runtime.c \
             -lm -o dist/separan-windows-x86_64/separan.exe
-          cp ../../README.md dist/separan-windows-x86_64/
+          cp ../../README.md dist/separan-windows-x86_64/README.md
+          mkdir -p dist/separan-windows-x86_64/docs
+          cp ../../docs/README.ja.md ../../docs/philosophy.md ../../docs/philosophy.ja.md \
+            ../../docs/ai-integration.md ../../docs/ai-integration.ja.md dist/separan-windows-x86_64/docs/
+          cp -R ../../spec dist/separan-windows-x86_64/spec
 
       - name: Package and upload Windows Core assets
         shell: pwsh
