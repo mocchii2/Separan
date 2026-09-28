@@ -6344,11 +6344,11 @@ static void validate_generic_labels(Runtime *r,Body body,uint64_t **numbers,size
             statement->kind==7||statement->kind==9||statement->kind==10||statement->kind==12||statement->kind==17||statement->kind==20;
         if(labeled&&statement->name){uint64_t number;int looks_generic;
             if(looks_generic=0,!generic_label_number(statement->name,&number,&looks_generic)&&looks_generic){
-                fault_at(r,"invalid generic structural label",statement->name_line?statement->name_line:statement->line,
+                fault_at(r,"invalid SEP-local label",statement->name_line?statement->name_line:statement->line,
                     statement->name_column?statement->name_column:statement->column);break;
             }
             if(looks_generic){for(size_t used=0;used<*count;used++)if((*numbers)[used]==number){
-                    fault_at(r,"duplicate generic structural label",statement->name_line?statement->name_line:statement->line,
+                    fault_at(r,"duplicate SEP-local label",statement->name_line?statement->name_line:statement->line,
                         statement->name_column?statement->name_column:statement->column);break;}
                 if(r->error)break;if(*count==*capacity){size_t next=*capacity?*capacity*2:16;uint64_t *grown=realloc(*numbers,next*sizeof(*grown));
                     if(!grown){fault(r,"out of memory");break;}*numbers=grown;*capacity=next;}(*numbers)[(*count)++]=number;

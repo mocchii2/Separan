@@ -1284,20 +1284,20 @@ function documentStructure(source) {
       const parent = stack[stack.length - 1];
       const generic = genericLabelPattern.exec(opened[2]);
       if (opened[2].startsWith("_") && (opened[2].endsWith("_") || /^_[0-9]/u.test(opened[2])) && !generic) {
-        diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Invalid generic structural label :${opened[2]}.` }); continue;
+        diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Invalid SEP-local label :${opened[2]}.` }); continue;
       }
       if (generic) {
         const sep = [...stack].reverse().find((item) => item.kind === "SEP");
-        if (!sep) diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Generic structural label :${opened[2]} must be inside a SEP.` });
+        if (!sep) diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `SEP-local label :${opened[2]} must be inside a SEP.` });
         else {
           const numbers = genericBySep.get(sep) || new Set();
-          if (numbers.has(generic[1])) diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `Generic structural label :${opened[2]} is already used in this SEP.` });
+          if (numbers.has(generic[1])) diagnostics.push({ line, column: Math.max(0, lines[line].indexOf(`:${opened[2]}`)), message: `SEP-local label :${opened[2]} is already used in this SEP.` });
           numbers.add(generic[1]); genericBySep.set(sep, numbers);
         }
       }
       const pathName = parent ? `${parent.path}/${opened[2]}` : opened[2];
       const node = { id: `${opened[1]}:${pathName}:${line + 1}`, kind: opened[1], label: opened[2], path: pathName,
-        label_kind: generic ? "generic" : "descriptive", generic_number: generic ? Number(generic[1]) : undefined,
+        label_kind: generic ? "sep_local" : "descriptive", label_number: generic ? Number(generic[1]) : undefined,
         start_line: line + 1, start_column: Math.max(1, lines[line].indexOf(`:${opened[2]}`) + 2), end_line: line + 1,
         tags: [], parameters: [], reads: [], writes: [], calls: [], children: [], source: "" };
       if (opened[1] === "SEP") {

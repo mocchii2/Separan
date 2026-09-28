@@ -404,17 +404,17 @@ class Parser:
     def _push(self, kind, label):
         generic = self._generic_label_number(label.lexeme)
         if label.lexeme.startswith("_") and (label.lexeme.endswith("_") or label.lexeme[1:2].isdigit()) and generic is None:
-            raise error("E101", "Invalid generic structural label", "Generic structural labels must use :_<positive-decimal-integer>_.", label.position, actual=label.lexeme)
+            raise error("E101", "Invalid SEP-local label", "SEP-local labels must use :_<positive-decimal-integer>_.", label.position, actual=label.lexeme)
         for opened in self.stack:
             if opened.label == label.lexeme:
                 raise error("E109", "Duplicate open label", f":{label.lexeme} is already used by an open block.", label.position, actual=label.lexeme, related=opened.position)
         if generic is not None:
             sep = next((opened for opened in reversed(self.stack) if opened.kind == "SEP"), None)
             if sep is None:
-                raise error("E109", "Generic label outside SEP", "Generic structural labels must be contained by a SEP.", label.position, actual=label.lexeme)
+                raise error("E109", "SEP-local label outside SEP", "SEP-local labels must be contained by a SEP.", label.position, actual=label.lexeme)
             used = self.generic_labels_by_sep.setdefault(id(sep), set())
             if generic in used:
-                raise error("E109", "Duplicate generic structural label", f":{label.lexeme} is already used in the containing SEP.", label.position, actual=label.lexeme, related=sep.position)
+                raise error("E109", "Duplicate SEP-local label", f":{label.lexeme} is already used in the containing SEP.", label.position, actual=label.lexeme, related=sep.position)
             used.add(generic)
         self.stack.append(OpenBlock(kind, label.lexeme, label.position))
 
