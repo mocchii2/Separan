@@ -6,7 +6,7 @@
   <img src="https://raw.githubusercontent.com/mocchii2/Separan/main/logo/separan_logo.png" alt="Separan" width="640">
 </p>
 
-**The complete Visual Studio Code environment for Separan 1.0.**
+**The complete Visual Studio Code environment for Separan 1.1.1.**
 
 Write, understand, run, and review label-structured Separan programs with rich
 editor support that works locally—without a separate language-server process.

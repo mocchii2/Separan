@@ -237,7 +237,7 @@ Separan sourceへ移しました。
 
 ## Native LAN／Wi-Fi／DNS／TCP／UDP
 
-`1.0.0`のreference runtimeには、PC／server向けのcapability制御native network層を
+`1.1.1`のreference runtimeには、PC／server向けのcapability制御native network層を
 追加しました。曖昧なstringをすべての操作へ流さず、`ip_address`、
 `network_interface`、`tcp_connection`、`udp_socket`を専用値型として扱います。
 

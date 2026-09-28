@@ -339,7 +339,7 @@ suppression, and state decisions in Separan source.
 
 ## Native LAN, Wi-Fi, DNS, TCP, and UDP
 
-The `1.0.0` reference runtime provides a capability-gated native network
+The `1.1.1` reference runtime provides a capability-gated native network
 layer for desktop and server scripts. It uses dedicated `ip_address`,
 `network_interface`, `tcp_connection`, and `udp_socket` values rather than
 passing ambiguous strings through every operation.
