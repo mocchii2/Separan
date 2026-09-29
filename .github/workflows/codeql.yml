@@ -1,0 +1,70 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  packages: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: c-cpp
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Build native core for CodeQL
+        if: matrix.language == 'c-cpp'
+        run: |
+          cc -O0 -g -std=c11 -I reference/c/include \
+            reference/c/src/main.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/separan"
+
+      - name: Build native gateway for CodeQL
+        if: matrix.language == 'c-cpp'
+        run: |
+          cc -O0 -g -std=c11 -I reference/c/include \
+            reference/c/src/separan_gw.c \
+            reference/c/src/separan_gw_fastcgi.c \
+            reference/c/src/separan_gw_supervisor.c \
+            reference/c/src/separan_core.c \
+            reference/c/src/separan_lexer.c \
+            reference/c/src/separan_files.c \
+            reference/c/src/separan_runtime.c \
+            -lm -o "$RUNNER_TEMP/separan-gw"
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}

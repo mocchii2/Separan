@@ -97,5 +97,11 @@
     }
   },
   "dependencies": {},
-  "devDependencies": { "@vscode/test-electron": "^2.5.2", "@vscode/vsce": "^3.9.2", "mocha": "^11.7.2" }
+  "devDependencies": { "@vscode/test-electron": "^2.5.2", "@vscode/vsce": "^3.9.2", "mocha": "^11.7.2" },
+  "overrides": {
+    "mocha": {
+      "diff": "8.0.3",
+      "serialize-javascript": "7.0.5"
+    }
+  }
 }
