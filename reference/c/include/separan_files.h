@@ -3,7 +3,12 @@
 
 #include <stddef.h>
 
-typedef struct { char *root; } separan_files;
+typedef struct {
+	char *root;
+#ifndef _WIN32
+	int root_fd;
+#endif
+} separan_files;
 
 int separan_files_init(separan_files *files, const char *root);
 void separan_files_free(separan_files *files);

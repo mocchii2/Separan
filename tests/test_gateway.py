@@ -222,6 +222,28 @@ class GatewayWorkerTests(unittest.TestCase):
                 process.wait(timeout=5)
                 process.stdout.close()
                 process.stderr.close()
+            self.assertFalse(socket_path.exists())
+
+    @unittest.skipIf(os.name == "nt", "Unix-domain socket listener is POSIX-only")
+    def test_fastcgi_unix_refuses_stale_socket_without_removing_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            app = root / "app.sep"
+            app.write_text('SEP:main\nprint "ready"\nEND_SEP:main\n', encoding="utf-8")
+            socket_path = root / "stale.sock"
+            stale_listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            stale_listener.bind(str(socket_path))
+            stale_listener.close()
+            config = root / "separan-gw.conf"
+            config.write_text(
+                f"source = {app}\ntransport = fastcgi-unix\nlisten = unix:{socket_path}\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run([str(self.binary), "--config", str(config)],
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("verify it is stale", result.stderr)
+            self.assertTrue(socket_path.exists())
 
     @unittest.skipIf(os.name == "nt", "POSIX prefork supervisor is POSIX-only")
     def test_fastcgi_unix_supervisor_recycles_workers(self):

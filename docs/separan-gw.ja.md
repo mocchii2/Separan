@@ -40,6 +40,8 @@ FastCGI listener は `transport` と `listen` で選びます。
 - `fastcgi-tcp` と `listen = tcp:<host>:<port>` は TCP socket を bind します。IPv6 address は `tcp:[::1]:9000` のように角括弧で囲みます。
 - `fastcgi-pipe` と `listen = pipe:<name>` は Windows named pipe を作成します。
 
+Unix socket は mode `0660` で作成します。起動時に既存の socket path は自動削除しません。stale socket を手動削除する前に、Gateway が使用中でないことを確認してください。
+
 TCP listener と named-pipe listener は、既定では single-worker です。POSIX では Unix/TCP listener に prefork supervisor を利用できます。Windows では named pipe listener に process supervisor を利用でき、TCP listener は single-worker です。
 
 Linux の release bundle は x86_64 と ARM64（`aarch64`）を別々に配布します。Gateway と CLI は共通の `make install` で install できます。architecture 非依存の source bundle では、対象 Linux の C compiler で両方を build/install できます。

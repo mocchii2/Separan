@@ -14,6 +14,7 @@
 #include <io.h>
 #else
 #include <dirent.h>
+#include <fcntl.h>
 #include <unistd.h>
 #endif
 
@@ -47,13 +48,21 @@ int separan_files_init(separan_files *files, const char *root) {
 #ifdef _WIN32
     files->root = _fullpath(NULL, root, 0);
 #else
+    files->root_fd = -1;
     files->root = realpath(root, NULL);
+    if (!files->root) return 1;
+    files->root_fd = open(files->root, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (files->root_fd < 0) { free(files->root); files->root = NULL; return 1; }
 #endif
     return files->root ? 0 : 1;
 }
 
 void separan_files_free(separan_files *files) {
     if (!files) return;
+#ifndef _WIN32
+    if (files->root_fd >= 0) close(files->root_fd);
+    files->root_fd = -1;
+#endif
     free(files->root); files->root = NULL;
 }
 
@@ -70,6 +79,51 @@ static int valid_relative(const char *path) {
     }
     return 1;
 }
+
+#ifndef _WIN32
+static int open_parent_directory(const separan_files *files, const char *relative,
+                                 int create_parents, int *parent_fd, char **name) {
+    if (!files || files->root_fd < 0 || !parent_fd || !name || !valid_relative(relative)) return 1;
+    *parent_fd = -1;
+    *name = NULL;
+    char *path = strdup(relative);
+    if (!path) return 2;
+    for (char *p = path; *p; p++) if (*p == '\\') *p = '/';
+
+    char *leaf = strrchr(path, '/');
+    if (leaf) *leaf++ = '\0';
+    else leaf = path;
+    if (!*leaf) { free(path); return 1; }
+    *name = strdup(leaf);
+    if (!*name) { free(path); return 2; }
+
+    int current = dup(files->root_fd);
+    if (current < 0) { free(path); free(*name); *name = NULL; return 2; }
+    if (leaf != path) {
+        for (char *component = path; *component;) {
+            char *next_component = strchr(component, '/');
+            if (next_component) *next_component = '\0';
+            if (*component && strcmp(component, ".") != 0) {
+                if (create_parents && mkdirat(current, component, 0777) < 0 && errno != EEXIST) {
+                    close(current); free(path); free(*name); *name = NULL; return 2;
+                }
+                int next = openat(current, component, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+                if (next < 0) {
+                    int status = errno == ELOOP ? 1 : 2;
+                    close(current); free(path); free(*name); *name = NULL; return status;
+                }
+                close(current);
+                current = next;
+            }
+            if (!next_component) break;
+            component = next_component + 1;
+        }
+    }
+    free(path);
+    *parent_fd = current;
+    return 0;
+}
+#endif
 
 static int reparse_component(const char *path) {
 #ifdef _WIN32
@@ -271,6 +325,16 @@ int separan_files_delete_directory(const separan_files *files, const char *relat
 }
 
 int separan_files_delete_file(const separan_files *files, const char *relative) {
+#ifndef _WIN32
+    int parent_fd;
+    char *name;
+    int status = open_parent_directory(files, relative, 0, &parent_fd, &name);
+    if (status) return status;
+    status = unlinkat(parent_fd, name, 0);
+    close(parent_fd);
+    free(name);
+    return status ? 2 : 0;
+#else
     char *path;
     if (separan_files_path(files, relative, &path)) return 1;
     struct stat info;
@@ -278,13 +342,59 @@ int separan_files_delete_file(const separan_files *files, const char *relative) 
     if (status || (info.st_mode & S_IFMT) != S_IFREG) { free(path); return 2; }
 #ifdef _WIN32
     status = _unlink(path);
-#else
-    status = unlink(path);
 #endif
     free(path); return status ? 2 : 0;
+#endif
 }
 
 int separan_files_copy_file(const separan_files *files, const char *source, const char *destination) {
+#ifndef _WIN32
+    int source_parent = -1, destination_parent = -1;
+    char *source_name = NULL, *destination_name = NULL;
+    int status = open_parent_directory(files, source, 0, &source_parent, &source_name);
+    if (status) return status;
+    status = open_parent_directory(files, destination, 1, &destination_parent, &destination_name);
+    if (status) { close(source_parent); free(source_name); return status; }
+
+    int input = openat(source_parent, source_name, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+    if (input < 0) { status = 2; goto copy_cleanup; }
+    struct stat info;
+    if (fstat(input, &info) || !S_ISREG(info.st_mode)) { close(input); status = 2; goto copy_cleanup; }
+    int output = openat(destination_parent, destination_name,
+                        O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0666);
+    if (output < 0) { close(input); status = errno == EEXIST ? 3 : 2; goto copy_cleanup; }
+
+    int ok = 1;
+    char buffer[65536];
+    for (;;) {
+        ssize_t count;
+        do count = read(input, buffer, sizeof(buffer)); while (count < 0 && errno == EINTR);
+        if (count < 0) { ok = 0; break; }
+        if (count == 0) break;
+        ssize_t written = 0;
+        while (written < count) {
+            ssize_t part;
+            do part = write(output, buffer + written, (size_t)(count - written));
+            while (part < 0 && errno == EINTR);
+            if (part <= 0) { ok = 0; break; }
+            written += part;
+        }
+        if (!ok) break;
+    }
+    if (close(input)) ok = 0;
+    if (close(output)) ok = 0;
+    if (!ok) {
+        unlinkat(destination_parent, destination_name, 0);
+        status = 2;
+    } else status = 0;
+
+copy_cleanup:
+    close(source_parent);
+    close(destination_parent);
+    free(source_name);
+    free(destination_name);
+    return status;
+#else
     char *from = NULL, *to = NULL;
     if (separan_files_path(files, source, &from)) return 1;
     if (separan_files_path(files, destination, &to)) { free(from); return 1; }
@@ -308,9 +418,15 @@ int separan_files_copy_file(const separan_files *files, const char *source, cons
     if (fclose(output)) ok = 0;
     if (!ok) remove(to);
     free(from); free(to); return ok ? 0 : 2;
+#endif
 }
 
 int separan_files_move_file(const separan_files *files, const char *source, const char *destination) {
+#ifndef _WIN32
+    int copied = separan_files_copy_file(files, source, destination);
+    if (copied) return copied;
+    return separan_files_delete_file(files, source);
+#else
     char *from = NULL, *to = NULL;
     if (separan_files_path(files, source, &from)) return 1;
     if (separan_files_path(files, destination, &to)) { free(from); return 1; }
@@ -324,6 +440,7 @@ int separan_files_move_file(const separan_files *files, const char *source, cons
     int copied = separan_files_copy_file(files, source, destination);
     if (copied) return copied;
     return separan_files_delete_file(files, source);
+#endif
 }
 
 int separan_files_size(const separan_files *files, const char *relative, size_t *size) {

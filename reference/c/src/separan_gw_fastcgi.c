@@ -891,30 +891,19 @@ int separan_gw_run_fastcgi_unix(separan_runtime *runtime, const char *socket_pat
     if (listener < 0) { perror("separan-gw: socket"); return 1; }
     struct sockaddr_un address; memset(&address, 0, sizeof(address));
     address.sun_family = AF_UNIX; snprintf(address.sun_path, sizeof(address.sun_path), "%s", socket_path);
-    struct stat existing;
-    if (lstat(socket_path, &existing) == 0) {
-        if (!S_ISSOCK(existing.st_mode)) {
-            fprintf(stderr, "separan-gw: socket path exists and is not a socket: %s\n", socket_path);
-            close(listener); return 1;
-        }
-        int probe = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (probe < 0) { perror("separan-gw: socket probe"); close(listener); return 1; }
-        int connect_status = connect(probe, (struct sockaddr *)&address, sizeof(address));
-        int connect_error = errno;
-        close(probe);
-        if (connect_status == 0) {
-            fprintf(stderr, "separan-gw: socket is already in use: %s\n", socket_path);
-            close(listener); return 1;
-        }
-        if (connect_error != ECONNREFUSED && connect_error != ENOENT) {
-            errno = connect_error; perror("separan-gw: socket probe"); close(listener); return 1;
-        }
-        if (unlink(socket_path) < 0) { perror("separan-gw: remove stale socket"); close(listener); return 1; }
-    } else if (errno != ENOENT) {
-        perror("separan-gw: inspect socket path"); close(listener); return 1;
+    mode_t previous_mask = umask(0117);
+    int bind_status = bind(listener, (struct sockaddr *)&address, sizeof(address));
+    int bind_error = errno;
+    umask(previous_mask);
+    if (bind_status < 0) {
+        errno = bind_error;
+        if (errno == EADDRINUSE)
+            fprintf(stderr, "separan-gw: socket path already exists; verify it is stale before removing it: %s\n", socket_path);
+        else perror("separan-gw: bind");
+        close(listener); return 1;
     }
-    if (bind(listener, (struct sockaddr *)&address, sizeof(address)) < 0 || chmod(socket_path, 0660) < 0 || listen(listener, 128) < 0) {
-        perror("separan-gw: bind/listen"); close(listener); unlink(socket_path); return 1;
+    if (listen(listener, 128) < 0) {
+        perror("separan-gw: listen"); close(listener); return 1;
     }
     return run_socket_endpoint(runtime, listener, socket_path, options);
 #endif

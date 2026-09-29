@@ -51,6 +51,10 @@ FastCGI listeners are selected with `transport` and `listen`:
     addresses use brackets, for example `tcp:[::1]:9000`;
 - `fastcgi-pipe` with `listen = pipe:<name>` creates a Windows named pipe.
 
+Unix socket paths are created with mode `0660`. A pre-existing socket path is
+not removed automatically on startup; verify that no gateway is using it before
+removing a stale socket manually.
+
 TCP and named-pipe listeners are single-worker by default. On POSIX, Unix and
 TCP listeners can use the prefork supervisor. On Windows, named-pipe listeners
 can use the process supervisor; TCP remains single-worker.

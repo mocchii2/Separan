@@ -1366,6 +1366,21 @@ END_SEP:main
         self.assertIn(caught.exception.code, actual.stderr)
         self.assertEqual((directory / "destination.txt").read_text(encoding="utf-8"), "destination")
 
+    @unittest.skipIf(os.name == "nt", "POSIX symlink permissions vary by Windows configuration")
+    def test_copy_file_rejects_symlink_source(self):
+        directory = Path(self._temporary.name)
+        with tempfile.TemporaryDirectory() as outside_directory:
+            outside = Path(outside_directory) / "secret.txt"
+            outside.write_text("private", encoding="utf-8")
+            (directory / "source-link.txt").symlink_to(outside)
+            source = 'SEP:main\ncopy_file("source-link.txt", "copy.txt")\nEND_SEP:main\n'
+            path = directory / "copy_symlink.sep"
+            path.write_text(source, encoding="utf-8")
+            actual = subprocess.run([str(self.binary), str(path)], capture_output=True, text=True)
+            self.assertNotEqual(actual.returncode, 0)
+            self.assertEqual(outside.read_text(encoding="utf-8"), "private")
+            self.assertFalse((directory / "copy.txt").exists())
+
     def test_binary_file_round_trip(self):
         directory = Path(self._temporary.name)
         (directory / "blob.bin").write_bytes(b"\x00\xffx")
