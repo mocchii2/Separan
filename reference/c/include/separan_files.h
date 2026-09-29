@@ -5,7 +5,9 @@
 
 typedef struct {
 	char *root;
-#ifndef _WIN32
+#ifdef _WIN32
+	void *root_handle;
+#else
 	int root_fd;
 #endif
 } separan_files;

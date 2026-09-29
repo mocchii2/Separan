@@ -46,7 +46,22 @@ int separan_files_init(separan_files *files, const char *root) {
     if (!files || !root) return 1;
     files->root = NULL;
 #ifdef _WIN32
+    files->root_handle = NULL;
     files->root = _fullpath(NULL, root, 0);
+    if (!files->root) return 1;
+    HANDLE root_handle = CreateFileA(files->root, FILE_READ_ATTRIBUTES,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                     NULL, OPEN_EXISTING,
+                                     FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+                                     NULL);
+    BY_HANDLE_FILE_INFORMATION root_info;
+    if (root_handle == INVALID_HANDLE_VALUE || !GetFileInformationByHandle(root_handle, &root_info) ||
+        !(root_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ||
+        (root_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+        if (root_handle != INVALID_HANDLE_VALUE) CloseHandle(root_handle);
+        free(files->root); files->root = NULL; return 1;
+    }
+    files->root_handle = root_handle;
 #else
     files->root_fd = -1;
     files->root = realpath(root, NULL);
@@ -62,6 +77,9 @@ void separan_files_free(separan_files *files) {
 #ifndef _WIN32
     if (files->root_fd >= 0) close(files->root_fd);
     files->root_fd = -1;
+#else
+    if (files->root_handle) CloseHandle((HANDLE)files->root_handle);
+    files->root_handle = NULL;
 #endif
     free(files->root); files->root = NULL;
 }
@@ -79,6 +97,62 @@ static int valid_relative(const char *path) {
     }
     return 1;
 }
+
+#ifdef _WIN32
+static char *final_path_for_handle(HANDLE handle) {
+    DWORD flags = FILE_NAME_NORMALIZED | VOLUME_NAME_DOS;
+    DWORD needed = GetFinalPathNameByHandleA(handle, NULL, 0, flags);
+    if (!needed || needed >= MAXDWORD) return NULL;
+    char *path = malloc((size_t)needed + 1);
+    if (!path) return NULL;
+    DWORD length = GetFinalPathNameByHandleA(handle, path, needed + 1, flags);
+    if (!length || length > needed) { free(path); return NULL; }
+    return path;
+}
+
+static int handle_is_within_root(const separan_files *files, HANDLE handle) {
+    char *root = final_path_for_handle((HANDLE)files->root_handle);
+    char *path = final_path_for_handle(handle);
+    if (!root || !path) { free(root); free(path); return 0; }
+    size_t root_length = strlen(root), path_length = strlen(path);
+    while (root_length > 7 && (root[root_length - 1] == '/' || root[root_length - 1] == '\\'))
+        root[--root_length] = '\0';
+    int within = path_length >= root_length && _strnicmp(root, path, root_length) == 0 &&
+                 (path_length == root_length || path[root_length] == '/' || path[root_length] == '\\');
+    free(root); free(path);
+    return within;
+}
+
+static int mark_windows_file_for_delete(HANDLE handle) {
+    FILE_DISPOSITION_INFO disposition = {TRUE};
+    return SetFileInformationByHandle(handle, FileDispositionInfo,
+                                      &disposition, sizeof(disposition)) != 0;
+}
+
+static int open_windows_regular_file(const separan_files *files, const char *relative,
+                                     DWORD access, DWORD creation, HANDLE *result) {
+    char *path;
+    if (separan_files_path(files, relative, &path)) return 1;
+    DWORD share = creation == OPEN_EXISTING ? FILE_SHARE_READ : 0;
+    HANDLE handle = CreateFileA(path, access, share, NULL, creation,
+                                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+    free(path);
+    if (handle == INVALID_HANDLE_VALUE) {
+        DWORD error = GetLastError();
+        return creation == CREATE_NEW && (error == ERROR_FILE_EXISTS || error == ERROR_ALREADY_EXISTS) ? 3 : 2;
+    }
+    BY_HANDLE_FILE_INFORMATION info;
+    if (!GetFileInformationByHandle(handle, &info) ||
+        (info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) ||
+        !handle_is_within_root(files, handle)) {
+        if (creation == CREATE_NEW) mark_windows_file_for_delete(handle);
+        CloseHandle(handle);
+        return 1;
+    }
+    *result = handle;
+    return 0;
+}
+#endif
 
 #ifndef _WIN32
 static int open_parent_directory(const separan_files *files, const char *relative,
@@ -325,7 +399,15 @@ int separan_files_delete_directory(const separan_files *files, const char *relat
 }
 
 int separan_files_delete_file(const separan_files *files, const char *relative) {
-#ifndef _WIN32
+#ifdef _WIN32
+    HANDLE file;
+    int status = open_windows_regular_file(files, relative, DELETE | FILE_READ_ATTRIBUTES,
+                                           OPEN_EXISTING, &file);
+    if (status) return status;
+    int removed = mark_windows_file_for_delete(file);
+    int closed = CloseHandle(file) != 0;
+    return removed && closed ? 0 : 2;
+#else
     int parent_fd;
     char *name;
     int status = open_parent_directory(files, relative, 0, &parent_fd, &name);
@@ -334,21 +416,45 @@ int separan_files_delete_file(const separan_files *files, const char *relative) 
     close(parent_fd);
     free(name);
     return status ? 2 : 0;
-#else
-    char *path;
-    if (separan_files_path(files, relative, &path)) return 1;
-    struct stat info;
-    int status = stat(path, &info);
-    if (status || (info.st_mode & S_IFMT) != S_IFREG) { free(path); return 2; }
-#ifdef _WIN32
-    status = _unlink(path);
-#endif
-    free(path); return status ? 2 : 0;
 #endif
 }
 
 int separan_files_copy_file(const separan_files *files, const char *source, const char *destination) {
-#ifndef _WIN32
+#ifdef _WIN32
+    char *destination_path;
+    if (separan_files_path(files, destination, &destination_path)) return 1;
+    if (make_parents(destination_path, strlen(files->root))) { free(destination_path); return 2; }
+    free(destination_path);
+
+    HANDLE input, output;
+    int status = open_windows_regular_file(files, source, GENERIC_READ | FILE_READ_ATTRIBUTES,
+                                           OPEN_EXISTING, &input);
+    if (status) return status;
+    status = open_windows_regular_file(files, destination, GENERIC_WRITE | FILE_READ_ATTRIBUTES,
+                                       CREATE_NEW, &output);
+    if (status) { CloseHandle(input); return status; }
+
+    int ok = 1;
+    char buffer[65536];
+    for (;;) {
+        DWORD count = 0;
+        if (!ReadFile(input, buffer, sizeof(buffer), &count, NULL)) { ok = 0; break; }
+        if (!count) break;
+        DWORD written = 0;
+        while (written < count) {
+            DWORD part = 0;
+            if (!WriteFile(output, buffer + written, count - written, &part, NULL) || !part) {
+                ok = 0; break;
+            }
+            written += part;
+        }
+        if (!ok) break;
+    }
+    if (!ok) mark_windows_file_for_delete(output);
+    CloseHandle(input);
+    CloseHandle(output);
+    return ok ? 0 : 2;
+#else
     int source_parent = -1, destination_parent = -1;
     char *source_name = NULL, *destination_name = NULL;
     int status = open_parent_directory(files, source, 0, &source_parent, &source_name);
@@ -394,53 +500,13 @@ copy_cleanup:
     free(source_name);
     free(destination_name);
     return status;
-#else
-    char *from = NULL, *to = NULL;
-    if (separan_files_path(files, source, &from)) return 1;
-    if (separan_files_path(files, destination, &to)) { free(from); return 1; }
-    struct stat info;
-    if (stat(from, &info) || (info.st_mode & S_IFMT) != S_IFREG) { free(from); free(to); return 2; }
-    if (stat(to, &info) == 0) { free(from); free(to); return 3; }
-    if (make_parents(to, strlen(files->root))) { free(from); free(to); return 2; }
-    FILE *input = fopen(from, "rb");
-    FILE *output = input ? fopen(to, "wbx") : NULL;
-    if (!input || !output) {
-        if (input) fclose(input);
-        free(from); free(to); return 2;
-    }
-    int ok = 1;
-    char buffer[65536];
-    size_t count;
-    while ((count = fread(buffer, 1, sizeof(buffer), input)) != 0)
-        if (fwrite(buffer, 1, count, output) != count) { ok = 0; break; }
-    if (ferror(input)) ok = 0;
-    if (fclose(input)) ok = 0;
-    if (fclose(output)) ok = 0;
-    if (!ok) remove(to);
-    free(from); free(to); return ok ? 0 : 2;
 #endif
 }
 
 int separan_files_move_file(const separan_files *files, const char *source, const char *destination) {
-#ifndef _WIN32
     int copied = separan_files_copy_file(files, source, destination);
     if (copied) return copied;
     return separan_files_delete_file(files, source);
-#else
-    char *from = NULL, *to = NULL;
-    if (separan_files_path(files, source, &from)) return 1;
-    if (separan_files_path(files, destination, &to)) { free(from); return 1; }
-    struct stat info;
-    if (stat(from, &info) || (info.st_mode & S_IFMT) != S_IFREG) { free(from); free(to); return 2; }
-    if (stat(to, &info) == 0) { free(from); free(to); return 3; }
-    if (make_parents(to, strlen(files->root))) { free(from); free(to); return 2; }
-    int moved = rename(from, to) == 0;
-    free(from); free(to);
-    if (moved) return 0;
-    int copied = separan_files_copy_file(files, source, destination);
-    if (copied) return copied;
-    return separan_files_delete_file(files, source);
-#endif
 }
 
 int separan_files_size(const separan_files *files, const char *relative, size_t *size) {
