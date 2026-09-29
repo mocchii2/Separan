@@ -1368,8 +1368,8 @@ END_SEP:main
 
     @unittest.skipIf(os.name == "nt", "POSIX symlink permissions vary by Windows configuration")
     def test_copy_file_rejects_symlink_source(self):
-        directory = Path(self._temporary.name)
-        with tempfile.TemporaryDirectory() as outside_directory:
+        with tempfile.TemporaryDirectory() as project_directory, tempfile.TemporaryDirectory() as outside_directory:
+            directory = Path(project_directory)
             outside = Path(outside_directory) / "secret.txt"
             outside.write_text("private", encoding="utf-8")
             (directory / "source-link.txt").symlink_to(outside)
