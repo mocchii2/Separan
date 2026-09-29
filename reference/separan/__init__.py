@@ -1,4 +1,4 @@
-"""Separan 1.1.1 reference implementation."""
+"""Separan 1.1.2 reference implementation."""
 
 from .interpreter import Interpreter
 from .lexer import Lexer

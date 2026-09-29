@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#define SEPARAN_VERSION "1.1.1"
+#define SEPARAN_VERSION "1.1.2"
 
 /* Database adapters exchange UTF-8 JSON with the runtime. Return zero for
    success, or 1..7 for driver, connection, authentication, query, constraint,

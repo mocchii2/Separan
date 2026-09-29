@@ -29,7 +29,7 @@ print system
 END_SEP:main
 '''
         output = execute(source, script_path=str(script), command_arguments=["server1", "--debug"])[1].splitlines()
-        self.assertEqual(output[:4], ["system", "1.1.1", "python-reference", "context.sep"])
+        self.assertEqual(output[:4], ["system", "1.1.2", "python-reference", "context.sep"])
         self.assertEqual(Path(output[4]), script.resolve())
         self.assertEqual(Path(output[5]), script.resolve().parent)
         self.assertEqual(output[6:], ["2", "[server1, --debug]", "python", "true", "true", "false", "system:[READONLY]"])

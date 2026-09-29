@@ -298,6 +298,12 @@ Use `--json` for CI and review bots. The VS Code v0.4 extension can compare the
 active file against Git `HEAD` and verify the label under the cursor. See the
 [structural AI workflow](https://github.com/mocchii2/Separan/blob/main/spec/structural-ai.md).
 
+## v1.1.2
+
+This patch release closes high-severity time-of-check/time-of-use races in
+project-root file operations. File access is anchored to the initialized root;
+Unix socket startup no longer deletes a pre-existing path automatically.
+
 ## v1.1.1
 
 The current Python reference implementation includes strict label validation,
@@ -675,7 +681,7 @@ deployment remain deferred.
 ## Status
 
 Separan core language and stable standard-library behavior are released as
-**v1.1.1**. Features explicitly marked preview or experimental remain outside
+**v1.1.2**. Features explicitly marked preview or experimental remain outside
 the stable compatibility promise. The core syntax, diagnostics, and
 cross-implementation conformance contract are now frozen.
 

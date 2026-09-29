@@ -121,9 +121,9 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
 
-          - name: Install Inno Setup
-            shell: pwsh
-            run: choco install innosetup --no-progress --yes
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
 
       - name: Build Windows Gateway Worker
         shell: msys2 {0}

@@ -26,12 +26,12 @@ Preview features are tested for regressions but are not part of the 1.0 compatib
 
 ## Current repository status
 
-The current product version is `1.1.1` for Core, Gateway, and the VS Code extension.
-The Python package version is `1.1.1`. The native C runtime is an independent
+The current product version is `1.1.2` for Core, Gateway, and the VS Code extension.
+The Python package version is `1.1.2`. The native C runtime is an independent
 implementation checked by the cross-implementation suite. The current repository
 run has 2,159 tests: 2,152 pass and 7 are skipped, including 3 external database
 integration tests that require credentials; all three database cases have also
 been verified manually. The VS Code extension is published as
-`separan-language` 1.1.1. The v1.0 core specification is frozen by
+`separan-language` 1.1.2. The v1.0 core specification is frozen by
 `spec/README.md`; features explicitly marked preview or experimental remain
 outside the stable compatibility promise until promoted in a later release.

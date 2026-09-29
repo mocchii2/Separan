@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.2] - 2026-09-29
+
+- Refreshes development dependencies and native security checks after the 1.1.1 release.
+
 ## Unreleased
 
 ## [1.1.0] - 2026-09-26

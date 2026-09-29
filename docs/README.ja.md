@@ -207,6 +207,11 @@ CIやreview botでは`--json`を利用できます。公開済みVS Code 1.0.1�
 比較し、cursor位置のlabel scopeを検証できます。詳細は
 [構造AI workflow](../spec/structural-ai.ja.md)を参照してください。
 
+## v1.1.2
+
+このpatch releaseでは、project root内のファイル操作にあった重大度HighのTOCTOU raceを修正しました。
+file accessは初期化時のroot handleに固定し、Unix socket起動時は既存pathを自動削除しません。
+
 ## v1.1.1
 
 現在のPythonリファレンス実装には、厳密なラベル検証、詳細なエラー診断、
@@ -524,7 +529,7 @@ AST保存formatterをVS Code拡張へ提供します。詳細は
 
 ## 状態
 
-Separanのcore言語とstable standard libraryは **v1.1.1** として公開します。
+Separanのcore言語とstable standard libraryは **v1.1.2** として公開します。
 previewまたはexperimentalと明記された機能は、将来の昇格までstable互換性の
 対象外です。core構文、診断、cross-implementation適合contractは固定されています。
 
